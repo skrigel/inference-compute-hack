@@ -174,12 +174,19 @@ python -m eval.standard_benchmark \
   --name "short optimization name" \
   --run-modal \
   --gpu-counts 1,6 \
+  --matrix-runs 5 \
+  --warmup-excluded \
   --single-requests 32 \
   --multi-requests 96 \
   --single-concurrency 1 \
   --multi-concurrency 32 \
   --dataset-sizes 7 100 1000 10000 25000 100000
 ```
+
+`--matrix-runs` controls repeated H100 matrix artifacts. `--rag-runs` controls
+only the RAG ladder repetitions. When `--warmup-excluded` is set and more than
+one matrix artifact exists for a label, the first matrix artifact is marked
+`is_warmup: true`, copied into `runs/`, and excluded from aggregate statistics.
 
 Outputs:
 

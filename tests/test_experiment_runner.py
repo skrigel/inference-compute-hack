@@ -1,4 +1,5 @@
 import json
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -42,6 +43,23 @@ class ExperimentRunnerTests(unittest.TestCase):
             path = _ensure_experiment_dir("EXP-TEST-001")
             mock_mkdir.assert_called()
             self.assertIn("EXP-TEST-001", str(path))
+
+    def test_repetitions_drive_h100_matrix_runs_and_warmup_exclusion(self):
+        from eval import experiment_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(experiment_runner, "EXPERIMENT_ROOT", Path(tmp) / "experiment_results"):
+                result = experiment_runner.run_experiment(
+                    "EXP-BATCH-001",
+                    repetitions=5,
+                    gpu_counts="1,6",
+                    dataset_sizes=[7],
+                    dry_run=True,
+                )
+
+        self.assertIn("--matrix-runs 5", result["command"])
+        self.assertIn("--rag-runs 5", result["command"])
+        self.assertIn("--warmup-excluded", result["command"])
 
 
 if __name__ == "__main__":

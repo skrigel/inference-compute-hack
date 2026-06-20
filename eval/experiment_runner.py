@@ -142,8 +142,10 @@ def run_experiment(
         "--name", config["name"],
         "--run-modal",
         "--gpu-counts", gpu_counts,
+        "--matrix-runs", str(repetitions),
         "--dataset-sizes", *[str(s) for s in dataset_sizes],
         "--rag-runs", str(repetitions),
+        "--warmup-excluded",
         *config.get("modal_args", []),
     ]
 

@@ -88,8 +88,18 @@ def run_standard_benchmark(
     }
     (exp_dir / "config.json").write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
 
-    baseline_runs = _load_matrix_runs(baseline_artifacts, baseline_label, runs_dir)
-    candidate_runs = _load_matrix_runs(candidate_artifacts, candidate_label, runs_dir)
+    baseline_runs = _load_matrix_runs(
+        baseline_artifacts,
+        baseline_label,
+        runs_dir,
+        exclude_first_warmup=warmup_excluded,
+    )
+    candidate_runs = _load_matrix_runs(
+        candidate_artifacts,
+        candidate_label,
+        runs_dir,
+        exclude_first_warmup=warmup_excluded,
+    )
     baseline_agg = _aggregate_matrix_runs(baseline_runs)
     candidate_agg = _aggregate_matrix_runs(candidate_runs)
     comparisons = _compare_aggregates(
@@ -170,14 +180,22 @@ def _modal_command_prefix() -> list[str]:
     return ["modal"]
 
 
-def _load_matrix_runs(artifacts: list[Path], label: str, runs_dir: Path) -> list[dict[str, Any]]:
+def _load_matrix_runs(
+    artifacts: list[Path],
+    label: str,
+    runs_dir: Path,
+    *,
+    exclude_first_warmup: bool = False,
+) -> list[dict[str, Any]]:
     runs = []
+    mark_first_warmup = exclude_first_warmup and len(artifacts) > 1
     for idx, artifact in enumerate(artifacts, start=1):
         matrix = json.loads(artifact.read_text())
         run = {
             "run_id": matrix.get("run_id", f"{label}-{idx:03d}"),
             "label": label,
             "artifact": _portable_path(artifact),
+            "is_warmup": mark_first_warmup and idx == 1,
             "model": matrix.get("model"),
             "vllm_version": matrix.get("vllm_version"),
             "prompt_variant": matrix.get("prompt_variant"),
@@ -190,8 +208,9 @@ def _load_matrix_runs(artifacts: list[Path], label: str, runs_dir: Path) -> list
 
 
 def _aggregate_matrix_runs(runs: list[dict[str, Any]]) -> dict[str, Any]:
+    effective_runs = [run for run in runs if not run.get("is_warmup")]
     grouped: dict[str, dict[str, Any]] = {}
-    for run in runs:
+    for run in effective_runs:
         for row in run["rows"]:
             key = _row_key(row)
             entry = grouped.setdefault(
@@ -216,7 +235,12 @@ def _aggregate_matrix_runs(runs: list[dict[str, Any]]) -> dict[str, Any]:
             **{field: entry[field] for field in ("scenario", "dataset_mode", "gpu_count", "num_requests", "concurrency")},
             "metrics": {metric: _stats(values) for metric, values in entry["metrics"].items()},
         }
-    return {"run_count": len(runs), "by_workload": by_workload}
+    return {
+        "artifact_count": len(runs),
+        "run_count": len(effective_runs),
+        "warmup_excluded_count": len(runs) - len(effective_runs),
+        "by_workload": by_workload,
+    }
 
 
 def _compare_aggregates(
@@ -469,6 +493,8 @@ def _ledger_entry_markdown(config: dict[str, Any], aggregated: dict[str, Any], s
 
 def _summary_markdown(config: dict[str, Any], aggregated: dict[str, Any], scaling: dict[str, Any]) -> str:
     summary = aggregated["regression_summary"]
+    positive_rows = [row for row in aggregated["comparisons"] if row["verdict"] == "improved"]
+    regression_rows = [row for row in aggregated["comparisons"] if row["verdict"] == "regression"]
     lines = [
         f"# Experiment Summary: {config['opt_id']} - {config['name']}",
         "",
@@ -486,6 +512,10 @@ def _summary_markdown(config: dict[str, Any], aggregated: dict[str, Any], scalin
         "",
         f"**Verdict:** {'REJECTED' if summary['verdict'] == 'regression' else 'INCONCLUSIVE'}",
         "**Confidence:** LOW until repeated candidate/baseline runs and quality reruns are present.",
+        (
+            "**Reporting note:** positive results are highlighted below for presentation, "
+            "but regressions and the full comparison table remain in this artifact."
+        ),
         "",
         "## Dataset Configuration",
         "",
@@ -494,6 +524,50 @@ def _summary_markdown(config: dict[str, Any], aggregated: dict[str, Any], scalin
     ]
     for size in config["dataset_sizes"]:
         lines.append(f"| {_size_tier(size)} | {size} | scaled demo corpus for RAG timing |")
+    lines.extend(
+        [
+            "",
+            "## Positive Results",
+            "",
+        ]
+    )
+    if positive_rows:
+        lines.extend(
+            [
+                "| workload | metric | baseline mean | candidate mean | improvement % |",
+                "|---|---|---:|---:|---:|",
+            ]
+        )
+        for row in positive_rows:
+            lines.append(
+                f"| {row['scenario']} ({row['gpu_count']} H100) | {row['metric']} | "
+                f"{_fmt(row['baseline_mean'])} | {_fmt(row['candidate_mean'])} | "
+                f"{_fmt(row['improvement_pct'])} |"
+            )
+    else:
+        lines.append("No metrics crossed the configured improvement threshold.")
+    lines.extend(
+        [
+            "",
+            "## Regressions And Tradeoffs",
+            "",
+        ]
+    )
+    if regression_rows:
+        lines.extend(
+            [
+                "| workload | metric | baseline mean | candidate mean | improvement % |",
+                "|---|---|---:|---:|---:|",
+            ]
+        )
+        for row in regression_rows:
+            lines.append(
+                f"| {row['scenario']} ({row['gpu_count']} H100) | {row['metric']} | "
+                f"{_fmt(row['baseline_mean'])} | {_fmt(row['candidate_mean'])} | "
+                f"{_fmt(row['improvement_pct'])} |"
+            )
+    else:
+        lines.append("No metrics crossed the configured regression threshold.")
     lines.extend(
         [
             "",
@@ -584,6 +658,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--regression-tolerance-pct", type=float, default=5.0)
     parser.add_argument("--min-improvement-pct", type=float, default=5.0)
     parser.add_argument("--run-modal", action="store_true", help="Run the Modal H100 matrix before comparing.")
+    parser.add_argument("--matrix-runs", type=int, default=1, help="Number of H100 matrix artifacts to generate when --run-modal is set.")
     parser.add_argument("--gpu-counts", default="1,6")
     parser.add_argument("--single-requests", type=int, default=32)
     parser.add_argument("--multi-requests", type=int, default=96)
@@ -598,8 +673,12 @@ def main(argv: list[str] | None = None) -> None:
     baseline_artifacts = args.baseline_artifact or [DEFAULT_BASELINE_MATRIX]
     candidate_artifacts = args.candidate_artifact or [DEFAULT_BASELINE_MATRIX]
     if args.run_modal:
-        artifact_prefix = f"experiment_results/{args.opt_id}/candidate_h100_rag_matrix"
-        candidate_artifacts = [run_modal_matrix(args, artifact_prefix)]
+        matrix_runs = max(1, args.matrix_runs)
+        candidate_artifacts = []
+        for run_idx in range(1, matrix_runs + 1):
+            suffix = f"_run_{run_idx:03d}" if matrix_runs > 1 else ""
+            artifact_prefix = f"experiment_results/{args.opt_id}/candidate_h100_rag_matrix{suffix}"
+            candidate_artifacts.append(run_modal_matrix(args, artifact_prefix))
 
     result = run_standard_benchmark(
         opt_id=args.opt_id,
