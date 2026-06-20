@@ -1,0 +1,29 @@
+{
+  "environment_id": "extension3-agent-loop",
+  "failure_modes_to_log": [
+    "query_overbroad_high_recall_low_precision",
+    "query_underspecified_low_recall",
+    "early_stop_before_pass_gate",
+    "byte_budget_exceeded",
+    "reward_hacking_by_selecting_all_chunks"
+  ],
+  "reward_formula": {
+    "movement_ratio": "bytes_moved_this_rollout / total_corpus_bytes",
+    "pass_gate": "recall >= 0.8 and precision >= 0.5",
+    "score": "f1 + 0.25 * recall - 0.05 * movement_ratio - 0.10 * selected_ratio",
+    "selected_ratio": "bytes_selected_final / total_corpus_bytes"
+  },
+  "schema_version": "extension3.reward_contract.v1",
+  "track_mapping": {
+    "M": "The policy proposes the next refined query or stop action.",
+    "T": "A query-refinement task over a labeled dynamic corpus.",
+    "V": "A verifier compares selected evidence ids to positive chunk ids.",
+    "r": "Scalar reward from quality, byte movement, and memory selectivity.",
+    "y": "The refined query, selected evidence set, and optional stop decision."
+  },
+  "verifiers_shape": {
+    "dataset": "Rows contain cohort_id, initial_query, target_topic, chunk records, and positive_chunk_ids.",
+    "harness": "Multi-turn loop: policy proposes query, scorer selects chunks, verifier returns state and reward.",
+    "rubric": "Reward functions score precision, recall, F1, byte movement, selected bytes, and stop quality."
+  }
+}

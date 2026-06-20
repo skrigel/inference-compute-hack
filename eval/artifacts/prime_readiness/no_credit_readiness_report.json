@@ -1,0 +1,39 @@
+{
+  "artifacts": {
+    "cohorts": "eval/artifacts/prime_readiness/cohort_manifest.example.json",
+    "lift_schema": "eval/artifacts/prime_readiness/metric_to_lift_schema.example.json",
+    "readiness_report": "eval/artifacts/prime_readiness/no_credit_readiness_report.json",
+    "readiness_report_md": "eval/artifacts/prime_readiness/no_credit_readiness_report.md",
+    "reward_contract": "eval/artifacts/prime_readiness/reward_contract.example.json",
+    "runbook": "eval/artifacts/prime_readiness/NO_CREDIT_RUNBOOK.md",
+    "train_config": "eval/artifacts/prime_readiness/prime_train.example.toml"
+  },
+  "blocking_items": [
+    "prime CLI is not available or did not respond to --help",
+    "explicit user approval for Prime credit use has not been recorded"
+  ],
+  "checks": {
+    "local_agent_loop_smoke": {
+      "mean_best_f1": 1.0,
+      "mean_truth_gain": 0.447619,
+      "pass_rate": 1.0,
+      "passed": true
+    },
+    "prime_cli": {
+      "available": false,
+      "passed": false,
+      "reason": "prime CLI not found; install/authenticate before running Prime eval or training."
+    },
+    "training_gate": {
+      "passed": true,
+      "reason": "This smoke path never invokes prime train run."
+    }
+  },
+  "generated_ms": 10.283,
+  "next_allowed_action": "Run Modal CPU smoke, then only launch Prime training after explicit credit approval.",
+  "paid_training_launched": false,
+  "ready_for_prime_training_launch": false,
+  "schema_version": "extension3.no_credit_readiness_report.v1",
+  "smoke_docs": 60,
+  "task_count": 3
+}

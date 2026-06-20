@@ -1,29 +1,29 @@
 # Extension 3 Agent Loop Experiment
 
-- run_id: `agent-loop-64279313`
-- commit: `685e451`
+- run_id: `agent-loop-7d2ffe3d`
+- commit: `7da5c2d`
 - model: `mock-semantic-filter-v0`
-- docs per task: `80`
+- docs per task: `60`
 - tasks: `3`
-- elapsed_ms: `16.885`
+- elapsed_ms: `12.157`
 
 ## Dataset Metrics
 
 | metric | value |
 |---|---:|
-| mean_best_reward | 1.191004 |
+| mean_best_reward | 1.192035 |
 | mean_best_f1 | 1.000000 |
 | pass_rate | 1.000000 |
 | task_diversity | 1.000000 |
-| trajectory_entropy | 2.108968 |
-| mean_memory_selectivity | 0.089964 |
-| mean_movement_selectivity | 0.089964 |
-| agent_vs_human_speedup_estimate | 26651.632777 |
+| trajectory_entropy | 2.046663 |
+| mean_memory_selectivity | 0.079648 |
+| mean_movement_selectivity | 0.079648 |
+| agent_vs_human_speedup_estimate | 37014.776381 |
 
 ## Episodes
 
 | task | topic | best query | best reward | precision | recall | F1 | movement selectivity |
 |---|---|---|---:|---:|---:|---:|---:|
-| agent-loop-0 | retry_backoff | retry networking layer | 1.191408 | 1.000000 | 1.000000 | 1.000000 | 0.085916 |
-| agent-loop-1 | ir_retrieval | retrieval ranking metrics | 1.191148 | 1.000000 | 1.000000 | 1.000000 | 0.088518 |
-| agent-loop-2 | cache_threshold | cache threshold drag without rescoring | 1.190454 | 1.000000 | 1.000000 | 1.000000 | 0.095456 |
+| agent-loop-0 | retry_backoff | retry networking layer | 1.192294 | 1.000000 | 1.000000 | 1.000000 | 0.077063 |
+| agent-loop-1 | ir_retrieval | retrieval ranking metrics | 1.192206 | 1.000000 | 1.000000 | 1.000000 | 0.077944 |
+| agent-loop-2 | cache_threshold | cache threshold drag without rescoring | 1.191606 | 1.000000 | 1.000000 | 1.000000 | 0.083936 |

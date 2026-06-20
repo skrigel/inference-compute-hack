@@ -1,0 +1,52 @@
+{
+  "analysis_outputs": {
+    "goodness_of_fit": [
+      "r2",
+      "rmse",
+      "spearman_rank"
+    ],
+    "pareto_axes": [
+      "metric_cost_proxy",
+      "predictive_power"
+    ],
+    "predictor_columns": [
+      "mean_reward_variance",
+      "trajectory_entropy",
+      "mean_steps_to_threshold",
+      "mean_memory_selectivity",
+      "mean_movement_selectivity"
+    ],
+    "target_column": "lift"
+  },
+  "required_rows": [
+    {
+      "cheap_metrics_before_training": {
+        "cost_proxy_model_calls": 0,
+        "mean_best_f1": 0.0,
+        "mean_best_reward": 0.0,
+        "mean_memory_selectivity": 0.0,
+        "mean_movement_selectivity": 0.0,
+        "mean_reward_variance": 0.0,
+        "mean_steps_to_threshold": 0.0,
+        "trajectory_entropy": 0.0
+      },
+      "cohort_id": "c00_baseline_retry",
+      "eval": {
+        "baseline_reward": 0.0,
+        "heldout_pass_rate": 0.0,
+        "lift": 0.0,
+        "trained_reward": 0.0
+      },
+      "split": "train",
+      "training": {
+        "adapter_artifact": "",
+        "algorithm": "GRPO",
+        "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "estimated_cost_usd": 0.0,
+        "train_wall_clock_minutes": 0.0
+      }
+    }
+  ],
+  "schema_version": "extension3.metric_to_lift.v1",
+  "unit": "cohort"
+}

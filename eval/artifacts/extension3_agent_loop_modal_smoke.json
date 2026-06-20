@@ -1,41 +1,41 @@
 {
   "beam_width": 5,
-  "commit": "685e451",
+  "commit": "7da5c2d",
   "dataset_metrics": {
-    "agent_elapsed_ms": 16.884518999999987,
-    "agent_vs_human_speedup_estimate": 26651.632776746577,
+    "agent_elapsed_ms": 12.157307000000062,
+    "agent_vs_human_speedup_estimate": 37014.776380986164,
     "cost_quality_frontier": [
       {
-        "cost_proxy_model_calls": 400,
+        "cost_proxy_model_calls": 300,
         "quality": 1.0,
-        "reward": 1.1914083741163675,
+        "reward": 1.1922937443336354,
         "task_id": "agent-loop-0"
       },
       {
-        "cost_proxy_model_calls": 400,
+        "cost_proxy_model_calls": 300,
         "quality": 1.0,
-        "reward": 1.1911481719050674,
+        "reward": 1.1922055674518202,
         "task_id": "agent-loop-1"
       },
       {
-        "cost_proxy_model_calls": 400,
+        "cost_proxy_model_calls": 300,
         "quality": 1.0,
-        "reward": 1.1904543968617194,
+        "reward": 1.191606399298707,
         "task_id": "agent-loop-2"
       }
     ],
     "estimated_human_ms": 450000.0,
     "mean_best_f1": 1.0,
-    "mean_best_reward": 1.1910036476277182,
-    "mean_memory_selectivity": 0.08996352372281848,
-    "mean_movement_selectivity": 0.08996352372281848,
-    "mean_reward_variance": 0.05796933317801147,
+    "mean_best_reward": 1.192035237028054,
+    "mean_memory_selectivity": 0.07964762971945781,
+    "mean_movement_selectivity": 0.07964762971945781,
+    "mean_reward_variance": 0.07022416510125427,
     "mean_steps_to_threshold": 1.3333333333333333,
     "pass_rate": 1.0,
     "task_diversity": 1.0,
-    "trajectory_entropy": 2.108967597126291
+    "trajectory_entropy": 2.0466626882022623
   },
-  "elapsed_ms": 16.884518999999987,
+  "elapsed_ms": 12.157307000000062,
   "episodes": [
     {
       "best_quality": {
@@ -44,119 +44,119 @@
         "fp": 0.0,
         "precision": 1.0,
         "recall": 1.0,
-        "tp": 6.0
+        "tp": 4.0
       },
       "best_query": "retry networking layer",
-      "best_reward": 1.1914083741163675,
+      "best_reward": 1.1922937443336354,
       "initial_query": "retry",
       "metrics": {
         "best_query": "retry networking layer",
         "branching_factor": 5,
-        "bytes_moved_total": 36780,
-        "bytes_selected_best": 632,
-        "cost_proxy_model_calls": 400,
-        "initial_reward": 0.5304240602229472,
-        "max_reward": 1.1914083741163675,
+        "bytes_moved_total": 27575,
+        "bytes_selected_best": 425,
+        "cost_proxy_model_calls": 300,
+        "initial_reward": 0.41055983680870356,
+        "max_reward": 1.1922937443336354,
         "max_score": 1.0,
-        "memory_selectivity": 0.08591625883632409,
-        "movement_selectivity": 0.08591625883632409,
+        "memory_selectivity": 0.0770625566636446,
+        "movement_selectivity": 0.0770625566636446,
         "reasoning_steps": 4,
-        "reward_variance": 0.09569209279933259,
+        "reward_variance": 0.1064335705932502,
         "steps_to_threshold": 1,
         "task_token_length": 6,
         "tool_calls": 5,
-        "trajectory_entropy": 1.8650312033350058,
-        "truth_gain": 0.5
+        "trajectory_entropy": 1.8265283144349629,
+        "truth_gain": 0.6
       },
       "steps": [
         {
           "action": "initial",
-          "bytes_moved": 7356,
+          "bytes_moved": 5515,
           "quality": {
-            "f1": 0.5,
-            "fn": 4.0,
+            "f1": 0.4,
+            "fn": 3.0,
             "fp": 0.0,
             "precision": 1.0,
-            "recall": 0.333333,
-            "tp": 2.0
+            "recall": 0.25,
+            "tp": 1.0
           },
           "query": "retry",
-          "reward": 0.5304240602229472,
-          "score_latency_ms": 0.9562509999998525,
-          "selected_bytes": 214,
-          "selected_count": 2,
+          "reward": 0.41055983680870356,
+          "score_latency_ms": 0.657671999999998,
+          "selected_bytes": 107,
+          "selected_count": 1,
           "step_idx": 0
         },
         {
           "action": "add:networking layer",
-          "bytes_moved": 7356,
+          "bytes_moved": 5515,
           "quality": {
             "f1": 1.0,
             "fn": 0.0,
             "fp": 0.0,
             "precision": 1.0,
             "recall": 1.0,
-            "tp": 6.0
+            "tp": 4.0
           },
           "query": "retry networking layer",
-          "reward": 1.1914083741163675,
-          "score_latency_ms": 1.0205530000000351,
-          "selected_bytes": 632,
-          "selected_count": 6,
+          "reward": 1.1922937443336354,
+          "score_latency_ms": 0.7233360000000744,
+          "selected_bytes": 425,
+          "selected_count": 4,
           "step_idx": 1
         },
         {
           "action": "add:without backoff",
-          "bytes_moved": 7356,
+          "bytes_moved": 5515,
           "quality": {
-            "f1": 0.25,
+            "f1": 0.222222,
             "fn": 0.0,
-            "fp": 36.0,
-            "precision": 0.142857,
+            "fp": 28.0,
+            "precision": 0.125,
             "recall": 1.0,
-            "tp": 6.0
+            "tp": 4.0
           },
           "query": "retry networking layer without backoff",
-          "reward": 0.39543230016313213,
-          "score_latency_ms": 1.0520439999999187,
-          "selected_bytes": 4014,
-          "selected_count": 42,
+          "reward": 0.3668638857660925,
+          "score_latency_ms": 0.756976999999992,
+          "selected_bytes": 3053,
+          "selected_count": 32,
           "step_idx": 2
         },
         {
           "action": "add:HTTP",
-          "bytes_moved": 7356,
+          "bytes_moved": 5515,
           "quality": {
-            "f1": 0.25,
+            "f1": 0.222222,
             "fn": 0.0,
-            "fp": 36.0,
-            "precision": 0.142857,
+            "fp": 28.0,
+            "precision": 0.125,
             "recall": 1.0,
-            "tp": 6.0
+            "tp": 4.0
           },
           "query": "retry networking layer without backoff HTTP",
-          "reward": 0.39543230016313213,
-          "score_latency_ms": 1.0553739999998868,
-          "selected_bytes": 4014,
-          "selected_count": 42,
+          "reward": 0.3668638857660925,
+          "score_latency_ms": 0.7573169999999241,
+          "selected_bytes": 3053,
+          "selected_count": 32,
           "step_idx": 3
         },
         {
           "action": "add:connection pool",
-          "bytes_moved": 7356,
+          "bytes_moved": 5515,
           "quality": {
-            "f1": 0.25,
+            "f1": 0.222222,
             "fn": 0.0,
-            "fp": 36.0,
-            "precision": 0.142857,
+            "fp": 28.0,
+            "precision": 0.125,
             "recall": 1.0,
-            "tp": 6.0
+            "tp": 4.0
           },
           "query": "retry networking layer without backoff HTTP connection pool",
-          "reward": 0.39543230016313213,
-          "score_latency_ms": 1.0896349999998112,
-          "selected_bytes": 4014,
-          "selected_count": 42,
+          "reward": 0.3668638857660925,
+          "score_latency_ms": 0.7598170000000515,
+          "selected_bytes": 3053,
+          "selected_count": 32,
           "step_idx": 4
         }
       ],
@@ -170,119 +170,119 @@
         "fp": 0.0,
         "precision": 1.0,
         "recall": 1.0,
-        "tp": 6.0
+        "tp": 4.0
       },
       "best_query": "retrieval ranking metrics",
-      "best_reward": 1.1911481719050674,
+      "best_reward": 1.1922055674518202,
       "initial_query": "retrieval",
       "metrics": {
         "best_query": "retrieval ranking metrics",
         "branching_factor": 5,
-        "bytes_moved_total": 31180,
-        "bytes_selected_best": 552,
-        "cost_proxy_model_calls": 400,
-        "initial_reward": 0.9107334594291212,
-        "max_reward": 1.1911481719050674,
+        "bytes_moved_total": 23350,
+        "bytes_selected_best": 364,
+        "cost_proxy_model_calls": 300,
+        "initial_reward": 0.988797175588865,
+        "max_reward": 1.1922055674518202,
         "max_score": 1.0,
-        "memory_selectivity": 0.0885182809493265,
-        "movement_selectivity": 0.0885182809493265,
+        "memory_selectivity": 0.07794432548179872,
+        "movement_selectivity": 0.07794432548179872,
         "reasoning_steps": 4,
-        "reward_variance": 0.01258118575567481,
+        "reward_variance": 0.006619995820843761,
         "steps_to_threshold": 1,
         "task_token_length": 7,
         "tool_calls": 5,
-        "trajectory_entropy": 2.305958492868042,
-        "truth_gain": 0.19999999999999996
+        "trajectory_entropy": 2.313459750171824,
+        "truth_gain": 0.142857
       },
       "steps": [
         {
           "action": "initial",
-          "bytes_moved": 6236,
+          "bytes_moved": 4670,
           "quality": {
-            "f1": 0.8,
-            "fn": 2.0,
+            "f1": 0.857143,
+            "fn": 1.0,
             "fp": 0.0,
             "precision": 1.0,
-            "recall": 0.666667,
-            "tp": 4.0
+            "recall": 0.75,
+            "tp": 3.0
           },
           "query": "retrieval",
-          "reward": 0.9107334594291212,
-          "score_latency_ms": 0.8542690000001851,
-          "selected_bytes": 370,
-          "selected_count": 4,
+          "reward": 0.988797175588865,
+          "score_latency_ms": 0.6445020000001023,
+          "selected_bytes": 273,
+          "selected_count": 3,
           "step_idx": 0
         },
         {
           "action": "add:ranking metrics",
-          "bytes_moved": 6236,
+          "bytes_moved": 4670,
           "quality": {
             "f1": 1.0,
             "fn": 0.0,
             "fp": 0.0,
             "precision": 1.0,
             "recall": 1.0,
-            "tp": 6.0
+            "tp": 4.0
           },
           "query": "retrieval ranking metrics",
-          "reward": 1.1911481719050674,
-          "score_latency_ms": 0.8888799999999808,
-          "selected_bytes": 552,
-          "selected_count": 6,
+          "reward": 1.1922055674518202,
+          "score_latency_ms": 0.5967689999999415,
+          "selected_bytes": 364,
+          "selected_count": 4,
           "step_idx": 1
         },
         {
           "action": "add:code search",
-          "bytes_moved": 6236,
+          "bytes_moved": 4670,
           "quality": {
             "f1": 1.0,
             "fn": 0.0,
             "fp": 0.0,
             "precision": 1.0,
             "recall": 1.0,
-            "tp": 6.0
+            "tp": 4.0
           },
           "query": "retrieval ranking metrics code search",
-          "reward": 1.1911481719050674,
-          "score_latency_ms": 0.8971200000000845,
-          "selected_bytes": 552,
-          "selected_count": 6,
+          "reward": 1.1922055674518202,
+          "score_latency_ms": 0.6354209999999139,
+          "selected_bytes": 364,
+          "selected_count": 4,
           "step_idx": 2
         },
         {
           "action": "add:information retrieval",
-          "bytes_moved": 6236,
+          "bytes_moved": 4670,
           "quality": {
             "f1": 1.0,
             "fn": 0.0,
             "fp": 0.0,
             "precision": 1.0,
             "recall": 1.0,
-            "tp": 6.0
+            "tp": 4.0
           },
           "query": "retrieval ranking metrics code search information retrieval",
-          "reward": 1.1911481719050674,
-          "score_latency_ms": 0.9219799999999889,
-          "selected_bytes": 552,
-          "selected_count": 6,
+          "reward": 1.1922055674518202,
+          "score_latency_ms": 0.6652230000001591,
+          "selected_bytes": 364,
+          "selected_count": 4,
           "step_idx": 3
         },
         {
           "action": "add:semantic quality",
-          "bytes_moved": 6236,
+          "bytes_moved": 4670,
           "quality": {
             "f1": 1.0,
             "fn": 0.0,
             "fp": 0.0,
             "precision": 1.0,
             "recall": 1.0,
-            "tp": 6.0
+            "tp": 4.0
           },
           "query": "retrieval ranking metrics code search information retrieval semantic quality",
-          "reward": 1.1911481719050674,
-          "score_latency_ms": 0.9527519999998901,
-          "selected_bytes": 552,
-          "selected_count": 6,
+          "reward": 1.1922055674518202,
+          "score_latency_ms": 0.6934540000000933,
+          "selected_bytes": 364,
+          "selected_count": 4,
           "step_idx": 4
         }
       ],
@@ -296,119 +296,119 @@
         "fp": 0.0,
         "precision": 1.0,
         "recall": 1.0,
-        "tp": 6.0
+        "tp": 4.0
       },
       "best_query": "cache threshold drag without rescoring",
-      "best_reward": 1.1904543968617194,
+      "best_reward": 1.191606399298707,
       "initial_query": "cache",
       "metrics": {
         "best_query": "cache threshold drag without rescoring",
         "branching_factor": 5,
-        "bytes_moved_total": 30590,
-        "bytes_selected_best": 584,
-        "cost_proxy_model_calls": 400,
-        "initial_reward": 0.5303584216247139,
-        "max_reward": 1.1904543968617194,
+        "bytes_moved_total": 22815,
+        "bytes_selected_best": 383,
+        "cost_proxy_model_calls": 300,
+        "initial_reward": 0.410505698005698,
+        "max_reward": 1.191606399298707,
         "max_score": 1.0,
-        "memory_selectivity": 0.09545603138280484,
-        "movement_selectivity": 0.09545603138280484,
+        "memory_selectivity": 0.0839360070129301,
+        "movement_selectivity": 0.0839360070129301,
         "reasoning_steps": 4,
-        "reward_variance": 0.065634720979027,
+        "reward_variance": 0.09761892888966885,
         "steps_to_threshold": 2,
         "task_token_length": 5,
         "tool_calls": 5,
-        "trajectory_entropy": 2.1559130951758245,
-        "truth_gain": 0.5
+        "trajectory_entropy": 2.0,
+        "truth_gain": 0.6
       },
       "steps": [
         {
           "action": "initial",
-          "bytes_moved": 6118,
+          "bytes_moved": 4563,
           "quality": {
-            "f1": 0.5,
-            "fn": 4.0,
+            "f1": 0.4,
+            "fn": 3.0,
             "fp": 0.0,
             "precision": 1.0,
-            "recall": 0.333333,
-            "tp": 2.0
+            "recall": 0.25,
+            "tp": 1.0
           },
           "query": "cache",
-          "reward": 0.5303584216247139,
-          "score_latency_ms": 0.7215859999998298,
-          "selected_bytes": 182,
-          "selected_count": 2,
+          "reward": 0.410505698005698,
+          "score_latency_ms": 0.5304860000001632,
+          "selected_bytes": 91,
+          "selected_count": 1,
           "step_idx": 0
         },
         {
           "action": "add:threshold drag",
-          "bytes_moved": 6118,
+          "bytes_moved": 4563,
           "quality": {
-            "f1": 0.5,
-            "fn": 4.0,
+            "f1": 0.4,
+            "fn": 3.0,
             "fp": 0.0,
             "precision": 1.0,
-            "recall": 0.333333,
-            "tp": 2.0
+            "recall": 0.25,
+            "tp": 1.0
           },
           "query": "cache threshold drag",
-          "reward": 0.5303584216247139,
-          "score_latency_ms": 0.7542270000000517,
-          "selected_bytes": 182,
-          "selected_count": 2,
+          "reward": 0.410505698005698,
+          "score_latency_ms": 0.5274259999998865,
+          "selected_bytes": 91,
+          "selected_count": 1,
           "step_idx": 1
         },
         {
           "action": "add:without rescoring",
-          "bytes_moved": 6118,
+          "bytes_moved": 4563,
           "quality": {
             "f1": 1.0,
             "fn": 0.0,
             "fp": 0.0,
             "precision": 1.0,
             "recall": 1.0,
-            "tp": 6.0
+            "tp": 4.0
           },
           "query": "cache threshold drag without rescoring",
-          "reward": 1.1904543968617194,
-          "score_latency_ms": 0.8012879999999001,
-          "selected_bytes": 584,
-          "selected_count": 6,
+          "reward": 1.191606399298707,
+          "score_latency_ms": 0.5759990000000492,
+          "selected_bytes": 383,
+          "selected_count": 4,
           "step_idx": 2
         },
         {
           "action": "add:zero inference",
-          "bytes_moved": 6118,
+          "bytes_moved": 4563,
           "quality": {
-            "f1": 0.5,
-            "fn": 4.0,
+            "f1": 0.4,
+            "fn": 3.0,
             "fp": 0.0,
             "precision": 1.0,
-            "recall": 0.333333,
-            "tp": 2.0
+            "recall": 0.25,
+            "tp": 1.0
           },
           "query": "cache threshold drag without rescoring zero inference",
-          "reward": 0.5303584216247139,
-          "score_latency_ms": 0.8275790000000782,
-          "selected_bytes": 182,
-          "selected_count": 2,
+          "reward": 0.410505698005698,
+          "score_latency_ms": 0.6076799999998883,
+          "selected_bytes": 91,
+          "selected_count": 1,
           "step_idx": 3
         },
         {
           "action": "add:cached scores",
-          "bytes_moved": 6118,
+          "bytes_moved": 4563,
           "quality": {
-            "f1": 0.666667,
+            "f1": 0.4,
             "fn": 3.0,
             "fp": 0.0,
             "precision": 1.0,
-            "recall": 0.5,
-            "tp": 3.0
+            "recall": 0.25,
+            "tp": 1.0
           },
           "query": "cache threshold drag without rescoring zero inference cached scores",
-          "reward": 0.7368941984308597,
-          "score_latency_ms": 0.8618289999999806,
-          "selected_bytes": 292,
-          "selected_count": 3,
+          "reward": 0.410505698005698,
+          "score_latency_ms": 0.5952299999998356,
+          "selected_bytes": 91,
+          "selected_count": 1,
           "step_idx": 4
         }
       ],
@@ -433,8 +433,8 @@
   },
   "max_steps": 5,
   "model_id": "mock-semantic-filter-v0",
-  "n_docs": 80,
-  "run_id": "agent-loop-64279313",
+  "n_docs": 60,
+  "run_id": "agent-loop-7d2ffe3d",
   "task_count": 3,
   "threshold": 0.5
 }

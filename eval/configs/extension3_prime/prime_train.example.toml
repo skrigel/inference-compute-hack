@@ -1,0 +1,29 @@
+# Example Prime Hosted Training config for Extension 3.
+# Do not run this file until the no-credit readiness checks pass and the user approves Prime credit use.
+
+[run]
+project = "inference-compute-hack"
+name = "extension3-agent-loop-grpo-pilot"
+purpose = "Measure whether cheap pre-training cohort metrics predict post-RL lift."
+
+[model]
+base = "Qwen/Qwen2.5-1.5B-Instruct"
+adapter = "lora"
+
+[algorithm]
+name = "GRPO"
+rollouts_per_example = 8
+max_turns = 5
+temperature = 0.7
+top_p = 0.95
+
+[environment]
+id = "extension3-agent-loop"
+cohort_manifest = "eval/configs/extension3_prime/cohort_manifest.example.json"
+train_split = "train"
+heldout_split = "heldout"
+
+[launch_gate]
+requires_prime_credits = true
+command = "prime train run eval/configs/extension3_prime/prime_train.example.toml"
+allowed_only_after = ["local no-credit readiness report has passed", "Modal CPU smoke has passed", "Prime CLI is authenticated", "baseline eval artifact exists", "user explicitly approves using Prime credits"]
