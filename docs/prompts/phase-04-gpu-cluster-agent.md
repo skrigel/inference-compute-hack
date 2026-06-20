@@ -124,6 +124,7 @@ MODEL="${MODEL:-Qwen/Qwen2.5-3B-Instruct-AWQ}"
 HOST="${HOST:-127.0.0.1}"
 BASE_PORT="${BASE_PORT:-8001}"
 N_REPLICAS="${N_REPLICAS:-6}"
+GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.90}"
 EXTRA_VLLM_ARGS="${EXTRA_VLLM_ARGS:-}"
 
 pids=()
@@ -138,6 +139,8 @@ for i in $(seq 0 $((N_REPLICAS - 1))); do
     --served-model-name tier1-filter \
     --trust-remote-code \
     --enable-prefix-caching \
+    --enable-mfu-metrics \
+    --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
     --max-model-len 4096 \
     --max-num-seqs 256 \
     $EXTRA_VLLM_ARGS &
@@ -151,6 +154,8 @@ wait
 
 Adjust flags to match the installed vLLM version. If AWQ quantization needs `--quantization awq_marlin`, add it after testing. Do not claim FP8/AWQ effects unless you measure them.
 
+`GPU_MEMORY_UTILIZATION` is intentionally parameterized. vLLM versions differ in documented/default behavior; many examples use `0.90`, while current docs may report another default. Always record the installed vLLM version and the actual value used in `eval/artifacts/phase04_environment.md`.
+
 Health check:
 
 ```bash
@@ -159,6 +164,34 @@ for url in ${VLLM_REPLICAS//,/ }; do
   curl -s "$url/models" | head
 done
 ```
+
+Metrics check:
+
+```bash
+for url in ${VLLM_REPLICAS//,/ }; do
+  metrics_url="${url%/v1}/metrics"
+  curl -s "$metrics_url" | grep -E 'vllm:(kv_cache_usage_perc|num_requests_running|num_requests_waiting|.*mfu)' | head -20
+done
+```
+
+Required vLLM metrics to scrape during Phase 04:
+
+- `vllm:kv_cache_usage_perc`: percentage/fraction of the pre-allocated GPU KV cache currently in active use. Map this into the repo trace field `gpu_cache_usage_perc` for contract compatibility.
+- `vllm:num_requests_running`: requests actively executing on a replica.
+- `vllm:num_requests_waiting`: queued requests waiting for scheduling. Use `running` + `waiting` to interpret p50/p95 latency under saturation.
+- MFU metrics exposed by `--enable-mfu-metrics`: raw GPU compute efficiency. Record the metric names exactly as emitted by the installed vLLM version.
+
+Run a small GPU-memory utilization sweep after the first green serve:
+
+```bash
+for util in 0.80 0.85 0.90 0.92 0.95; do
+  GPU_MEMORY_UTILIZATION="$util" N_REPLICAS=6 bash inference/serve.sh
+  # In another shell: run the quality smoke and one warm refine benchmark, then stop the server.
+  # Record: util, max model len, max num seqs, OOM/no-OOM, kv cache usage, running/waiting queues, p50/p95.
+done
+```
+
+If higher utilization causes OOM, degraded queueing, or unstable p95, choose the highest stable value and document the rejected values. Do not treat larger KV allocation as automatically faster; it is a capacity/headroom experiment.
 
 ## Implement `VLLMScorer`
 
@@ -255,7 +288,7 @@ After the quality gate passes, measure:
 6. chip delete,
 7. fresh-file ingest and immediate query,
 8. RAG baseline index build / retrieve / re-index comparison,
-9. vLLM `/metrics` or equivalent GPU/cache stats if available.
+9. vLLM `/metrics` GPU/cache/queue stats, including KV-cache usage, running/waiting request counts, and MFU when exposed.
 
 Required trace fields follow `CONTRACTS.md`:
 
@@ -283,11 +316,21 @@ Required trace fields follow `CONTRACTS.md`:
 - `latency_kind`
 - `quality_slice`
 
+Supplemental Phase 04 metrics may live in `phase04_metrics.json` / `phase04_gpu_memory_sweep.json`
+instead of every trace row:
+
+- `vllm_kv_cache_usage_perc`
+- `vllm_num_requests_running`
+- `vllm_num_requests_waiting`
+- `mfu`
+- `gpu_memory_utilization`
+
 Write:
 
 - `eval/artifacts/phase04_vllm_trace.jsonl`
 - `eval/artifacts/phase04_metrics.json`
 - `eval/artifacts/phase04_environment.md`
+- `eval/artifacts/phase04_gpu_memory_sweep.json`
 - regenerated measured figures under `eval/artifacts/` or `performance/figures/`
 
 The area-under-loop chart must compare:
