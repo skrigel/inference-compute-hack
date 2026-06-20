@@ -6,7 +6,7 @@ plain language, and converge in a handful of sub-second turns.
 
 > **grep, but the predicate is meaning, and you steer it live.**
 
-Hackathon track: **Real-Time & Interactive**. Hardware: **8× H100**. Team of 4, 24-hour build.
+Hackathon track: **Real-Time & Interactive**. 
 
 ---
 
