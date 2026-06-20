@@ -7,9 +7,26 @@ from inference.scorer import ScorerClient
 
 
 def make_scorer() -> ScorerClient:
+    """
+    Factory for ScorerClient implementations.
+
+    Backends:
+    - mock: GPU-free deterministic scorer for local dev (default)
+    - modal: Modal-deployed vLLM on 6× H100 GPUs
+    - vllm: Direct vLLM connection (for on-prem H100 box)
+
+    Set via SCORER_BACKEND environment variable.
+    """
     backend = os.environ.get("SCORER_BACKEND", "mock").lower()
+
     if backend == "mock":
         return MockScorer()
+
+    if backend == "modal":
+        from inference.modal_client import ModalScorerAsync
+        return ModalScorerAsync()
+
     if backend == "vllm":
         raise NotImplementedError("VLLMScorer is introduced after the Phase 0 mock contract is stable")
-    raise ValueError(f"Unknown SCORER_BACKEND={backend!r}; expected 'mock' or 'vllm'")
+
+    raise ValueError(f"Unknown SCORER_BACKEND={backend!r}; expected 'mock', 'modal', or 'vllm'")
