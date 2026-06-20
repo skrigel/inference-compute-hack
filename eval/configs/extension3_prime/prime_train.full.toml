@@ -1,0 +1,37 @@
+# Full Extension 3 Hosted Training run.
+# This is the first non-smoke, non-pilot run: it trains on all synthetic
+# query-refinement rows currently exposed by inference/extension3-agent-loop.
+
+name = "extension3-agent-loop-grpo-full"
+model = "Qwen/Qwen3.5-2B"
+loss = "rl"
+max_steps = 200
+batch_size = 64
+rollouts_per_example = 8
+
+[sampling]
+max_tokens = 256
+temperature = 0.7
+
+[checkpoints]
+interval = 25
+keep_cloud = 8
+
+[adapters]
+interval = 25
+keep_last = 8
+
+[val]
+interval = 25
+num_examples = 6
+rollouts_per_example = 1
+
+[[env]]
+id = "inference/extension3-agent-loop"
+args = { split = "train", max_examples = -1, include_hard = true }
+
+[[eval.env]]
+id = "inference/extension3-agent-loop"
+args = { split = "eval", max_examples = -1, include_hard = true }
+num_examples = 6
+rollouts_per_example = 1
