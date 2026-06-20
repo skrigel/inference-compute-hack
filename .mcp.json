@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "flashgrep": {
+      "type": "stdio",
+      "command": "./scripts/mcp_flashgrep.sh",
+      "args": []
+    }
+  }
+}

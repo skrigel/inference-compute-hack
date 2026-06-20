@@ -2,6 +2,8 @@ import asyncio
 import unittest
 from unittest.mock import patch
 
+from data.schema import Chunk, ChunkMeta
+
 
 class FakeFastMCP:
     def __init__(self, name: str) -> None:
@@ -83,6 +85,52 @@ class McpKnowledgeToolTests(unittest.TestCase):
         self.assertIn("ours", comparison)
         self.assertGreater(comparison["work_units_speedup"], 1.0)
         self.assertGreater(comparison["ours"]["selected_count"], 0)
+
+    def test_mcp_comparison_supports_browsecomp_source_kind(self):
+        from backend import mcp_server
+
+        browsecomp_slice = [
+            Chunk(
+                chunk_id="bc-1",
+                doc_id="browsecomp:1",
+                type="paper",
+                title="BrowseComp reward variance",
+                text="reward variance and verifier scores predict post-RL lift",
+                meta=ChunkMeta("browsecomp", 2026, "https://example.test/1", None, None, "browsecomp"),
+            ),
+            Chunk(
+                chunk_id="bc-2",
+                doc_id="browsecomp:2",
+                type="paper",
+                title="BrowseComp trajectory entropy",
+                text="trajectory entropy and held-out benchmark improvement for RLAIF data",
+                meta=ChunkMeta("browsecomp", 2026, "https://example.test/2", None, None, "browsecomp"),
+            ),
+        ]
+
+        with patch.object(mcp_server, "_MCP_AVAILABLE", True), patch.object(
+            mcp_server, "FastMCP", FakeFastMCP
+        ), patch("data.browsecomp_loader.load_browsecomp_corpus", return_value=browsecomp_slice):
+            server = mcp_server.build_server()
+
+        comparison = asyncio.run(
+            server.tools["compare_source_search"](
+                source_id="browsecomp-demo",
+                source_kind="browsecomp",
+                size=2,
+                query="reward variance verifier scores",
+                refinements=["must discuss RLAIF data"],
+                top_k=2,
+            )
+        )
+
+        self.assertEqual(comparison["source_id"], "browsecomp-demo")
+        self.assertEqual(comparison["rag"]["tool_name"], "search_source_rag")
+        self.assertEqual(comparison["ours"]["tool_name"], "search_source_ours")
+        self.assertEqual(comparison["rag"]["n_docs"], 2)
+        self.assertEqual(comparison["ours"]["n_docs"], 2)
+        self.assertEqual(comparison["ours"]["corpus_total"], 2)
+        self.assertGreaterEqual(comparison["work_units_speedup"], 1.0)
 
 
 if __name__ == "__main__":
