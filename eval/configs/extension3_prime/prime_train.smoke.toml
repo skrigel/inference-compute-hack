@@ -1,0 +1,37 @@
+# Minimal paid Hosted Training smoke for Extension 3.
+# Use this before the 50-step pilot to validate rollout logging, optimizer,
+# checkpoint, adapter, and validation paths end-to-end at very low cost.
+
+name = "extension3-agent-loop-grpo-smoke"
+model = "Qwen/Qwen3.5-2B"
+loss = "rl"
+max_steps = 2
+batch_size = 8
+rollouts_per_example = 2
+
+[sampling]
+max_tokens = 128
+temperature = 0.7
+
+[checkpoints]
+interval = 1
+keep_cloud = 2
+
+[adapters]
+interval = 1
+keep_last = 2
+
+[val]
+interval = 1
+num_examples = 2
+rollouts_per_example = 1
+
+[[env]]
+id = "inference/extension3-agent-loop"
+args = { split = "train", max_examples = 6, include_hard = true }
+
+[[eval.env]]
+id = "inference/extension3-agent-loop"
+args = { split = "eval", max_examples = 2, include_hard = true }
+num_examples = 2
+rollouts_per_example = 1

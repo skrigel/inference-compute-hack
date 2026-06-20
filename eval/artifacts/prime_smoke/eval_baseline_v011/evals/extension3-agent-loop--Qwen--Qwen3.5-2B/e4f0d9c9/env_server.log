@@ -1,0 +1,6 @@
+2026-06-20 04:16:42 - verifiers.serve.server.env_server.ZMQEnvServer - INFO - Initializing ZMQEnvServer to serve extension3-agent-loop (env_args={'split': 'eval', 'max_examples': 2, 'include_hard': True}, extra_env_kwargs={'timeout_seconds': 120.0, 'concurrency': 32}, num_workers=1)
+2026-06-20 04:16:42 - verifiers.serve.server.env_server.ZMQEnvServer - INFO - ZMQEnvServer started on tcp://127.0.0.1:59940
+2026-06-20 04:16:42 - verifiers.serve.server.env_router.EnvRouter - INFO - Started worker (id=0, name=extension3-agent-loop-0, address=ipc:///tmp/vf-2bbb2b25662d-extension3-agent-loop-0, pid=11054)
+2026-06-20 04:16:44 - verifiers.utils.process_utils - INFO - Death pipe closed — parent is gone, sending SIGTERM to self
+2026-06-20 04:16:44 - verifiers.serve.server.env_router.EnvRouter - INFO - Router shut down
+2026-06-20 04:16:44 - verifiers.serve.server.env_server.ZMQEnvServer - INFO - ZMQEnvServer shut down

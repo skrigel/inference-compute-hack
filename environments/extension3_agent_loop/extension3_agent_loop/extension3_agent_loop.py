@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -88,19 +89,21 @@ def load_environment(
     )
 
 
-def target_term_coverage(completion: list[dict[str, Any]] | str, answer: dict[str, Any], **kwargs: Any) -> float:
+def target_term_coverage(completion: list[dict[str, Any]] | str, answer: dict[str, Any] | str, **kwargs: Any) -> float:
+    payload = _answer_payload(answer)
     text = _completion_text(completion)
-    terms = [str(term).lower() for term in answer["target_terms"]]
+    terms = [str(term).lower() for term in payload["target_terms"]]
     if not terms:
         return 0.0
     hits = sum(1 for term in terms if term in text)
     return hits / len(terms)
 
 
-def initial_query_gain(completion: list[dict[str, Any]] | str, answer: dict[str, Any], **kwargs: Any) -> float:
+def initial_query_gain(completion: list[dict[str, Any]] | str, answer: dict[str, Any] | str, **kwargs: Any) -> float:
+    payload = _answer_payload(answer)
     text = _completion_text(completion)
-    initial_terms = set(_tokens(answer["initial_query"]))
-    target_terms = set(_tokens(answer["target_query"]))
+    initial_terms = set(_tokens(payload["initial_query"]))
+    target_terms = set(_tokens(payload["target_query"]))
     added = target_terms - initial_terms
     if not added:
         return 0.0
@@ -163,13 +166,16 @@ def _row(topic_name: str, spec: dict[str, Any], rep: int, hard: bool) -> dict[st
     ]
     return {
         "prompt": prompt,
-        "answer": {
-            "topic": topic_name,
-            "initial_query": spec["initial"],
-            "target_query": spec["target"],
-            "target_terms": spec["terms"],
-            "hard": hard,
-        },
+        "answer": json.dumps(
+            {
+                "topic": topic_name,
+                "initial_query": spec["initial"],
+                "target_query": spec["target"],
+                "target_terms": spec["terms"],
+                "hard": hard,
+            },
+            sort_keys=True,
+        ),
     }
 
 
@@ -193,6 +199,26 @@ def _message_content(message: Any) -> Any:
     if isinstance(message, dict):
         return message.get("content", "")
     return getattr(message, "content", "")
+
+
+def _answer_payload(answer: dict[str, Any] | str) -> dict[str, Any]:
+    if isinstance(answer, dict):
+        return answer
+    try:
+        payload = json.loads(answer)
+    except json.JSONDecodeError:
+        return {
+            "initial_query": "",
+            "target_query": "",
+            "target_terms": [],
+        }
+    if not isinstance(payload, dict):
+        return {
+            "initial_query": "",
+            "target_query": "",
+            "target_terms": [],
+        }
+    return payload
 
 
 def _tokens(text: str) -> list[str]:
