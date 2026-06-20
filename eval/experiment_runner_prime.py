@@ -34,7 +34,7 @@ PRIME_RESULTS_ROOT = ARTIFACT_DIR / "prime_experiment_results"
 DEFAULT_POD_CONFIG = {
     "gpu_type": "H100_80GB",
     "gpu_count": 1,
-    "image": "pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel",
+    "image": "cuda_12_4_pytorch_2_5",  # Prime predefined image with CUDA 12.4 + PyTorch 2.5
     "disk_size": 100,
 }
 
