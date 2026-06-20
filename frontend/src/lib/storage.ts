@@ -41,24 +41,64 @@ async function getDB(): Promise<IDBPDatabase> {
   return dbInstance;
 }
 
-const DEMO_CORPUS: Corpus = {
-  id: "demo",
-  name: "Demo Corpus",
-  description: "Sample papers and code to explore the tool",
-  tags: [],
-  createdAt: Date.now(),
-  lastUsedAt: Date.now(),
-  isFavorite: false,
-  isDemo: true,
-  documentCount: 24,
-  source: "demo",
-};
+const DEMO_CORPORA: Corpus[] = [
+  {
+    id: "demo",
+    name: "Retry & Networking",
+    description: "Code and papers about retry logic, backoff, and resilient networking",
+    tags: ["python", "go", "networking", "distributed-systems"],
+    createdAt: Date.now() - 86400000 * 2,
+    lastUsedAt: Date.now(),
+    isFavorite: true,
+    isDemo: true,
+    documentCount: 24,
+    source: "demo",
+  },
+  {
+    id: "browsecomp",
+    name: "BrowseComp+",
+    description: "Web documents: news, wikis, blogs, academic papers, and forums",
+    tags: ["web", "retrieval", "benchmark"],
+    createdAt: Date.now() - 86400000 * 5,
+    lastUsedAt: Date.now() - 86400000,
+    isFavorite: false,
+    isDemo: true,
+    documentCount: 100,
+    source: "demo",
+  },
+  {
+    id: "arxiv-ml",
+    name: "arXiv ML Papers",
+    description: "Machine learning papers: transformers, quantization, inference optimization",
+    tags: ["ml", "transformers", "research"],
+    createdAt: Date.now() - 86400000 * 3,
+    lastUsedAt: Date.now() - 3600000,
+    isFavorite: false,
+    isDemo: true,
+    documentCount: 25,
+    source: "demo",
+  },
+  {
+    id: "codebase",
+    name: "Open Source Code",
+    description: "Popular Python, Go, and Rust libraries: requests, grpc, tokio",
+    tags: ["python", "go", "rust", "open-source"],
+    createdAt: Date.now() - 86400000 * 7,
+    lastUsedAt: Date.now() - 86400000 * 2,
+    isFavorite: false,
+    isDemo: true,
+    documentCount: 25,
+    source: "demo",
+  },
+];
 
 export async function initDB(): Promise<void> {
   const database = await getDB();
-  const existing = await database.get("corpora", "demo");
-  if (!existing) {
-    await database.put("corpora", DEMO_CORPUS);
+  for (const corpus of DEMO_CORPORA) {
+    const existing = await database.get("corpora", corpus.id);
+    if (!existing) {
+      await database.put("corpora", corpus);
+    }
   }
 }
 
