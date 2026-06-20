@@ -277,10 +277,12 @@ instrumentation and the theoretical models in `performance/theory.py`.
   "elapsed_ms": 180.0,
   "model_ms": 142.0,
   "queue_ms": 18.0,
+  "ttft_ms": 140.0,
   "cache_hit_rate": 0.76,
+  "gpu_cache_usage_perc": 0.42,
   "warm_state": "cold|warm|cached",
   "latency_kind": "cold|warm|cached",
-  "quality_slice": "demo-retry-without-backoff"
+  "quality_slice": { "precision": 0.8, "recall": 0.75, "f1": 0.774, "auc": null, "ece": null }
 }
 ```
 
@@ -291,6 +293,8 @@ Rules:
 * `rho = survivor_count / candidate_count` for refine turns; `null` is allowed for the first query.
 * Threshold drag and chip deletion must emit `chunks_scored = 0`.
 * Wall-clock fields are overlays. Do not use them as the x-axis for area-under-loop curves.
+* Mock traces set unavailable vLLM fields such as `ttft_ms` and `gpu_cache_usage_perc` to `0.0`.
+* `quality_slice` is `null` when no gold labels apply; when present it is a quality-metrics object.
 * Mock traces must be stamped `scorer_backend: "mock"` and any derived chart must be labeled projected.
 
 ---
@@ -323,5 +327,6 @@ Rules:
 ---
 
 ## Changelog
+* 2026-06-20 — aligned trace schema with `EVAL_PLAN.md` vLLM metric fields and quality metrics.
 * 2026-06-20 — added performance trace contract and linked metrics/theory artifacts.
 * 2026-06-19 — initial reconciliation of the six subsystem drafts into one contract (delivery owner).
