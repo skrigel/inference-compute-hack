@@ -92,6 +92,9 @@ export function SearchPage() {
         etaMs={d.etaMs}
         latencyMs={d.latencyMs}
         latencyKind={d.latencyKind}
+        docsPerSec={d.docsPerSec}
+        elapsedMs={d.elapsedMs}
+        latHistory={d.latHistory}
         onClickRefine={d.runClickRefine}
       />
     </main>
@@ -290,17 +293,36 @@ interface TabbedSectionProps {
   etaMs: number;
   latencyMs: number;
   latencyKind: LatencyKind;
+  docsPerSec: number;
+  elapsedMs: number;
+  latHistory: number[];
   onClickRefine: (chunkId: string, sign: "+" | "-") => Promise<void>;
 }
 
-function TabbedSection({ hasRun, results, facets, threshold, matched, etaMs, latencyMs, latencyKind, onClickRefine }: TabbedSectionProps) {
-  const [tab, setTab] = useState<"results" | "facets">("results");
+function TabbedSection({
+  hasRun,
+  results,
+  facets,
+  threshold,
+  matched,
+  etaMs,
+  latencyMs,
+  latencyKind,
+  docsPerSec,
+  elapsedMs,
+  latHistory,
+  onClickRefine,
+}: TabbedSectionProps) {
+  const [tab, setTab] = useState<"results" | "analytics" | "facets">("results");
 
   return (
     <section className="tabbed-section">
       <div className="tab-bar">
         <button className={`tab-btn${tab === "results" ? " active" : ""}`} onClick={() => setTab("results")}>
           Results <span className="tab-count">{matched}</span>
+        </button>
+        <button className={`tab-btn${tab === "analytics" ? " active" : ""}`} onClick={() => setTab("analytics")}>
+          Analytics
         </button>
         <button className={`tab-btn${tab === "facets" ? " active" : ""}`} onClick={() => setTab("facets")}>
           Facets
@@ -316,6 +338,16 @@ function TabbedSection({ hasRun, results, facets, threshold, matched, etaMs, lat
       <div className="tab-panel">
         {tab === "results" && (
           <ResultList results={results} threshold={threshold} hasRun={hasRun} onClickRefine={onClickRefine} />
+        )}
+        {tab === "analytics" && (
+          <AnalyticsPanel
+            docsPerSec={docsPerSec}
+            elapsedMs={elapsedMs}
+            latencyMs={latencyMs}
+            latencyKind={latencyKind}
+            etaMs={etaMs}
+            latHistory={latHistory}
+          />
         )}
         {tab === "facets" && hasRun && <FacetsPanel facets={facets} />}
       </div>
@@ -429,5 +461,86 @@ function FacetGroup({ title, buckets }: { title: string; buckets: FacetBucket[] 
         ))}
       </div>
     </div>
+  );
+}
+
+interface AnalyticsPanelProps {
+  docsPerSec: number;
+  elapsedMs: number;
+  latencyMs: number;
+  latencyKind: LatencyKind;
+  etaMs: number;
+  latHistory: number[];
+}
+
+function AnalyticsPanel({ docsPerSec, elapsedMs, latencyMs, latencyKind, etaMs, latHistory }: AnalyticsPanelProps) {
+  return (
+    <div className="analytics-panel">
+      <div className="analytics-grid">
+        <div className="stat-card">
+          <div className="stat-value">{docsPerSec ? docsPerSec.toLocaleString() : "—"}</div>
+          <div className="stat-label">Docs / sec</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{elapsedMs}ms</div>
+          <div className="stat-label">Wall time</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{Math.round(latencyMs)}ms</div>
+          <div className="stat-label">
+            Latency <span className={`lat-tag lat-${latencyKind}`}>{latencyKind}</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{etaMs ? `${etaMs}ms` : "—"}</div>
+          <div className="stat-label">ETA</div>
+        </div>
+      </div>
+
+      <div className="sparkline-section">
+        <div className="section-label">Latency History</div>
+        <div className="sparkline-container">
+          <Sparkline values={latHistory} />
+        </div>
+      </div>
+
+      <div className="analytics-note">
+        Re-thresholding uses cached scores client-side (zero inference). Refinement re-reads only the predicate suffix per chunk.
+      </div>
+    </div>
+  );
+}
+
+function Sparkline({ values }: { values: number[] }) {
+  if (!values.length) {
+    return <svg className="sparkline" viewBox="0 0 320 48" />;
+  }
+
+  const max = Math.max(...values);
+  const width = 320;
+  const height = 48;
+  const pad = 2;
+
+  const points = values.map((v, i) => {
+    const x = values.length > 1 ? pad + (i / (values.length - 1)) * (width - 2 * pad) : width / 2;
+    const y = height - pad - (v / (max || 1)) * (height - 2 * pad);
+    return { x, y };
+  });
+
+  const line = points.map((p) => `${p.x},${p.y}`).join(" ");
+  const area = [
+    `${points[0].x},${height - pad}`,
+    ...points.map((p) => `${p.x},${p.y}`),
+    `${points[points.length - 1].x},${height - pad}`,
+  ].join(" ");
+
+  return (
+    <svg className="sparkline" viewBox={`0 0 ${width} ${height}`}>
+      <polygon className="sparkline-fill" points={area} />
+      <polyline className="sparkline-line" points={line} />
+      {points.length > 0 && (
+        <circle className="sparkline-dot" cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="3" />
+      )}
+    </svg>
   );
 }
