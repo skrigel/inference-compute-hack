@@ -624,6 +624,111 @@ over a tuned FAISS/neural embedding production RAG stack.
   suspected in production, compare against the frozen Phase 04 baseline config and
   disable scheduling/routing knobs before re-testing.
 
+### EXP-FP8-001: fp8 KV Cache
+
+- status: proposed
+- owner: agent
+- date: 2026-06-20
+- commit: pending
+- artifacts: `eval/artifacts/experiment_results/EXP-FP8-001/`
+- Weave run/eval: pending
+- hypothesis: fp8 KV cache halves KV memory → enables larger batches without OOM
+- change: `KV_CACHE_DTYPE=fp8`
+- expected mechanism: H100 native fp8 reduces memory per KV entry from 16 to 8 bits
+
+#### Experiment Configuration
+- repetitions: 5
+- warmup excluded: yes
+- dataset sizes tested: 7, 100, 1K, 10K, 25K, 100K
+
+#### Success Criteria
+- F1 >= 0.7 (no quality regression)
+- Throughput: neutral or improved
+
+---
+
+### EXP-BATCH-001: Increased Batch Sizes
+
+- status: proposed
+- owner: agent
+- date: 2026-06-20
+- commit: pending
+- artifacts: `eval/artifacts/experiment_results/EXP-BATCH-001/`
+- hypothesis: Larger batches (128 vs 64) improve GPU utilization
+- change: `QUERY_BATCH_SIZE=128`, `REFINE_BATCH_SIZE=128`
+- expected mechanism: More chunks per vLLM batch → better tensor-core saturation
+
+#### Success Criteria
+- Throughput: >=5% improvement
+- p95 latency regression: <10%
+
+---
+
+### EXP-MBT-001: Max Batched Tokens 12288
+
+- status: proposed
+- owner: agent
+- date: 2026-06-20
+- commit: pending
+- artifacts: `eval/artifacts/experiment_results/EXP-MBT-001/`
+- hypothesis: Larger max_num_batched_tokens improves prefill throughput
+- change: `--max-num-batched-tokens 12288`
+- expected mechanism: Prefill-bound workload processes more tokens per batch
+
+#### Success Criteria
+- Throughput: >=5% improvement
+- No OOM
+
+---
+
+### EXP-SCHED-001: Time-Window Scheduling
+
+- status: proposed
+- owner: agent
+- date: 2026-06-20
+- commit: pending
+- artifacts: `eval/artifacts/experiment_results/EXP-SCHED-001/`
+- hypothesis: Accumulating requests for 15ms improves batch efficiency
+- change: `BATCH_ACCUMULATE_MS=15`
+- expected mechanism: Wait to fill batch → better GPU utilization
+
+#### Success Criteria
+- Throughput: >=10% improvement (to justify latency cost)
+
+---
+
+### EXP-LENBIN-001: Input-Length Binning
+
+- status: proposed
+- owner: agent
+- date: 2026-06-20
+- commit: pending
+- artifacts: `eval/artifacts/experiment_results/EXP-LENBIN-001/`
+- hypothesis: Routing similar-length inputs together reduces padding waste
+- change: `VLLM_ROUTING_MODE=length_bin`
+- expected mechanism: Homogeneous batches avoid padding overhead
+
+#### Success Criteria
+- Throughput: >=5% improvement
+- p95 latency: improved
+
+---
+
+### EXP-OVERLAP-001: Chunk Overlap 10%
+
+- status: proposed
+- owner: agent
+- date: 2026-06-20
+- commit: pending
+- artifacts: `eval/artifacts/experiment_results/EXP-OVERLAP-001/`
+- hypothesis: 10% overlap improves recall at chunk boundaries
+- change: `CHUNK_OVERLAP_RATIO=0.1`
+- expected mechanism: Content at boundaries captured in both chunks
+
+#### Success Criteria
+- Recall: improved
+- Throughput cost: acceptable (~10% more chunks)
+
 ## Bottlenecks To Target Next
 
 | bottleneck | evidence | next optimization |
