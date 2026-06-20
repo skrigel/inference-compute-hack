@@ -10,6 +10,7 @@ import uuid
 from data.schema import Chunk, ChunkMeta, chunk_id_of
 from inference.config import make_scorer
 from inference.scorer import ScoreRequest
+from eval.trace import TurnTrace
 
 
 def _git_commit() -> str:
@@ -73,29 +74,32 @@ async def run_smoke() -> dict:
     chunks_scored = len(requests)
     chunks_served_from_cache = 0
 
-    return {
-        "run_id": f"smoke-{uuid.uuid4().hex[:8]}",
-        "commit": _git_commit(),
-        "corpus_id": "phase0-smoke",
-        "model_id": scorer.model_id(),
-        "scorer_backend": "mock",
-        "turn": 1,
-        "operation": "query",
-        "threshold": threshold,
-        "n_chunks_total": n_chunks_total,
-        "candidate_count": n_chunks_total,
-        "chunks_scored": chunks_scored,
-        "chunks_served_from_cache": chunks_served_from_cache,
-        "survivor_count": survivor_count,
-        "rho": survivor_count / n_chunks_total,
-        "elapsed_ms": elapsed_ms,
-        "model_ms": elapsed_ms,
-        "queue_ms": 0.0,
-        "cache_hit_rate": 0.0,
-        "warm_state": "cold",
-        "latency_kind": "cold",
-        "quality_slice": "phase0-smoke-retry-without-backoff",
-    }
+    trace = TurnTrace(
+        run_id=f"smoke-{uuid.uuid4().hex[:8]}",
+        commit=_git_commit(),
+        corpus_id="phase0-smoke",
+        model_id=scorer.model_id(),
+        scorer_backend="mock",
+        turn=1,
+        operation="query",
+        threshold=threshold,
+        n_chunks_total=n_chunks_total,
+        candidate_count=n_chunks_total,
+        chunks_scored=chunks_scored,
+        chunks_served_from_cache=chunks_served_from_cache,
+        survivor_count=survivor_count,
+        elapsed_ms=elapsed_ms,
+        model_ms=elapsed_ms,
+        queue_ms=0.0,
+        ttft_ms=0.0,
+        cache_hit_rate=0.0,
+        gpu_cache_usage_perc=0.0,
+        quality_slice=None,
+    )
+    payload = trace.to_dict()
+    payload["warm_state"] = "cold"
+    payload["latency_kind"] = "cold"
+    return payload
 
 
 def main() -> None:

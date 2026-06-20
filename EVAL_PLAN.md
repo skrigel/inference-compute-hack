@@ -40,7 +40,7 @@ class TurnTrace:
 
     # Turn info
     turn: int
-    operation: str  # "query" | "and" | "not" | "or" | "rewrite" | "threshold"
+    operation: str  # "query" | "require" | "exclude" | "include" | "refocus" | "brush"
     threshold: float
 
     # Work counters (PRIMARY)
@@ -79,7 +79,7 @@ Each rung is a config flag. Sweep cumulatively in build-effort order.
 |------|--------|--------------|
 | B0 | `baseline` | Full corpus re-score every turn, cold |
 | B1 | `+warm_kv` | Warm-on-ingest + suffix-only re-prefill |
-| B2 | `+scoped` | Candidate-set scoping (AND/NOT over survivors) |
+| B2 | `+scoped` | Candidate-set scoping (`require`/`exclude` over survivors) |
 | B3 | `+score_cache` | Persistent (chunk_id, clause_id) → score cache |
 
 **Ladder A — Cold-Pass Throughput:**
@@ -89,16 +89,17 @@ Each rung is a config flag. Sweep cumulatively in build-effort order.
 | A0 | `baseline` | Single request, no batching |
 | A1 | `+batching` | Continuous batching |
 | A2 | `+replicas` | Data-parallel replicas (×8) |
-| A3 | `+4bit` | 4-bit quantized weights |
+| A3 | `A3_fp8_compute` | FP8 tensor-core prefill compute |
+| C1 | `C1_4bit_weights_kv` | 4-bit weights/KV for memory capacity, not raw scan throughput |
 
 ### 3.2 Ablation Protocol
 
 ```python
 REGIMES = {
-    "B0_baseline": ComputeRegime(scoped=False, score_cache=False, warm_kv=False),
-    "B1_warm":     ComputeRegime(scoped=False, score_cache=False, warm_kv=True),
-    "B2_scoped":   ComputeRegime(scoped=True,  score_cache=False, warm_kv=True),
-    "B3_cached":   ComputeRegime(scoped=True,  score_cache=True,  warm_kv=True),
+    "B0_baseline": ComputeRegime.baseline(),
+    "B1_warm":     ComputeRegime.warm(),
+    "B2_scoped":   ComputeRegime.scoped(),
+    "B3_cached":   ComputeRegime.cached(),
 }
 
 def run_ablation(session: ScriptedSession) -> Dict[str, SessionMetrics]:
@@ -127,7 +128,7 @@ def run_ablation(session: ScriptedSession) -> Dict[str, SessionMetrics]:
 
 | # | Name | Domain | Turns | Tests |
 |---|------|--------|-------|-------|
-| 1 | Narrow and Recover | papers | 5 | Rewrite recovery after over-narrowing |
+| 1 | Narrow and Recover | papers | 5 | Refocus recovery after over-narrowing |
 | 2 | Progressive Exclusion | code | 5 | NOT compounding, precision improvement |
 | 3 | Semantic Pivot | mixed | 4 | OR expansion, then narrowing |
 | 4 | Threshold Tuning | papers | 4 | Zero-inference threshold drags |
@@ -142,11 +143,11 @@ name: narrow_and_recover
 domain: papers
 query: "papers about attention mechanisms"
 turns:
-  - {op: "and", text: "self-attention specifically", expected_rho: [0.4, 0.6]}
-  - {op: "not", text: "survey or review papers", expected_rho: [0.7, 0.9]}
-  - {op: "and", text: "with ablation studies", expected_rho: [0.3, 0.5]}
-  - {op: "rewrite", text: "attention in vision models, not NLP", expected_rho: "recovery"}
-  - {op: "and", text: "convolutional attention", expected_rho: [0.4, 0.6]}
+  - {op: "require", text: "self-attention specifically", expected_rho: [0.4, 0.6]}
+  - {op: "exclude", text: "survey or review papers", expected_rho: [0.7, 0.9]}
+  - {op: "require", text: "with ablation studies", expected_rho: [0.3, 0.5]}
+  - {op: "refocus", text: "attention in vision models, not NLP", expected_rho: "recovery"}
+  - {op: "require", text: "convolutional attention", expected_rho: [0.4, 0.6]}
 ```
 
 **Session 2: Progressive Exclusion**
@@ -155,11 +156,11 @@ name: progressive_exclusion
 domain: code
 query: "error handling code"
 turns:
-  - {op: "not", text: "test files", expected_rho: [0.7, 0.85]}
-  - {op: "not", text: "logging statements", expected_rho: [0.8, 0.9]}
-  - {op: "not", text: "retry logic", expected_rho: [0.8, 0.9]}
-  - {op: "and", text: "database operations", expected_rho: [0.2, 0.4]}
-  - {op: "not", text: "ORM-specific", expected_rho: [0.6, 0.8]}
+  - {op: "exclude", text: "test files", expected_rho: [0.7, 0.85]}
+  - {op: "exclude", text: "logging statements", expected_rho: [0.8, 0.9]}
+  - {op: "exclude", text: "retry logic", expected_rho: [0.8, 0.9]}
+  - {op: "require", text: "database operations", expected_rho: [0.2, 0.4]}
+  - {op: "exclude", text: "ORM-specific", expected_rho: [0.6, 0.8]}
 ```
 
 **Session 3: Semantic Pivot**
@@ -168,10 +169,10 @@ name: semantic_pivot
 domain: mixed
 query: "authentication implementations"
 turns:
-  - {op: "and", text: "token-based", expected_rho: [0.3, 0.5]}
-  - {op: "or", text: "session-based auth", expected_rho: "expands"}
-  - {op: "not", text: "deprecated methods", expected_rho: [0.85, 0.95]}
-  - {op: "and", text: "with refresh mechanism", expected_rho: [0.2, 0.4]}
+  - {op: "require", text: "token-based", expected_rho: [0.3, 0.5]}
+  - {op: "include", text: "session-based auth", expected_rho: "expands"}
+  - {op: "exclude", text: "deprecated methods", expected_rho: [0.85, 0.95]}
+  - {op: "require", text: "with refresh mechanism", expected_rho: [0.2, 0.4]}
 ```
 
 **Session 4: Threshold Tuning**
@@ -180,10 +181,10 @@ name: threshold_tuning
 domain: papers
 query: "machine learning optimization"
 turns:
-  - {op: "threshold", value: 0.6, expected_chunks_scored: 0}
-  - {op: "threshold", value: 0.4, expected_chunks_scored: 0}
-  - {op: "and", text: "gradient descent variants", expected_rho: [0.3, 0.5]}
-  - {op: "threshold", value: 0.7, expected_chunks_scored: 0}
+  - {op: "brush", value: 0.6, expected_chunks_scored: 0}
+  - {op: "brush", value: 0.4, expected_chunks_scored: 0}
+  - {op: "require", text: "gradient descent variants", expected_rho: [0.3, 0.5]}
+  - {op: "brush", value: 0.7, expected_chunks_scored: 0}
 ```
 
 **Session 5: Cross-Format Search**
@@ -192,11 +193,11 @@ name: cross_format
 domain: mixed
 query: "retry without backoff"
 turns:
-  - {op: "not", text: "unit tests or mocks", expected_rho: [0.6, 0.8]}
-  - {op: "and", text: "network or HTTP", expected_rho: [0.3, 0.5]}
-  - {op: "and", text: "handles timeout", expected_rho: [0.4, 0.6]}
-  - {op: "or", text: "papers discussing retry patterns", expected_rho: "expands"}
-  - {op: "not", text: "theoretical only", expected_rho: [0.7, 0.85]}
+  - {op: "exclude", text: "unit tests or mocks", expected_rho: [0.6, 0.8]}
+  - {op: "require", text: "network or HTTP", expected_rho: [0.3, 0.5]}
+  - {op: "require", text: "handles timeout", expected_rho: [0.4, 0.6]}
+  - {op: "include", text: "papers discussing retry patterns", expected_rho: "expands"}
+  - {op: "exclude", text: "theoretical only", expected_rho: [0.7, 0.85]}
 ```
 
 **Session 6: Ambiguity Resolution**
@@ -205,10 +206,10 @@ name: ambiguity_resolution
 domain: code
 query: "model training code"
 turns:
-  - {op: "and", text: "neural network", expected_rho: [0.5, 0.7]}
-  - {op: "rewrite", text: "ML model, not data model", expected_rho: "semantic_shift"}
-  - {op: "not", text: "inference only", expected_rho: [0.7, 0.85]}
-  - {op: "and", text: "with checkpointing", expected_rho: [0.3, 0.5]}
+  - {op: "require", text: "neural network", expected_rho: [0.5, 0.7]}
+  - {op: "refocus", text: "ML model, not data model", expected_rho: "semantic_shift"}
+  - {op: "exclude", text: "inference only", expected_rho: [0.7, 0.85]}
+  - {op: "require", text: "with checkpointing", expected_rho: [0.3, 0.5]}
 ```
 
 ### 4.3 Session Metrics

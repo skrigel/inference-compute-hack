@@ -22,7 +22,9 @@ REQUIRED_TRACE_FIELDS = {
     "elapsed_ms",
     "model_ms",
     "queue_ms",
+    "ttft_ms",
     "cache_hit_rate",
+    "gpu_cache_usage_perc",
     "warm_state",
     "latency_kind",
     "quality_slice",
@@ -43,6 +45,9 @@ class EvalTraceTests(unittest.TestCase):
         self.assertTrue(REQUIRED_TRACE_FIELDS.issubset(trace.keys()))
         self.assertEqual(trace["scorer_backend"], "mock")
         self.assertEqual(trace["operation"], "query")
+        self.assertEqual(trace["ttft_ms"], 0.0)
+        self.assertEqual(trace["gpu_cache_usage_perc"], 0.0)
+        self.assertIsNone(trace["quality_slice"])
         self.assertGreater(trace["n_chunks_total"], 0)
         self.assertGreater(trace["chunks_scored"], 0)
         self.assertGreaterEqual(trace["chunks_served_from_cache"], 0)

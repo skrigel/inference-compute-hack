@@ -25,9 +25,9 @@ Every query/refine trace should include:
 - `turn`, `operation`, `threshold`
 - `n_chunks_total`, `candidate_count`, `chunks_scored`, `chunks_served_from_cache`
 - `survivor_count`, `rho`
-- `elapsed_ms`, `model_ms`, `queue_ms` where available
-- `cache_hit_rate`, `warm_state`, `latency_kind`
-- `quality_slice` when the turn maps to gold labels
+- `elapsed_ms`, `model_ms`, `queue_ms`, `ttft_ms` where available
+- `cache_hit_rate`, `gpu_cache_usage_perc`, `warm_state`, `latency_kind`
+- `quality_slice` quality object when the turn maps to gold labels; otherwise `null`
 
 ## Required Figures
 
