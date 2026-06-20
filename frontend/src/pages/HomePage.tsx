@@ -4,6 +4,21 @@ import { CorpusCard } from "../components/CorpusCard";
 import { useCorpora } from "../hooks/useCorpora";
 import { db } from "../lib/storage";
 
+const BUILT_IN_CORPORA = [
+  {
+    id: "demo",
+    name: "Demo Corpus",
+    description: "7 code snippets for quick testing",
+    docCount: 7,
+  },
+  {
+    id: "browsecomp",
+    name: "BrowseComp+",
+    description: "1,000 web documents for semantic search",
+    docCount: 1000,
+  },
+];
+
 export function HomePage() {
   const navigate = useNavigate();
   const { corpora, favorites, recent, loading, toggleFavorite } = useCorpora();
@@ -33,6 +48,26 @@ export function HomePage() {
           + New Corpus
         </button>
       </div>
+
+      <section className="builtin-corpora-section">
+        <h2 className="section-title">Built-in Corpora</h2>
+        <div className="builtin-corpora-grid">
+          {BUILT_IN_CORPORA.map((corpus) => (
+            <article
+              key={corpus.id}
+              className="builtin-corpus-card"
+              onClick={() => handleOpenCorpus(corpus.id)}
+            >
+              <div className="builtin-corpus-header">
+                <span className="builtin-corpus-name">{corpus.name}</span>
+                <span className="builtin-corpus-badge">{corpus.docCount} docs</span>
+              </div>
+              <p className="builtin-corpus-description">{corpus.description}</p>
+              <button className="btn-secondary">Open</button>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <div className="dashboard-grid">
         <section className="dashboard-section favorites-section">
@@ -86,16 +121,13 @@ export function HomePage() {
       </section>
 
       <section className="quick-start">
-        <h2 className="section-title">Quick Start</h2>
+        <h2 className="section-title">Quick Actions</h2>
         <div className="quick-actions">
-          <button className="btn-quick" onClick={() => handleOpenCorpus("demo")}>
-            Try Demo Corpus
-          </button>
           <button className="btn-quick" onClick={() => navigate("/library")}>
             Upload Files
           </button>
           <button className="btn-quick-link" onClick={() => navigate("/library")}>
-            View All &rarr;
+            View Library &rarr;
           </button>
         </div>
       </section>

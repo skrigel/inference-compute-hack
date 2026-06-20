@@ -2361,3 +2361,58 @@ body {
 .nav-icon-btn.active {
   color: var(--system-blue);
 }
+
+/* Built-in corpora section */
+.builtin-corpora-section {
+  margin-bottom: 2rem;
+}
+
+.builtin-corpora-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.builtin-corpus-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--separator-opaque);
+  border-radius: 8px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.builtin-corpus-card:hover {
+  border-color: var(--system-blue);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.builtin-corpus-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.builtin-corpus-name {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--label);
+}
+
+.builtin-corpus-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--system-blue);
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.builtin-corpus-description {
+  color: var(--label-secondary);
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+}
