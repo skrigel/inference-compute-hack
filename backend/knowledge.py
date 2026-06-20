@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from typing import Any
 
 from baseline.rag import RagBaseline
+from data.schema import Chunk
 from backend.schemas import FreshDocument
 
 
@@ -56,6 +57,15 @@ def generated_documents(
                 )
             )
     return docs
+
+
+def browsecomp_documents(*, size: int = 100) -> list[FreshDocument]:
+    """Load a bounded BrowseComp-Plus slice as MCP source documents."""
+    from data.browsecomp_loader import load_browsecomp_corpus
+
+    count = max(1, min(size, 100_000))
+    chunks = load_browsecomp_corpus(limit=count)[:count]
+    return [_fresh_document_from_chunk(chunk) for chunk in chunks]
 
 
 def documents_from_dicts(raw_documents: list[dict[str, Any]]) -> list[FreshDocument]:
@@ -147,6 +157,19 @@ def _kind_at(source_kind: str, idx: int) -> str:
     if source_kind == "papers":
         return "paper"
     return "code" if idx % 2 else "paper"
+
+
+def _fresh_document_from_chunk(chunk: Chunk) -> FreshDocument:
+    return FreshDocument(
+        title=chunk.title,
+        text=chunk.text,
+        type=chunk.type,
+        category=chunk.meta.category,
+        year=chunk.meta.year,
+        path=chunk.meta.path or chunk.doc_id,
+        lang=chunk.meta.lang,
+        repo=chunk.meta.repo or "browsecomp",
+    )
 
 
 def _text(entry: ET.Element, path: str, ns: dict[str, str]) -> str | None:

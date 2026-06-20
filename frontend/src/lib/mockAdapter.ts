@@ -70,24 +70,92 @@ const DEMO_ITEMS: MockItem[] = [
 // BrowseComp+ mock items - simulated web documents.
 function browseCompItems(limit = 100): MockItem[] {
   return Array.from({ length: Math.max(1, limit) }, (_, i) => ({
-  chunk_id: `bcp-${i}`,
-  score: Math.max(0.05, 0.95 - (i * 0.009) + (Math.sin(i) * 0.1)),
-  type: "paper" as const,
-  title: `BrowseComp Document ${i + 1}`,
-  category: ["news", "wiki", "blog", "academic", "forum"][i % 5],
-  year: 2020 + (i % 6),
-  path: `https://example.com/doc/${i}`,
-  repo: null,
+    chunk_id: `bcp-${i}`,
+    score: Math.max(0.05, 0.95 - (i * 0.009) + (Math.sin(i) * 0.1)),
+    type: "paper" as const,
+    title: `BrowseComp Document ${i + 1}`,
+    category: ["news", "wiki", "blog", "academic", "forum"][i % 5],
+    year: 2020 + (i % 6),
+    path: `https://example.com/doc/${i}`,
+    repo: null,
   }));
 }
 
-let activeCorpus: "demo" | "browsecomp" = "demo";
+// arXiv ML papers mock items
+const ARXIV_ML_ITEMS: MockItem[] = [
+  { chunk_id: "arxiv-01", score: 0.94, type: "paper", title: "Attention Is All You Need", category: "cs.CL", year: 2017, path: "arxiv:1706.03762", repo: null },
+  { chunk_id: "arxiv-02", score: 0.92, type: "paper", title: "BERT: Pre-training of Deep Bidirectional Transformers", category: "cs.CL", year: 2018, path: "arxiv:1810.04805", repo: null },
+  { chunk_id: "arxiv-03", score: 0.89, type: "paper", title: "Language Models are Few-Shot Learners (GPT-3)", category: "cs.CL", year: 2020, path: "arxiv:2005.14165", repo: null },
+  { chunk_id: "arxiv-04", score: 0.87, type: "paper", title: "LLaMA: Open and Efficient Foundation Language Models", category: "cs.CL", year: 2023, path: "arxiv:2302.13971", repo: null },
+  { chunk_id: "arxiv-05", score: 0.85, type: "paper", title: "FlashAttention: Fast and Memory-Efficient Attention", category: "cs.LG", year: 2022, path: "arxiv:2205.14135", repo: null },
+  { chunk_id: "arxiv-06", score: 0.83, type: "paper", title: "Scaling Laws for Neural Language Models", category: "cs.LG", year: 2020, path: "arxiv:2001.08361", repo: null },
+  { chunk_id: "arxiv-07", score: 0.81, type: "paper", title: "Training Compute-Optimal Large Language Models", category: "cs.LG", year: 2022, path: "arxiv:2203.15556", repo: null },
+  { chunk_id: "arxiv-08", score: 0.78, type: "paper", title: "Constitutional AI: Harmlessness from AI Feedback", category: "cs.CL", year: 2022, path: "arxiv:2212.08073", repo: null },
+  { chunk_id: "arxiv-09", score: 0.75, type: "paper", title: "Chain-of-Thought Prompting Elicits Reasoning", category: "cs.CL", year: 2022, path: "arxiv:2201.11903", repo: null },
+  { chunk_id: "arxiv-10", score: 0.72, type: "paper", title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP", category: "cs.CL", year: 2020, path: "arxiv:2005.11401", repo: null },
+  { chunk_id: "arxiv-11", score: 0.69, type: "paper", title: "LoRA: Low-Rank Adaptation of Large Language Models", category: "cs.CL", year: 2021, path: "arxiv:2106.09685", repo: null },
+  { chunk_id: "arxiv-12", score: 0.66, type: "paper", title: "Speculative Decoding for LLM Inference", category: "cs.LG", year: 2023, path: "arxiv:2302.01318", repo: null },
+  { chunk_id: "arxiv-13", score: 0.63, type: "paper", title: "GPTQ: Accurate Post-Training Quantization", category: "cs.LG", year: 2022, path: "arxiv:2210.17323", repo: null },
+  { chunk_id: "arxiv-14", score: 0.60, type: "paper", title: "AWQ: Activation-aware Weight Quantization", category: "cs.LG", year: 2023, path: "arxiv:2306.00978", repo: null },
+  { chunk_id: "arxiv-15", score: 0.57, type: "paper", title: "vLLM: Efficient Memory Management for LLM Serving", category: "cs.LG", year: 2023, path: "arxiv:2309.06180", repo: null },
+  { chunk_id: "arxiv-16", score: 0.54, type: "paper", title: "Mixture of Experts Meets Instruction Tuning", category: "cs.CL", year: 2023, path: "arxiv:2305.14705", repo: null },
+  { chunk_id: "arxiv-17", score: 0.51, type: "paper", title: "Direct Preference Optimization (DPO)", category: "cs.LG", year: 2023, path: "arxiv:2305.18290", repo: null },
+  { chunk_id: "arxiv-18", score: 0.48, type: "paper", title: "Toolformer: Language Models Can Teach Themselves to Use Tools", category: "cs.CL", year: 2023, path: "arxiv:2302.04761", repo: null },
+  { chunk_id: "arxiv-19", score: 0.45, type: "paper", title: "Self-Instruct: Aligning LMs with Self-Generated Instructions", category: "cs.CL", year: 2022, path: "arxiv:2212.10560", repo: null },
+  { chunk_id: "arxiv-20", score: 0.42, type: "paper", title: "Prefix Caching for Efficient LLM Serving", category: "cs.LG", year: 2024, path: "arxiv:2401.xxxxx", repo: null },
+  { chunk_id: "arxiv-21", score: 0.39, type: "paper", title: "KV Cache Compression for Long Context", category: "cs.LG", year: 2024, path: "arxiv:2402.xxxxx", repo: null },
+  { chunk_id: "arxiv-22", score: 0.36, type: "paper", title: "Ring Attention for Long Sequences", category: "cs.LG", year: 2023, path: "arxiv:2310.01889", repo: null },
+  { chunk_id: "arxiv-23", score: 0.33, type: "paper", title: "Continuous Batching for LLM Inference", category: "cs.DC", year: 2023, path: "arxiv:2309.xxxxx", repo: null },
+  { chunk_id: "arxiv-24", score: 0.30, type: "paper", title: "FP8 Training and Inference for Transformers", category: "cs.LG", year: 2023, path: "arxiv:2310.xxxxx", repo: null },
+  { chunk_id: "arxiv-25", score: 0.27, type: "paper", title: "PagedAttention for Dynamic Memory Allocation", category: "cs.LG", year: 2023, path: "arxiv:2309.06180", repo: null },
+];
+
+// Open source codebase mock items
+const CODEBASE_ITEMS: MockItem[] = [
+  { chunk_id: "code-01", score: 0.95, type: "code", title: "requests/sessions.py", category: "python", year: 2023, path: "requests/sessions.py", repo: "requests" },
+  { chunk_id: "code-02", score: 0.92, type: "code", title: "httpx/_client.py", category: "python", year: 2024, path: "httpx/_client.py", repo: "httpx" },
+  { chunk_id: "code-03", score: 0.89, type: "code", title: "aiohttp/connector.py", category: "python", year: 2023, path: "aiohttp/connector.py", repo: "aiohttp" },
+  { chunk_id: "code-04", score: 0.86, type: "code", title: "grpc-go/balancer/roundrobin.go", category: "go", year: 2023, path: "balancer/roundrobin/roundrobin.go", repo: "grpc-go" },
+  { chunk_id: "code-05", score: 0.83, type: "code", title: "tokio/runtime/scheduler.rs", category: "rust", year: 2024, path: "tokio/src/runtime/scheduler/mod.rs", repo: "tokio" },
+  { chunk_id: "code-06", score: 0.80, type: "code", title: "fastapi/routing.py", category: "python", year: 2024, path: "fastapi/routing.py", repo: "fastapi" },
+  { chunk_id: "code-07", score: 0.77, type: "code", title: "pydantic/main.py", category: "python", year: 2024, path: "pydantic/main.py", repo: "pydantic" },
+  { chunk_id: "code-08", score: 0.74, type: "code", title: "sqlalchemy/engine/base.py", category: "python", year: 2023, path: "lib/sqlalchemy/engine/base.py", repo: "sqlalchemy" },
+  { chunk_id: "code-09", score: 0.71, type: "code", title: "kubernetes/client-go/rest/request.go", category: "go", year: 2023, path: "rest/request.go", repo: "client-go" },
+  { chunk_id: "code-10", score: 0.68, type: "code", title: "reqwest/src/async_impl/client.rs", category: "rust", year: 2024, path: "src/async_impl/client.rs", repo: "reqwest" },
+  { chunk_id: "code-11", score: 0.65, type: "code", title: "celery/app/task.py", category: "python", year: 2023, path: "celery/app/task.py", repo: "celery" },
+  { chunk_id: "code-12", score: 0.62, type: "code", title: "redis-py/redis/client.py", category: "python", year: 2024, path: "redis/client.py", repo: "redis-py" },
+  { chunk_id: "code-13", score: 0.59, type: "code", title: "prometheus/client_golang/prometheus.go", category: "go", year: 2023, path: "prometheus/prometheus.go", repo: "client_golang" },
+  { chunk_id: "code-14", score: 0.56, type: "code", title: "hyper/src/client/conn.rs", category: "rust", year: 2024, path: "src/client/conn.rs", repo: "hyper" },
+  { chunk_id: "code-15", score: 0.53, type: "code", title: "boto3/resources/action.py", category: "python", year: 2023, path: "boto3/resources/action.py", repo: "boto3" },
+  { chunk_id: "code-16", score: 0.50, type: "code", title: "django/db/backends/base/base.py", category: "python", year: 2024, path: "django/db/backends/base/base.py", repo: "django" },
+  { chunk_id: "code-17", score: 0.47, type: "code", title: "gin-gonic/gin/context.go", category: "go", year: 2023, path: "context.go", repo: "gin" },
+  { chunk_id: "code-18", score: 0.44, type: "code", title: "actix-web/src/server.rs", category: "rust", year: 2024, path: "actix-web/src/server.rs", repo: "actix-web" },
+  { chunk_id: "code-19", score: 0.41, type: "code", title: "numpy/core/numeric.py", category: "python", year: 2023, path: "numpy/core/numeric.py", repo: "numpy" },
+  { chunk_id: "code-20", score: 0.38, type: "code", title: "pandas/core/frame.py", category: "python", year: 2024, path: "pandas/core/frame.py", repo: "pandas" },
+  { chunk_id: "code-21", score: 0.35, type: "code", title: "etcd/client/v3/client.go", category: "go", year: 2023, path: "client/v3/client.go", repo: "etcd" },
+  { chunk_id: "code-22", score: 0.32, type: "code", title: "serde/src/de/mod.rs", category: "rust", year: 2024, path: "serde/src/de/mod.rs", repo: "serde" },
+  { chunk_id: "code-23", score: 0.29, type: "code", title: "pytorch/torch/nn/modules/module.py", category: "python", year: 2024, path: "torch/nn/modules/module.py", repo: "pytorch" },
+  { chunk_id: "code-24", score: 0.26, type: "code", title: "transformers/modeling_utils.py", category: "python", year: 2024, path: "src/transformers/modeling_utils.py", repo: "transformers" },
+  { chunk_id: "code-25", score: 0.23, type: "code", title: "vllm/engine/llm_engine.py", category: "python", year: 2024, path: "vllm/engine/llm_engine.py", repo: "vllm" },
+];
+
+type CorpusId = "demo" | "browsecomp" | "arxiv-ml" | "codebase";
+let activeCorpus: CorpusId = "demo";
 let activeBrowseCompLimit = 100;
 let freshItems: MockItem[] = [];
 let clauseSeq = 1;
 
 function getBaseItems(): MockItem[] {
-  return activeCorpus === "browsecomp" ? browseCompItems(activeBrowseCompLimit) : DEMO_ITEMS;
+  switch (activeCorpus) {
+    case "browsecomp":
+      return browseCompItems(activeBrowseCompLimit);
+    case "arxiv-ml":
+      return ARXIV_ML_ITEMS;
+    case "codebase":
+      return CODEBASE_ITEMS;
+    default:
+      return DEMO_ITEMS;
+  }
 }
 
 function toResult(item: MockItem, rank: number): ResultEvent {
@@ -123,8 +191,9 @@ export async function ingestMock(
   limit?: number,
 ): Promise<{ n_chunks: number; facets: Facets }> {
   // Switch corpus based on corpusId
-  if (corpusId === "browsecomp" || corpusId === "demo") {
-    activeCorpus = corpusId;
+  const validCorpora: CorpusId[] = ["demo", "browsecomp", "arxiv-ml", "codebase"];
+  if (validCorpora.includes(corpusId as CorpusId)) {
+    activeCorpus = corpusId as CorpusId;
     if (corpusId === "browsecomp") activeBrowseCompLimit = limit ?? activeBrowseCompLimit;
     if (!documents.length) freshItems = [];
   }

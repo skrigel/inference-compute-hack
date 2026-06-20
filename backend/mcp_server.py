@@ -20,6 +20,7 @@ from typing import Any
 
 from backend.agent import AgentSession
 from backend.knowledge import (
+    browsecomp_documents,
     documents_from_dicts,
     fetch_arxiv_documents,
     generated_documents,
@@ -106,11 +107,13 @@ def build_server(session: AgentSession | None = None, *, name: str = "grepmeanin
         arxiv_query: str | None = None,
         documents: list[dict[str, Any]] | None = None,
     ) -> dict:
-        """Create a source compartment from code, papers, arXiv, or explicit docs."""
+        """Create a source compartment from code, papers, BrowseComp, arXiv, or explicit docs."""
         if documents:
             loaded = documents_from_dicts(documents)
         elif arxiv_query:
             loaded = fetch_arxiv_documents(arxiv_query, max_results=size)
+        elif source_kind == "browsecomp":
+            loaded = browsecomp_documents(size=size)
         else:
             loaded = generated_documents(source_kind=source_kind, size=size)
         source_compartments[source_id] = loaded
@@ -242,6 +245,8 @@ def _source_documents(
     existing = source_compartments.get(source_id)
     if existing:
         return existing
+    if source_kind == "browsecomp":
+        return browsecomp_documents(size=size)
     return generated_documents(source_kind=source_kind, size=size)
 
 

@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useDashboard, type ComparisonLane as ComparisonLaneData, type LatencyKind } from "../hooks/useDashboard";
 import { db } from "../lib/storage";
 import type { CachedScore } from "../lib/scoreCache";
@@ -21,26 +21,9 @@ export function SearchPage() {
   const navigate = useNavigate();
   const [corpus, setCorpus] = useState<Corpus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeCorpus, setActiveCorpus] = useState<"demo" | "browsecomp">("demo");
-  const [switchingCorpus, setSwitchingCorpus] = useState(false);
   const [previewResult, setPreviewResult] = useState<CachedScore | null>(null);
   const [pageMode, setPageMode] = useState<PageMode>("browse");
   const d = useDashboard();
-
-  const handleCorpusChange = async (newCorpus: "demo" | "browsecomp") => {
-    if (newCorpus === activeCorpus || switchingCorpus) return;
-    setSwitchingCorpus(true);
-    try {
-      // For browsecomp, limit to 1000 docs by default for faster loading
-      const limit = newCorpus === "browsecomp" ? 1000 : undefined;
-      await d.ingestCorpus(newCorpus, limit);
-      setActiveCorpus(newCorpus);
-      // Do NOT auto-run the query on corpus switch — the corpus is ingested/warmed
-      // here, but scanning only happens when the user presses Scan (onSubmit).
-    } finally {
-      setSwitchingCorpus(false);
-    }
-  };
 
   useEffect(() => {
     if (!corpusId) {
@@ -48,19 +31,24 @@ export function SearchPage() {
       return;
     }
 
-    db.corpora.get(corpusId).then((c) => {
+    db.corpora.get(corpusId).then(async (c) => {
       if (!c) {
         navigate("/library");
         return;
       }
       setCorpus(c);
+
+      // Ingest the corpus (warm the mock/live data)
+      const limit = corpusId === "browsecomp" ? 1000 : undefined;
+      await d.ingestCorpus(corpusId as "demo" | "browsecomp", limit);
+
       setLoading(false);
 
       // Update lastUsedAt
       db.corpora.put({ ...c, lastUsedAt: Date.now() });
       db.preferences.set("lastCorpusId", corpusId);
     });
-  }, [corpusId, navigate]);
+  }, [corpusId, navigate, d]);
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -98,9 +86,6 @@ export function SearchPage() {
         onSubmit={onSubmit}
         streaming={d.streaming}
         corpus={corpus}
-        activeCorpus={activeCorpus}
-        switchingCorpus={switchingCorpus}
-        onCorpusChange={handleCorpusChange}
       />
 
       {pageMode === "compare" && (
@@ -286,32 +271,15 @@ interface QuerySectionProps {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   streaming: boolean;
   corpus: Corpus | null;
-  activeCorpus: "demo" | "browsecomp";
-  switchingCorpus: boolean;
-  onCorpusChange: (corpus: "demo" | "browsecomp") => void;
 }
 
-function QuerySection({ predicate, onPredicateChange, onSubmit, streaming, corpus, activeCorpus, switchingCorpus, onCorpusChange }: QuerySectionProps) {
+function QuerySection({ predicate, onPredicateChange, onSubmit, streaming, corpus }: QuerySectionProps) {
   return (
     <section className="query-section">
       <div className="query-header">
+        <Link to="/library" className="back-to-library">← Library</Link>
         <span className="corpus-name">{corpus?.name ?? "Unknown Corpus"}</span>
         <span className="corpus-docs">{corpus?.documentCount ?? 0} documents</span>
-        <select
-          className="corpus-select"
-          value={activeCorpus}
-          onChange={(e) => onCorpusChange(e.target.value as "demo" | "browsecomp")}
-          disabled={switchingCorpus || streaming}
-        >
-          <option value="demo">Demo (7 docs)</option>
-          <option value="browsecomp">BrowseComp+ (1k docs)</option>
-        </select>
-        {switchingCorpus && (
-          <span className="corpus-loading">
-            <span className="spinner" aria-hidden="true" />
-            Loading…
-          </span>
-        )}
       </div>
       <form className="query-form" onSubmit={onSubmit}>
         <input
@@ -321,7 +289,7 @@ function QuerySection({ predicate, onPredicateChange, onSubmit, streaming, corpu
           onChange={(event) => onPredicateChange(event.target.value)}
           placeholder="Type a query..."
         />
-        <button className="btn-primary" type="submit" disabled={streaming || switchingCorpus}>
+        <button className="btn-primary" type="submit" disabled={streaming}>
           {streaming ? (
             <span className="btn-loading">
               <span className="spinner" aria-hidden="true" />
