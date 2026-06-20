@@ -19,6 +19,19 @@ traceable.
 | Candidate-set scoping reduced refine-loop compute | 11 chunks scored vs 21 full-rescore chunks; 47.619% less compute, 1.909x work reduction | `eval/artifacts/cut_line_trace.json`, `eval/artifacts/area_under_loop.png` | Measured on deterministic mock scorer over the pinned 7-chunk cut-line corpus. |
 | Agent iteration loop beat human-visible query refinement time estimate | 34,025.392x speed estimate, 13.225 ms agent loop vs 450,000 ms human estimate | `eval/artifacts/extension3_agent_loop.md`, `eval/artifacts/extension3_agent_loop.json` | This is an iteration-loop speed estimate from a deterministic environment, not a live user study. |
 
+## Top 4 Focus Claims For Agents
+
+If another agent is making slides, a demo, or a narrative pass, focus on these
+four claims first. They are the strongest measured claims because they combine
+large visible deltas with a clear reason the architecture matters.
+
+| priority | claim | why it is compelling | source artifacts |
+|---:|---|---|---|
+| 1 | **2x H100 multi-user dynamic vs 100k-doc RAG:** 36.843x higher throughput, 313.896 req/s vs 8.520 RAG qps. | Best headline throughput win; use this for the largest measured speedup against large-corpus RAG. | `eval/artifacts/prime_final_slide_metrics.md`, `eval/artifacts/prime_final_charts/04_speedup_vs_100k_rag.png`, `eval/artifacts/prime_final_2xh100_matrix.json` |
+| 2 | **2x H100 multi-user static vs 100k-doc RAG:** 36.110x higher throughput and 17.565% lower p50 latency. | Cleanest large-corpus comparison because both throughput and latency improve. | `eval/artifacts/prime_final_slide_metrics.md`, `eval/artifacts/prime_final_charts/04_speedup_vs_100k_rag.png`, `eval/artifacts/prime_final_2xh100_matrix.json` |
+| 3 | **6x H100 phase-04 scaling vs 1x H100:** 5.615x to 6.489x higher throughput depending on workload. | Best "compute scaling works" claim; it directly supports the project thesis that the approach improves as compute scales. | `eval/artifacts/phase04_h100_rag_matrix.md`, `eval/artifacts/phase04_h100_rag_matrix.json` |
+| 4 | **Candidate-set scoping reduces refine-loop compute:** 11 chunks scored vs 21 full-rescore chunks, 47.619% less compute. | Best architecture-specific claim; it shows the system improves by avoiding repeated work, not only by adding GPUs. | `eval/artifacts/cut_line_trace.json`, `eval/artifacts/area_under_loop.png` |
+
 ## Chart Inventory And Improvement Summary
 
 | chart | what it shows | improvement-bearing summary | measured? |
