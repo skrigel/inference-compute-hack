@@ -31,6 +31,15 @@ class VLLMScorerTests(unittest.TestCase):
         with patch.dict(os.environ, {"SCORER_BACKEND": "vllm", "VLLM_REPLICAS": "http://r1/v1"}):
             self.assertIsInstance(make_scorer(), VLLMScorer)
 
+    def test_from_env_defaults_to_evidence_backed_scheduler_settings(self):
+        from inference.vllm_scorer import VLLMScorer
+
+        with patch.dict(os.environ, {"VLLM_REPLICAS": "http://r1/v1"}, clear=True):
+            scorer = VLLMScorer.from_env()
+
+        self.assertEqual(scorer._routing_mode, "round_robin")
+        self.assertEqual(scorer._priority_reserved, 0)
+
     def test_yes_no_logprobs_normalize_score(self):
         from inference.scorer import ScoreRequest
         from inference.vllm_scorer import VLLMScorer

@@ -107,8 +107,8 @@ class VLLMScorer(ScorerClient):
             model_id=os.environ.get("VLLM_MODEL_ID", "tier1-filter"),
             timeout_s=float(os.environ.get("VLLM_TIMEOUT_S", "30")),
             max_concurrency=int(os.environ.get("VLLM_MAX_CONCURRENCY", "128")),
-            priority_reserved=int(os.environ.get("VLLM_PRIORITY_RESERVED", "16")),
-            routing_mode=os.environ.get("VLLM_ROUTING_MODE", "chunk_sticky"),
+            priority_reserved=int(os.environ.get("VLLM_PRIORITY_RESERVED", "0")),
+            routing_mode=os.environ.get("VLLM_ROUTING_MODE", "round_robin"),
         )
 
     async def warm(self, corpus_id: str, chunks: list[Chunk]) -> PrefixState:

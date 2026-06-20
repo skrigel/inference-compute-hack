@@ -511,8 +511,8 @@ over a tuned FAISS/neural embedding production RAG stack.
   fan-out would smooth tail latency.
 - change:
   - `VLLMScorer`: added `_global_semaphore` + `_bulk_semaphore` keyed by `tier`
-    (`VLLM_PRIORITY_RESERVED`, default 16), and `_route_replica` with
-    `VLLM_ROUTING_MODE` (`round_robin` | `chunk_sticky`, default `chunk_sticky`).
+    (`VLLM_PRIORITY_RESERVED`; rejected setting was 16), and `_route_replica` with
+    `VLLM_ROUTING_MODE` (`round_robin` | `chunk_sticky` | `length_bin`).
   - Refine path scores at `tier=0` (priority); query path at `tier=1` (bulk).
   - Added `REFINE_BATCH_SIZE` / `QUERY_BATCH_SIZE` microbatch knobs.
 - expected mechanism: bulk traffic capped below total concurrency leaves headroom for
@@ -543,6 +543,9 @@ over a tuned FAISS/neural embedding production RAG stack.
   sticky routing and the priority lane can actually take effect.
 - rollback: set `VLLM_PRIORITY_RESERVED=0` and `VLLM_ROUTING_MODE=round_robin`
   (production scoring correctness is unaffected either way).
+- follow-up: rollback is now the default runtime posture; nonzero reserved
+  priority lanes, `chunk_sticky`, and `length_bin` must be enabled explicitly
+  only inside benchmarked experiments.
 
 ### OPT-MODAL-001-CODEX-RAG-VALIDATION: Post-Merge Modal Optimization Validation
 
