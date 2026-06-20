@@ -126,6 +126,8 @@ vllm_cache_vol = modal.Volume.from_name("grep-vllm-cache", create_if_missing=Tru
         "/root/.cache/vllm": vllm_cache_vol,
     },
     # Scale to N_REPLICAS for data parallelism
+    min_containers=N_REPLICAS,
+    max_containers=N_REPLICAS,
 )
 @modal.concurrent(max_inputs=256, target_inputs=128)  # high concurrency for batching
 class Scorer:
