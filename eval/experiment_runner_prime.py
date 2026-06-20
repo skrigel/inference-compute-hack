@@ -314,6 +314,35 @@ def list_pods() -> list[PodInfo]:
         return []
 
 
+def get_available_resource_id(
+    gpu_type: str = "H100_80GB",
+    gpu_count: int = 1,
+) -> str:
+    """Get an available resource ID from Prime availability list."""
+    result = _run_prime(
+        ["availability", "list", "--gpu-type", gpu_type, "--gpu-count", str(gpu_count), "--output", "json"],
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"Failed to get availability: {result.stderr}")
+
+    try:
+        data = json.loads(result.stdout)
+        resources = data.get("gpu_resources", [])
+        # Find first available resource
+        for resource in resources:
+            if resource.get("stock_status") == "Available":
+                resource_id = resource.get("id")
+                if resource_id:
+                    print(f"Found available resource: {resource_id} ({resource.get('gpu_type')}, "
+                          f"{resource.get('gpu_count')} GPU(s), {resource.get('price_per_hour')}/hr, "
+                          f"{resource.get('provider')} in {resource.get('location')})")
+                    return resource_id
+        raise RuntimeError(f"No available {gpu_count}x {gpu_type} resources found")
+    except (json.JSONDecodeError, KeyError) as e:
+        raise RuntimeError(f"Failed to parse availability response: {e}")
+
+
 def create_pod(
     name: str,
     gpu_type: str = DEFAULT_POD_CONFIG["gpu_type"],
@@ -323,10 +352,12 @@ def create_pod(
     env_vars: dict[str, str] | None = None,
 ) -> PodInfo:
     """Create a new Prime pod for experiments."""
+    # Get available resource ID first
+    resource_id = get_available_resource_id(gpu_type=gpu_type, gpu_count=gpu_count)
+
     cmd = [
         "pods", "create",
-        "--gpu-type", gpu_type,
-        "--gpu-count", str(gpu_count),
+        "--id", resource_id,
         "--image", image,
         "--disk-size", str(disk_size),
         "--name", name,
@@ -337,27 +368,42 @@ def create_pod(
         for key, value in env_vars.items():
             cmd.extend(["--env", f"{key}={value}"])
 
-    print(f"Creating pod: {name} ({gpu_count}x {gpu_type})")
+    print(f"Creating pod: {name} (resource {resource_id})")
     result = _run_prime(cmd, check=False)
 
     if result.returncode != 0:
-        raise RuntimeError(f"Failed to create pod: {result.stderr}")
+        raise RuntimeError(f"Failed to create pod: {result.stderr}\nstdout: {result.stdout}")
 
     # Parse pod ID from output
     output = result.stdout + result.stderr
     pod_id = None
-    for line in output.splitlines():
-        if "pod" in line.lower() and ("created" in line.lower() or "id" in line.lower()):
-            # Try to extract pod ID
-            parts = line.split()
-            for part in parts:
-                if len(part) >= 6 and part.replace("-", "").replace("_", "").isalnum():
-                    pod_id = part
-                    break
+
+    # Try to parse JSON response first
+    try:
+        data = json.loads(result.stdout)
+        pod_id = data.get("id") or data.get("pod_id") or data.get("pod", {}).get("id")
+    except (json.JSONDecodeError, AttributeError):
+        pass
+
+    if not pod_id:
+        # Look for pod ID in text output
+        for line in output.splitlines():
+            line_lower = line.lower()
+            if "pod" in line_lower and ("created" in line_lower or "id" in line_lower):
+                parts = line.split()
+                for part in parts:
+                    # Pod IDs are typically 6+ alphanumeric chars
+                    clean_part = part.strip("'\"()[]{}:,")
+                    if len(clean_part) >= 6 and clean_part.replace("-", "").replace("_", "").isalnum():
+                        pod_id = clean_part
+                        break
+            if pod_id:
+                break
 
     if not pod_id:
         # List pods to find the one we just created
-        time.sleep(2)
+        print("Looking up pod ID from list...")
+        time.sleep(3)
         pods = list_pods()
         for pod in pods:
             if pod.name == name:
@@ -367,6 +413,7 @@ def create_pod(
     if not pod_id:
         raise RuntimeError(f"Could not determine pod ID from output: {output}")
 
+    print(f"Pod created with ID: {pod_id}")
     return PodInfo(pod_id=pod_id, name=name, status="creating")
 
 
@@ -472,7 +519,7 @@ def generate_benchmark_script(
 def run_experiment_prime(
     exp_id: str,
     *,
-    repetitions: int = 3,
+    repetitions: int = 5,
     gpu_count: int = 1,
     dry_run: bool = False,
     keep_pod: bool = False,
@@ -607,7 +654,7 @@ def run_experiment_prime(
 
 def run_all_experiments_prime(
     *,
-    repetitions: int = 3,
+    repetitions: int = 5,
     gpu_count: int = 1,
     dry_run: bool = False,
     experiments: list[str] | None = None,
@@ -649,7 +696,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("exp_id", nargs="?", help="Experiment ID to run (e.g., EXP-FP8-001)")
     parser.add_argument("--list", action="store_true", help="List available experiments")
     parser.add_argument("--all", action="store_true", help="Run all experiments")
-    parser.add_argument("--repetitions", type=int, default=3, help="Repetitions per experiment")
+    parser.add_argument("--repetitions", type=int, default=5, help="Repetitions per experiment (5 recommended for statistical confidence)")
     parser.add_argument("--gpu-count", type=int, default=1, help="Number of GPUs per pod")
     parser.add_argument("--dry-run", action="store_true", help="Print commands without executing")
     parser.add_argument("--keep-pod", action="store_true", help="Keep pod after experiment for debugging")
