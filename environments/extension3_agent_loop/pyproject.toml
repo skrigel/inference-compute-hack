@@ -2,7 +2,7 @@
 name = "extension3-agent-loop"
 description = "Synthetic dynamic-corpus query-refinement environment for measuring cheap metrics against post-RL lift."
 tags = ["agent-loop", "query-refinement", "train", "eval", "metrics"]
-version = "0.1.1"
+version = "0.2.0"
 requires-python = ">=3.10,<3.14"
 dependencies = [
     "datasets>=4.0.0",

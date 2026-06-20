@@ -1,37 +1,44 @@
 # Full Extension 3 Hosted Training run.
-# This is the first non-smoke, non-pilot run: it trains on all synthetic
-# query-refinement rows currently exposed by inference/extension3-agent-loop.
+# This targets roughly $60-$65 with the companion budget monitor:
+#   python -m eval.prime_budget_monitor <run-id> --target-cost 60 --hard-limit 65 --poll-seconds 15
+# Stop manually if heldout reward collapses, errors appear, or checkpointing fails.
 
-name = "extension3-agent-loop-grpo-full"
-model = "Qwen/Qwen3.5-2B"
+name = "extension3-agent-loop-grpo-budget-35b"
+model = "Qwen/Qwen3.5-35B-A3B"
 loss = "rl"
-max_steps = 200
-batch_size = 64
+max_steps = 1200
+batch_size = 128
 rollouts_per_example = 8
 
 [sampling]
 max_tokens = 256
 temperature = 0.7
+extra_body = { chat_template_kwargs = { enable_thinking = false } }
+
+[eval.sampling]
+max_tokens = 256
+temperature = 0.0
+extra_body = { chat_template_kwargs = { enable_thinking = false } }
 
 [checkpoints]
 interval = 25
-keep_cloud = 8
+keep_cloud = 10
 
 [adapters]
 interval = 25
-keep_last = 8
+keep_last = 10
 
 [val]
 interval = 25
-num_examples = 6
+num_examples = 72
 rollouts_per_example = 1
 
 [[env]]
 id = "inference/extension3-agent-loop"
-args = { split = "train", max_examples = -1, include_hard = true }
+args = { split = "train", max_examples = -1, include_hard = true, passages_per_prompt = 16 }
 
 [[eval.env]]
 id = "inference/extension3-agent-loop"
-args = { split = "eval", max_examples = -1, include_hard = true }
-num_examples = 6
+args = { split = "eval", max_examples = -1, include_hard = true, passages_per_prompt = 16 }
+num_examples = 72
 rollouts_per_example = 1
