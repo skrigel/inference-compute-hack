@@ -18,8 +18,8 @@ that whole layer collapses into one primitive:** a semantic filter that reads a 
 single Yes/No token whose logprob is a continuous relevance score.
 
 We built the live, interactive surface for that world and made it fast on 8× H100 with single-token
-scoring, 4-bit quantization, data-parallel replicas, warm-cache prefix reuse, and
-candidate-set-scoped refinement.
+scoring, FP8 prefill compute, 4-bit weight/KV capacity, data-parallel replicas, warm-cache prefix
+reuse, and candidate-set-scoped refinement.
 
 Latency is the un-fakeable hero in exactly the two cases RAG can't follow:
 
@@ -45,9 +45,9 @@ cached per clause.
    `(chunk_id, clause_id) → float` cache.
 4. **Warm-on-ingest (a first-query bonus).** Pre-prefill every chunk's prefix at load so the first
    query is warm; measured against the KV budget in Phase 0.
-5. **4-bit quantization + data-parallel replicas.** AWQ-Marlin (~4× less weight traffic); the filter
-   fits on one GPU, so N single-GPU replicas ≈ N× throughput. (Tensor-parallel is reserved only for
-   the stretch 32B Tier-2 model.)
+5. **FP8 compute + 4-bit capacity + data-parallel replicas.** FP8 raises the prefill compute ceiling;
+   4-bit weights/KV reduce memory pressure so the filter and warm cache fit cleanly; N single-GPU
+   replicas ≈ N× throughput. (Tensor-parallel is reserved only for the stretch 32B Tier-2 model.)
 
 ---
 
@@ -78,6 +78,8 @@ flowchart LR
   Swap with one env var.
 * **Eval:** `baseline/rag.py` is a standard embeddings+FAISS pipeline used **only** to time index-build
   and retrieve cost; `eval/bench.py` validates the score first, then sweeps the optimization ladders.
+* **Performance:** `performance/` contains the imported closed-form compute models, benchmarking
+  methodology, and figures used to turn metrics into predicted-vs-measured performance claims.
 
 ---
 
@@ -91,9 +93,14 @@ data/        mixed arXiv papers + code corpus, labels, predicates       [Owner D
 baseline/    RAG pipeline — EVAL ONLY                                    [Owner A/D]
 eval/        ground truth, latency, scaling study, the anchor chart     [Owner A/D]
 scripts/     preload_demo.sh, replay_sse.py
+performance/ closed-form performance models, figures, benchmarking methodology
+docs/        phase-by-phase build docs and project doc index
 CONTRACTS.md the frozen seam (read this before writing any code)
 PLAN.md      the full 24-hour build plan
-DEMO.md      the beat-by-beat demo script (created during the build)
+SCHEDULE.md  phase index and milestone gates
+METRICS.md   performance-oriented metrics plan
+DEMO.md      the beat-by-beat demo script and runbook
+RISKS.md     risk register and mitigations
 ```
 
 ---
@@ -158,12 +165,15 @@ python -m eval.bench --backend vllm --tag freeze      # ladders + RAG comparison
 * **Score-first gate:** the harness refuses to run speed sweeps until the filter clears Tier-1
   **F1 ≥ ~0.8** on gold (arXiv topic gold + a codebase questionnaire + a BrowseComp-Plus slice).
   *Don't optimize the speed of being wrong.*
-* **The money shot:** a cumulative **iteration-cost** chart — our refine-loop time vs RAG's per-turn
-  re-retrieve (+ re-index on changed data) over a 6–10-turn session. The area between the curves is
-  the win.
+* **Performance-first metrics:** count inference work first (`chunks_scored`, cache hits, survivor
+  fraction), then overlay latency and energy. See [`METRICS.md`](METRICS.md) and
+  [`performance/`](performance/).
+* **The money shot:** a cumulative **iteration-cost** chart — our scoped refine-loop compute vs RAG's
+  per-turn re-retrieve (+ re-index on changed data) over a 6–10-turn session. The area between the
+  curves is the win.
 * **Optimization ladders** (config flags): refine latency B0→B3 (cold full-corpus → warm+suffix-only →
   candidate scoping → persistent cache, → ~100–300 ms/turn); throughput (batching → ×6 replicas →
-  4-bit); scale (10k→20k→100k, marking the KV crossover).
+  FP8 compute); capacity (4-bit weights/KV); scale (10k→20k→100k, marking the KV crossover).
 
 Charts from the mock are stamped **PROJECTED (mock)**; the frozen run uses the real box.
 

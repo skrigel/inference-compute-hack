@@ -3,8 +3,8 @@
 > A detailed, comprehensive plan for the 24-hour, 4-person, 8×H100 hackathon build.
 > Derived from the FINAL MVP spec, six parallel subsystem designs, and three adversarial design
 > reviews (feasibility, demo-narrative, contract-integrity). Read this top-to-bottom once; then
-> live in [`CONTRACTS.md`](CONTRACTS.md), [`SCHEDULE`](#7-the-24-hour-schedule), and
-> [`DEMO`](#8-the-demo-5-beats--optional-closers).
+> live in [`CONTRACTS.md`](CONTRACTS.md), [`SCHEDULE.md`](SCHEDULE.md),
+> [`METRICS.md`](METRICS.md), [`docs/phases/`](docs/phases/), and [`DEMO.md`](DEMO.md).
 
 ---
 
@@ -40,8 +40,8 @@ that whole layer collapses into one primitive:** a semantic filter that reads a 
 single Yes/No token whose logprob is a continuous relevance score.
 
 We built the live, interactive surface for that world, and made it fast on 8×H100 with single-token
-scoring, 4-bit quantization, data-parallel replicas, warm-cache prefix reuse, and
-candidate-set-scoped refinement.
+scoring, FP8 prefill compute, 4-bit weight/KV capacity, data-parallel replicas, warm-cache prefix
+reuse, and candidate-set-scoped refinement.
 
 **Where latency is the un-fakeable hero** (and RAG structurally can't follow):
 1. **Iterative refinement** — every refine turn is a fresh sub-second pass for us (cached), a full
@@ -163,6 +163,10 @@ grep-for-meaning/
   eval/          # ground truth + latency + scaling study                [OWNER A/D]
     bench.py         # validate_score gate → ladder sweeps → artifacts
     metrics.py · sessions.py · gold.py · plots.py · config.py
+  performance/   # theoretical compute layer + figures                   [OWNER A/D]
+    theory.py        # closed-form roofline, MFU, scoped-loop, churn, KV models
+    docs/            # performance thesis, methodology, constants to verify
+    figures/         # generated chart artifacts for slides
   data/          # mixed papers+code (10–20k) + labels                  [OWNER D]
     schema.py        # FROZEN Chunk/ChunkMeta/chunk_id_of
     build.py · fetch_arxiv.py · fetch_code.py · chunker.py · make_labels.py
@@ -170,7 +174,8 @@ grep-for-meaning/
   scripts/
     preload_demo.sh  # boot + ingest + warm + health-check → GO/NO-GO
     replay_sse.py    # record/replay real SSE for the universal demo fallback
-  CONTRACTS.md · PLAN.md · README.md · DEMO.md · SCHEDULE.md · RISKS.md
+  CONTRACTS.md · PLAN.md · README.md · METRICS.md · DEMO.md · SCHEDULE.md · RISKS.md
+  docs/phases/phase-00...phase-06.md
 ```
 
 **Team split.** A = inference + warm-cache + eval. B = backend (clause + aggregates + cache +
@@ -213,8 +218,10 @@ Ordered by leverage. The originals are from the spec; the **⚠ corrections** ar
    perfect balance, but it's small so latency is fine. Measure the KV crossover in Phase 0; past it,
    #3 carries the refine path.
 
-5. **4-bit quantization + DATA-parallel replicas (not tensor-parallel).** AWQ-Marlin (one vLLM flag,
-   ~4× less weight traffic). Tier-1 (~3–8B) fits on one 80GB H100, so run **6 fully independent
+5. **FP8 compute + 4-bit capacity + DATA-parallel replicas (not tensor-parallel).** FP8 is the prefill
+   throughput lever because the scan is compute-bound. AWQ/4-bit weights are the capacity lever: they
+   reduce memory traffic and make the filter/warm cache easier to fit, but they are not a 4× raw scan
+   speedup in this regime. Tier-1 (~3–8B) fits on one 80GB H100, so run **6 fully independent
    single-GPU replicas** (no NCCL chatter) ≈ 6× throughput. Tensor-parallel is reserved **only** for
    the 32B Tier-2 (TP=2 across 2 GPUs).
 
@@ -245,8 +252,10 @@ across the drafts.
 * `warm.py`: prefill-only passes, `estimate_kv_bytes()`, `WarmReport.crossover_flag`.
 * `serve.sh`: 6× `CUDA_VISIBLE_DEVICES=$i vllm … --quantization awq_marlin --enable-prefix-caching
   --max-model-len 4096 --max-num-seqs 256`; Tier-2 commented/stretch.
-* `eval/`: `validate_score` gate (hard STOP if F1 < 0.8 unless `--force`), ladder sweeps via config
-  flags, the iteration-cost anchor chart, artifacts (`results.jsonl`, `metrics.json`, charts).
+* `eval/` + `performance/`: `validate_score` gate (hard STOP if F1 < 0.8 unless `--force`), ladder
+  sweeps via config flags, cache counters, counterfactual replay, measured-vs-predicted overlays
+  against `performance/theory.py`, the iteration-cost anchor chart, artifacts (`results.jsonl`,
+  `metrics.json`, charts).
 * `baseline/rag.py`: sentence-transformers + FAISS on the box; **numpy hashing-vectorizer + matmul
   fallback** so it imports on the Mac. Logs index-build + retrieve cost for "RAG: minutes, ours: 0".
 
@@ -369,15 +378,21 @@ safe fallback if BrowseComp-Plus is auth-walled) + a hand-authored codebase ques
 BrowseComp-Plus slice.
 
 **The money shot is iteration, not a single lookup.** The one believability chart is the **cumulative
-iteration-cost curve**: our refine-loop time vs RAG's per-turn re-retrieve (+ re-index on changed data)
-over a realistic 6–10-turn session, with the area between the curves shaded. Everything else (F1,
-throughput, scaling) is a backup row, not a spoken beat.
+iteration-cost curve**: our scoped refine-loop compute vs RAG's per-turn re-retrieve (+ re-index on
+changed data) over a realistic 6–10-turn session, with the area between the curves shaded. Everything
+else (F1, throughput, scaling) is a backup row, not a spoken beat.
+
+**Performance metrics are predicted-then-measured.** The imported [`performance/`](performance/)
+layer supplies the roofline, FLOP/MFU accounting, scoped-loop model, compute-vs-churn model, and KV
+capacity model. `eval/bench.py` should log deterministic work counters first (`chunks_scored`,
+`chunks_served_from_cache`, `rho`) and overlay latency/energy afterward. See [`METRICS.md`](METRICS.md).
 
 **Optimization ladders** (config flags so the harness sweeps the curve, apples-to-apples on the same
 session):
 * **Ladder B — refine latency (headline):** B0 full-corpus re-score cold (seconds) → B1 warm+suffix-only
   → B2 candidate-set scoping → B3 persistent score cache → **~100–300 ms/turn at 10–20k**.
-* **Ladder A — throughput:** batching → data-parallel ×6 → 4-bit (multiplicative).
+* **Ladder A — throughput:** batching → data-parallel ×6 → FP8 compute.
+* **Ladder A2 — capacity:** 4-bit weights/KV → larger warm cache and more comfortable replica sizing.
 * **Ladder C — scale:** 10k→20k→100k; mark the KV crossover where warm hands off to scoping. If the box
   is tight, report 10k+20k measured and 100k projected-from-cost-model, **clearly labeled**.
 

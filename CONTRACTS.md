@@ -253,7 +253,49 @@ resp: { "items": [ {"chunk_id","score","meta"} ], "threshold": 0.55, "top_k": 50
 
 ---
 
-## 6. Environment variables (one name each)
+## 6. Performance trace schema (`eval/bench.py` / `METRICS.md`)
+
+Every query and refine turn emits a trace row. This is the bridge between runtime
+instrumentation and the theoretical models in `performance/theory.py`.
+
+```jsonc
+{
+  "run_id": "2026-06-20-h100-freeze",
+  "commit": "git-sha",
+  "corpus_id": "demo",
+  "model_id": "Qwen/Qwen2.5-3B-Instruct-AWQ",
+  "scorer_backend": "mock|vllm",
+  "turn": 3,
+  "operation": "query|require|exclude|include|refocus|brush|delete_clause",
+  "threshold": 0.5,
+  "n_chunks_total": 18234,
+  "candidate_count": 4312,
+  "chunks_scored": 4312,
+  "chunks_served_from_cache": 13922,
+  "survivor_count": 2368,
+  "rho": 0.55,
+  "elapsed_ms": 180.0,
+  "model_ms": 142.0,
+  "queue_ms": 18.0,
+  "cache_hit_rate": 0.76,
+  "warm_state": "cold|warm|cached",
+  "latency_kind": "cold|warm|cached",
+  "quality_slice": "demo-retry-without-backoff"
+}
+```
+
+Rules:
+
+* `chunks_scored` counts only cache misses that hit the scorer. This is the primary compute unit.
+* `chunks_served_from_cache` counts cache hits used to recombine or recut scores.
+* `rho = survivor_count / candidate_count` for refine turns; `null` is allowed for the first query.
+* Threshold drag and chip deletion must emit `chunks_scored = 0`.
+* Wall-clock fields are overlays. Do not use them as the x-axis for area-under-loop curves.
+* Mock traces must be stamped `scorer_backend: "mock"` and any derived chart must be labeled projected.
+
+---
+
+## 7. Environment variables (one name each)
 
 | Variable          | Side     | Values            | Meaning                                              |
 |-------------------|----------|-------------------|------------------------------------------------------|
@@ -267,7 +309,7 @@ resp: { "items": [ {"chunk_id","score","meta"} ], "threshold": 0.55, "top_k": 50
 
 ---
 
-## 7. Files that must exist before parallel work (H0–1)
+## 8. Files that must exist before parallel work (H0–1)
 
 * `inference/scorer.py` — `ScorerClient`, `ScoreRequest`, `ScoreResult`, `PrefixState`
 * `inference/mock_scorer.py` — the one `MockScorer`
@@ -276,8 +318,10 @@ resp: { "items": [ {"chunk_id","score","meta"} ], "threshold": 0.55, "top_k": 50
 * `backend/schemas.py` — pydantic models that **import** the above and define the SSE/HTTP wire models
 * `frontend/src/lib/types.ts` — TS mirror of all of the above
 * This file (`CONTRACTS.md`) — signed off by A, B, C, D
+* `METRICS.md` + `performance/theory.py` — shared performance vocabulary and closed-form models
 
 ---
 
 ## Changelog
+* 2026-06-20 — added performance trace contract and linked metrics/theory artifacts.
 * 2026-06-19 — initial reconciliation of the six subsystem drafts into one contract (delivery owner).
