@@ -36,6 +36,29 @@ export interface QueryRequest {
   threshold: number;
 }
 
+export interface FreshDocument {
+  title: string;
+  text: string;
+  type: "paper" | "code";
+  category: string | null;
+  year: number | null;
+  path: string | null;
+  lang: string | null;
+  repo: string | null;
+}
+
+export interface RefineRequest {
+  utterance?: string;
+  click?: {
+    chunk_id: string;
+    sign: "+" | "-";
+  };
+  brush?: {
+    lo: number;
+    hi: number;
+  };
+}
+
 export interface ResultEvent {
   type: "result";
   chunk_id: string;

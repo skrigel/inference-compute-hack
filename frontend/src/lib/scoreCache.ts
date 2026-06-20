@@ -29,6 +29,24 @@ export class ScoreCache {
     });
   }
 
+  upsertCached(entry: CachedScore): void {
+    this.byId.set(entry.chunk_id, entry);
+  }
+
+  updateScore(chunkId: string, score: number): void {
+    const current = this.byId.get(chunkId);
+    if (!current) return;
+    this.byId.set(chunkId, { ...current, score });
+  }
+
+  remove(chunkId: string): void {
+    this.byId.delete(chunkId);
+  }
+
+  replaceAll(entries: CachedScore[]): void {
+    this.byId = new Map(entries.map((entry) => [entry.chunk_id, entry]));
+  }
+
   clear(): void {
     this.byId.clear();
   }

@@ -1,9 +1,17 @@
-import { FormEvent, PointerEvent as ReactPointerEvent, ReactNode, useRef } from "react";
+import {
+  ChangeEvent,
+  DragEvent,
+  FormEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+  useRef,
+  useState,
+} from "react";
 
 import "./App.css";
 import { useDashboard, type LatencyKind, type Tab } from "./hooks/useDashboard";
 import type { CachedScore } from "./lib/scoreCache";
-import type { FacetBucket, Facets, HistogramBin } from "./lib/types";
+import type { Chip, FacetBucket, Facets, HistogramBin } from "./lib/types";
 
 const DEFAULT_QUERY = "every place we retry a network call without backoff";
 
@@ -36,6 +44,13 @@ function App() {
             latencyKind={d.latencyKind}
           />
           <Tabs active={d.activeTab} onChange={d.setActiveTab} />
+          <RefinePanel
+            chips={d.chips}
+            refining={d.refining}
+            onRefine={d.runRefine}
+            onRemoveChip={d.removeChip}
+            onFreshFiles={d.ingestFreshFiles}
+          />
 
           {d.activeTab === "rel" && (
             <div className="tabpanel">
@@ -66,7 +81,12 @@ function App() {
 
         <section className="col right">
           <p className="eyebrow feed-head">results · best-first</p>
-          <ResultFeed results={d.view.results} threshold={d.threshold} hasRun={d.hasRun} />
+          <ResultFeed
+            results={d.view.results}
+            threshold={d.threshold}
+            hasRun={d.hasRun}
+            onClickRefine={d.runClickRefine}
+          />
         </section>
       </main>
     </div>
@@ -158,6 +178,79 @@ function Tabs({ active, onChange }: { active: Tab; onChange: (tab: Tab) => void 
         Performance
       </button>
     </div>
+  );
+}
+
+interface RefinePanelProps {
+  chips: Chip[];
+  refining: boolean;
+  onRefine: (utterance: string) => Promise<void>;
+  onRemoveChip: (clauseId: string) => Promise<void>;
+  onFreshFiles: (files: File[] | FileList) => Promise<void>;
+}
+
+function RefinePanel({ chips, refining, onRefine, onRemoveChip, onFreshFiles }: RefinePanelProps) {
+  const [utterance, setUtterance] = useState("");
+  const [dragging, setDragging] = useState(false);
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const next = utterance.trim();
+    if (!next) return;
+    setUtterance("");
+    void onRefine(next);
+  };
+
+  const ingest = (files: FileList | null) => {
+    if (!files?.length) return;
+    void onFreshFiles(files);
+  };
+
+  const onDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setDragging(false);
+    ingest(event.dataTransfer.files);
+  };
+
+  return (
+    <section className="refine-panel">
+      <form className="refine-form" onSubmit={submit}>
+        <input
+          aria-label="Refine"
+          value={utterance}
+          onChange={(event) => setUtterance(event.target.value)}
+          placeholder="only python · without tests · actually papers"
+        />
+        <button type="submit" disabled={refining || !utterance.trim()}>
+          {refining ? "…" : "refine"}
+        </button>
+      </form>
+      <div className="chip-rail">
+        {chips.map((chip) => (
+          <button className="chip" key={chip.clause_id} onClick={() => void onRemoveChip(chip.clause_id)}>
+            <span>{chip.label}</span>
+            <b>{chip.text}</b>
+            <i>×</i>
+          </button>
+        ))}
+      </div>
+      <label
+        className={`dropzone${dragging ? " on" : ""}`}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+      >
+        <input
+          type="file"
+          multiple
+          onChange={(event: ChangeEvent<HTMLInputElement>) => ingest(event.target.files)}
+        />
+        fresh file
+      </label>
+    </section>
   );
 }
 
@@ -257,10 +350,12 @@ function ResultFeed({
   results,
   threshold,
   hasRun,
+  onClickRefine,
 }: {
   results: CachedScore[];
   threshold: number;
   hasRun: boolean;
+  onClickRefine: (chunkId: string, sign: "+" | "-") => Promise<void>;
 }) {
   if (!hasRun) {
     return <div className="empty">No scan yet. Type a query and hit scan.</div>;
@@ -286,6 +381,14 @@ function ResultFeed({
                 <span>{result.meta.year ?? "—"}</span>
               </div>
               <div className="snip">{result.meta.path ?? "matched by semantic relevance to the query."}</div>
+            </div>
+            <div className="card-actions">
+              <button title="Keep" onClick={() => void onClickRefine(result.chunk_id, "+")}>
+                +
+              </button>
+              <button title="Drop" onClick={() => void onClickRefine(result.chunk_id, "-")}>
+                -
+              </button>
             </div>
           </article>
         );

@@ -5,7 +5,9 @@ from dataclasses import dataclass, field
 from data.schema import Chunk, ChunkMeta, chunk_id_of
 from inference.scorer import PrefixState, ScoreResult
 
+from backend.clause import ClauseRecord
 from backend.schemas import FacetBucket, HIST_BINS, HistogramBin
+from backend.schemas import FreshDocument
 
 
 @dataclass
@@ -14,6 +16,8 @@ class BackendState:
     chunks: list[Chunk] = field(default_factory=list)
     warm_state: PrefixState | None = None
     current_clause: str | None = None
+    clauses: dict[str, ClauseRecord] = field(default_factory=dict)
+    threshold: float = 0.5
 
     @property
     def warmed(self) -> bool:
@@ -23,10 +27,37 @@ class BackendState:
         self.corpus_id = "demo"
         self.chunks = demo_chunks()
         self.current_clause = None
+        self.clauses.clear()
         return self.chunks
 
     def chunks_by_id(self) -> dict[str, Chunk]:
         return {chunk.chunk_id: chunk for chunk in self.chunks}
+
+    def append_documents(self, documents: list[FreshDocument]) -> list[Chunk]:
+        start = len(self.chunks)
+        for offset, document in enumerate(documents):
+            doc_id = f"fresh:{document.title}"
+            meta = ChunkMeta(
+                document.category,
+                document.year,
+                document.path,
+                document.lang,
+                document.repo,
+                "fresh",
+            )
+            self.chunks.append(
+                Chunk(
+                    chunk_id=chunk_id_of(doc_id, start + offset, document.text),
+                    doc_id=doc_id,
+                    type=document.type,
+                    title=document.title,
+                    text=document.text,
+                    meta=meta,
+                )
+            )
+        self.current_clause = None
+        self.clauses.clear()
+        return self.chunks
 
 
 def demo_chunks() -> list[Chunk]:
