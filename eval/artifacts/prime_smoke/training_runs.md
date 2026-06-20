@@ -21,7 +21,7 @@ Extension 3 query-refinement environment.
 | `pp76jxcpojf2t5uvipy5tf8j` | `prime_train.smoke.toml` against env `0.1.1` | Completed | Two-step smoke passed rollout logging, optimizer, distribution logging, and final checkpoint write. Cost was about `$0.0007`. |
 | `plaj70en51ut15joiol4sx5j` | `prime_train.example.toml` against env `0.1.1` | Completed | 50-step pilot completed cleanly. Cost was about `$0.11`. |
 | `ap08781gs4mj999nhhe1th09` | `prime_train.full.toml` against env `0.2.0` | Stopped | Stopped at step `26` and `$5.29` after confirming training quality was healthy but periodic heldout eval cadence was misconfigured. Step 0 eval reward was `0.9049`; step 25 train reward was `0.9619`; errors and truncation were `0.0%`. |
-| pending | `prime_train.full.toml` against env `0.2.0` | Planned | Corrected budgeted 35B run. The config now uses `[eval] interval = 25` plus `[[eval.env]]`. Because run `ap08781gs4mj999nhhe1th09` already spent `$5.29`, target new-run spend is about `$55` with `python -m eval.prime_budget_monitor <run-id> --target-cost 55 --hard-limit 60 --poll-seconds 15`. |
+| `wf0d5vznfpewcstt2jp6dlmi` | `prime_train.full.toml` against env `0.2.0` | Stopped | Corrected budgeted 35B run. Stopped manually at step `225` and `$43.85` new-run spend after heldout reward flattened from `0.9878` at step 175 to `0.9881` at step 225 while zero-advantage filtering rose to `25%`. Combined with stopped run `ap08781gs4mj999nhhe1th09`, total Prime training spend was about `$49.14`, leaving more budget for benchmarking/comparisons. |
 
 ## 35B Env 0.2.0 Baseline Smoke
 
@@ -31,6 +31,49 @@ Extension 3 query-refinement environment.
 - Result path: `eval/artifacts/prime_smoke/eval_baseline_v020_35b_chat_template_no_think`.
 - Result: `4` eval examples, average reward `0.920`, average target-term coverage `0.958`, evidence-id recall `1.000`, hard-negative rejection `1.000`, JSON format score `1.000`, truncation `0.000`.
 - Root-cause note: leaving Qwen thinking enabled returns `reasoning_content` with `content=null` under Prime eval, so the reward sees no final JSON. Passing `enable_thinking` as a bare sampling field also fails through the local OpenAI client; the working request path is `extra_body.chat_template_kwargs.enable_thinking=false`.
+
+## 35B Budgeted Run Summary
+
+- Run ID: `wf0d5vznfpewcstt2jp6dlmi`.
+- Model: `Qwen/Qwen3.5-35B-A3B`.
+- Environment: `inference/extension3-agent-loop@0.2.0`.
+- Config: `eval/configs/extension3_prime/prime_train.full.toml`.
+- Status: stopped manually at step `225`.
+- New-run cost: `$43.85` (`$33.26` training, `$7.52` inference input, `$3.08` inference output).
+- Prior stopped setup-validation run cost: `$5.29`.
+- Combined Prime training cost for this 35B attempt: about `$49.14`.
+- Stop rationale: heldout reward was still rising through step 175 but flattened after that, while saturation signals increased. Step 225 improved only `+0.00015` over step 200, with `25%` zero-advantage filtering and `25%` solve-all, so more training was unlikely to buy enough quality to justify spending toward the original hard cap.
+- Cleanup note: `prime train stop --force wf0d5vznfpewcstt2jp6dlmi` stopped the run successfully. The forced cleanup log reported `HTTP 401` while submitting Prime's final summary, but metrics, usage, progress, and checkpoints remained queryable from the CLI.
+
+### Heldout Eval Milestones
+
+| Step | Heldout avg@1 | Error | Truncation | Evidence recall | Hard-negative rejection | Initial-query gain | JSON format | Zero-advantage filter | Solve-all |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 0.9372 | 0.0 | 0.0 | 1.0000 | 1.0000 | 0.6429 | 1.0000 | 0.0000 | 0.0000 |
+| 25 | 0.9427 | 0.0 | 0.0 | 1.0000 | 1.0000 | 0.7018 | 1.0000 | 0.0000 | 0.0000 |
+| 50 | 0.9483 | 0.0 | 0.0 | 1.0000 | 1.0000 | 0.7820 | 1.0000 | 0.0625 | 0.0625 |
+| 75 | 0.9605 | 0.0 | 0.0 | 1.0000 | 1.0000 | 0.7246 | 1.0000 | 0.0000 | 0.0000 |
+| 100 | 0.9775 | 0.0 | 0.0 | 1.0000 | 1.0000 | 0.8177 | 1.0000 | 0.0625 | 0.0625 |
+| 125 | 0.9809 | 0.0 | 0.0 | 1.0000 | 1.0000 | 0.7437 | 1.0000 | 0.0625 | 0.0625 |
+| 150 | 0.9853 | 0.0 | 0.0 | 1.0000 | 1.0000 | 0.8427 | 1.0000 | 0.1250 | 0.1250 |
+| 175 | 0.9878 | 0.0 | 0.0 | 1.0000 | 1.0000 | 0.8064 | 1.0000 | 0.0625 | 0.0625 |
+| 200 | 0.9880 | 0.0 | 0.0 | 1.0000 | 1.0000 | 0.8591 | 1.0000 | 0.1875 | 0.1875 |
+| 225 | 0.9881 | 0.0 | 0.0 | 1.0000 | 1.0000 | 0.8156 | 1.0000 | 0.2500 | 0.2500 |
+
+### Ready Checkpoints
+
+| Checkpoint ID | Step | Status | Size |
+|---|---:|---|---:|
+| `ijp6gp6ipyg887v1syiwatbe` | 25 | READY | 9.4 GB |
+| `pzrf80fnqim75800ey902zzs` | 50 | READY | 9.4 GB |
+| `f22ividj6gyutw2xqrwt266e` | 75 | READY | 9.4 GB |
+| `uh0292xgiali2mopfqdbudwm` | 100 | READY | 9.4 GB |
+| `kbl71djuoow7hvv20ijkve1e` | 125 | READY | 9.4 GB |
+| `zjxzx2x2scyxaglu2kxi6s7z` | 150 | READY | 9.4 GB |
+| `lb4gs2o7rxugvqgwqs4p0qtb` | 175 | READY | 9.4 GB |
+| `vnzrv0ha2afgas4letsk1kqy` | 200 | READY | 9.4 GB |
+
+The step `225` checkpoint save was logged before manual stop, but it was not yet listed by `prime train checkpoints` when final artifacts were collected. Use step `200` as the latest confirmed ready checkpoint unless the Prime checkpoint list later shows the step `225` artifact.
 
 ## 50-Step Pilot Summary
 
