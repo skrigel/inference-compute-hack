@@ -1,0 +1,120 @@
+{
+  "area_under_loop": {
+    "curves": {
+      "full": [
+        7,
+        14,
+        21
+      ],
+      "rag": [
+        7,
+        14,
+        21
+      ],
+      "scoped": [
+        7,
+        7,
+        11
+      ],
+      "suffix": [
+        7,
+        12,
+        16
+      ]
+    },
+    "full_total": 21,
+    "label": "measured (mock)",
+    "scoped_total": 11,
+    "turns": [
+      {
+        "candidate_count": 7,
+        "chunks_scored": 7,
+        "survivor_count": 5
+      },
+      {
+        "candidate_count": 5,
+        "chunks_scored": 0,
+        "survivor_count": 4
+      },
+      {
+        "candidate_count": 4,
+        "chunks_scored": 4,
+        "survivor_count": 3
+      }
+    ]
+  },
+  "failures": [],
+  "fresh_vs_rag": {
+    "note": "Toy-corpus magnitudes (pure-python fallback). The point is structural: ours writes 0 derived bytes and answers now; RAG must re-embed + rebuild before the new doc is findable. Re-index cost scales with corpus size; ours stays 0.",
+    "ours": {
+      "derived_bytes_written": 0,
+      "queryable": "immediately",
+      "reindex_required": false
+    },
+    "rag": {
+      "backend": "numpy-fallback",
+      "n_docs": 8,
+      "reindex_ms_toy_corpus": 0.149,
+      "reindex_required": true
+    }
+  },
+  "green": true,
+  "n_chunks": 7,
+  "steps": [
+    {
+      "candidate_count": 7,
+      "chunks_scored": 7,
+      "latency_kind": "cold",
+      "matched": 5,
+      "name": "query",
+      "note": "every place we retry a network call without backoff",
+      "operation": "query",
+      "refine_ms": 0,
+      "step": 2
+    },
+    {
+      "candidate_count": 5,
+      "chunks_scored": 0,
+      "latency_kind": "warm",
+      "matched": 4,
+      "name": "click-NOT",
+      "note": "drop 1a0a94070f402cd8",
+      "operation": "exclude",
+      "refine_ms": 0,
+      "step": 4
+    },
+    {
+      "candidate_count": 4,
+      "chunks_scored": 4,
+      "latency_kind": "warm",
+      "matched": 3,
+      "name": "AND refine",
+      "note": "only in the networking layer",
+      "operation": "require",
+      "refine_ms": 0,
+      "step": 5
+    },
+    {
+      "candidate_count": 3,
+      "chunks_scored": 0,
+      "latency_kind": "cached",
+      "matched": 5,
+      "name": "threshold drag",
+      "note": "threshold 0.7 -> 0.3",
+      "operation": "brush",
+      "refine_ms": 0,
+      "step": 6
+    },
+    {
+      "candidate_count": 8,
+      "chunks_scored": 8,
+      "latency_kind": "cold",
+      "matched": 4,
+      "name": "fresh-file",
+      "note": "0 derived bytes written",
+      "operation": "query",
+      "refine_ms": 0,
+      "step": 7
+    }
+  ]
+}

@@ -22,9 +22,15 @@ Status: **DRAFT → freeze at H1**. Last reconciled: 2026-06-19.
    "drag = zero inference" recut provably matches what the server would return.
 4. **`ScoreResult`, not `float`.** Rich result struct flows everywhere; backend reads `.score`, eval reads
    `.p_yes`/`.tier`/`.from_cache`, cascade reads `.tier`. A bare float is a premature narrowing.
-5. **One MockScorer.** It lives in `inference/mock_scorer.py` and is imported by backend and eval.
-   The frontend has its own TS `mockAdapter` (different language) but it must produce the *same*
-   score distribution shape. There are **not** four mocks.
+5. **One MockScorer per side; the live backend is the source of truth.** The Python
+   `inference/mock_scorer.py` is the single Python mock (imported by backend and eval) — there are
+   **not** four Python mocks. The frontend's TS `mockAdapter` is an INDEPENDENT standalone
+   `VITE_DATA_MODE=mock` fallback: it must emit the **same wire schema** and a plausible distribution
+   shape, but it is **not** required to be numerically score-identical to the Python mock (it ships a
+   richer 24-item demo corpus; the Python mock uses the pinned 7-chunk cut-line corpus). The cut-line
+   and all proofs run against the **live backend MockScorer**, the source of truth. Both mocks are
+   *demo-tuned keyword matching* (concept-substring + token overlap), **not** semantic proxies for
+   production scoring — real relevance comes from the vLLM scorer (Phase 04).
 
 ---
 
@@ -327,6 +333,7 @@ Rules:
 ---
 
 ## Changelog
+* 2026-06-20 — Phase 03: clarified mock parity (Python and TS mocks are independent demo surfaces with the same wire schema; live backend is the source of truth) and that mocks are demo-tuned, not semantic proxies.
 * 2026-06-20 — aligned trace schema with `EVAL_PLAN.md` vLLM metric fields and quality metrics.
 * 2026-06-20 — added performance trace contract and linked metrics/theory artifacts.
 * 2026-06-19 — initial reconciliation of the six subsystem drafts into one contract (delivery owner).

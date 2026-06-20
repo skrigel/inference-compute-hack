@@ -85,10 +85,10 @@ class Phase2RefineBackendTests(unittest.TestCase):
         main = reset_backend(scorer)
         client = TestClient(main.app)
 
-        client.post("/ingest", json={"corpus_id": "demo"})
+        n = client.post("/ingest", json={"corpus_id": "demo"}).json()["n_chunks"]
         query_response = client.post("/query", json={"predicate": "retry", "threshold": 0.5})
         self.assertEqual(query_response.status_code, 200)
-        self.assertEqual(scorer.batch_sizes, [5])
+        self.assertEqual(scorer.batch_sizes, [n])  # cold scan touches the whole corpus
 
         refine_response = client.post("/refine", json={"utterance": "only networking layer"})
 
@@ -98,7 +98,10 @@ class Phase2RefineBackendTests(unittest.TestCase):
         self.assertEqual(events[0]["operation"], "require")
         self.assertEqual(events[0]["chip"]["op"], "require")
         self.assertEqual(events[1]["refine_ms"], events[0]["refine_ms"])
-        self.assertEqual(scorer.batch_sizes, [5, 2])
+        # candidate-set scoping: the refine scores ONLY current survivors — a strict subset.
+        self.assertEqual(len(scorer.batch_sizes), 2)
+        self.assertEqual(scorer.batch_sizes[0], n)
+        self.assertTrue(0 < scorer.batch_sizes[1] < n)
 
     def test_click_drop_and_clause_delete_are_zero_inference_cache_recomputes(self):
         from fastapi.testclient import TestClient
@@ -131,8 +134,11 @@ class Phase2RefineBackendTests(unittest.TestCase):
     def test_fresh_document_ingest_appends_queryable_chunk(self):
         from fastapi.testclient import TestClient
 
+        from backend.state import demo_chunks
+
         main = reset_backend()
         client = TestClient(main.app)
+        base = len(demo_chunks())
 
         response = client.post(
             "/ingest",
@@ -151,7 +157,7 @@ class Phase2RefineBackendTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["n_chunks"], 6)
+        self.assertEqual(response.json()["n_chunks"], base + 1)
         events = sse_events(client.post("/query", json={"predicate": "sentinel", "threshold": 0.5}))
         titles = [event["meta"]["title"] for event in events if event["type"] == "result"]
         self.assertIn("fresh_retry.py", titles)

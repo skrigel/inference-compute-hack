@@ -61,34 +61,57 @@ class BackendState:
 
 
 def demo_chunks() -> list[Chunk]:
+    # Curated cut-line corpus (Phase 03): pinned so the scripted demo beats have
+    # known results. Chunks 1-3 are network retries in the networking layer
+    # (survive the headline query AND the "networking layer" refine); 4-5 are
+    # non-network retries (survive the query but drop on the networking refine —
+    # the click-NOT / AND-narrow targets); 6-7 are clear non-matches for spread.
+    #
+    # WARNING: MockScorer applies ±0.09 stable jitter, so edits to these texts
+    # must keep survivors clear of the 0.5 threshold. tests/test_phase3_cut_line.py
+    # is the guard — if an edit flips a survivor, the cut-line loop goes RED.
     seeds = [
         (
             "repo:urllib3#connectionpool.py",
             "code",
             "urllib3/connectionpool.py",
-            "HTTP connection pool retries network calls but does not always use exponential backoff.",
+            "In the networking layer, the HTTP connection pool retries a network call but never applies exponential backoff.",
             ChunkMeta("python", 2023, "src/urllib3/connectionpool.py", "python", "urllib3", "synthetic"),
         ),
         (
             "repo:requests#adapters.py",
             "code",
             "requests/adapters.py",
-            "Adapter retry handling for transient networking failures with configurable backoff.",
+            "The networking layer HTTP adapter retries a request on transient connection failures; no backoff is configured.",
             ChunkMeta("python", 2024, "src/requests/adapters.py", "python", "requests", "synthetic"),
+        ),
+        (
+            "repo:aiohttp#client.py",
+            "code",
+            "aiohttp/client.py",
+            "An async client in the networking layer retries a network call and skips exponential backoff entirely.",
+            ChunkMeta("python", 2024, "aiohttp/client.py", "python", "aiohttp", "synthetic"),
+        ),
+        (
+            "repo:app#db_session.py",
+            "code",
+            "app/db_session.py",
+            "The database session retries a failed transaction on deadlock with a capped exponential backoff.",
+            ChunkMeta("python", 2023, "src/app/db_session.py", "python", "app", "synthetic"),
+        ),
+        (
+            "repo:app#worker.py",
+            "code",
+            "jobs/worker.py",
+            "A background job worker retries a failed task a few times before giving up.",
+            ChunkMeta("python", 2022, "src/jobs/worker.py", "python", "app", "synthetic"),
         ),
         (
             "2103.00020",
             "paper",
             "Neural Retrieval for Code Search",
-            "A paper about retrieval ranking, semantic filters, and search quality evaluation.",
+            "A paper on retrieval ranking metrics and semantic search quality for code.",
             ChunkMeta("cs.IR", 2021, None, None, None, "synthetic"),
-        ),
-        (
-            "2401.01010",
-            "paper",
-            "Inference Caching for Interactive Search",
-            "Prefix cache reuse can reduce warm query latency for interactive relevance filtering.",
-            ChunkMeta("cs.LG", 2024, None, None, None, "synthetic"),
         ),
         (
             "repo:demo#ui.ts",

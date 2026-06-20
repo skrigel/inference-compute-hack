@@ -13,7 +13,14 @@ TOKEN_RE = re.compile(r"[a-z0-9_]+")
 
 
 class MockScorer(ScorerClient):
-    """Deterministic local scorer with a stable semantic-ish score shape."""
+    """Deterministic, GPU-free scorer for local dev and the demo fallback.
+
+    Scores via demo-tuned keyword matching (concept-substring + token overlap +
+    stable jitter) — it is intentionally NOT a semantic proxy for production
+    relevance; real scoring comes from the vLLM single-token scorer (Phase 04).
+    The concept bonuses are calibrated so the pinned cut-line corpus produces
+    reproducible scripted-demo results, not to flatter the numbers.
+    """
 
     def __init__(self, model_name: str = "mock-semantic-filter-v0") -> None:
         self._model_name = model_name
@@ -60,28 +67,47 @@ class MockScorer(ScorerClient):
     def model_id(self) -> str:
         return self._model_name
 
+    # Concept lexicons matched as SUBSTRINGS on the raw lowercased text, so
+    # "retries"/"networking" trigger the same concept as "retry"/"network"
+    # without brittle exact-token matching. This is what makes the scripted demo
+    # predicates ("retry without backoff", "in the networking layer", "IR sense")
+    # produce stable, known results — the Phase 03 cut-line requirement.
+    _RETRY_PRED = ("retry", "retries", "retrying", "backoff")
+    _RETRY_DOC = ("retry", "retries", "retrying")
+    _NET_PRED = ("network", "http", "socket", "tcp", "connection")
+    _NET_DOC = ("network", "http", "socket", "tcp", "connection")
+    _IR_PRED = ("retrieval", "ranking", "search", " ir ", " ir.")
+    _IR_DOC = ("retrieval", "ranking", "search", "index")
+
+    @staticmethod
+    def _mentions(text: str, needles: tuple[str, ...]) -> bool:
+        return any(needle in text for needle in needles)
+
     def _score(self, chunk_text: str, predicate: str) -> float:
-        chunk_tokens = set(TOKEN_RE.findall(chunk_text.lower()))
-        predicate_tokens = set(TOKEN_RE.findall(predicate.lower()))
+        chunk = chunk_text.lower()
+        pred = predicate.lower()
+        chunk_tokens = set(TOKEN_RE.findall(chunk))
+        predicate_tokens = set(TOKEN_RE.findall(pred))
         if not predicate_tokens:
             return 0.5
 
         overlap = len(chunk_tokens & predicate_tokens) / len(predicate_tokens)
-        keyword_bonus = self._keyword_bonus(chunk_tokens, predicate_tokens)
+        keyword_bonus = self._keyword_bonus(chunk, pred)
         jitter = self._stable_jitter(chunk_text, predicate)
-        raw = -1.1 + (3.0 * overlap) + keyword_bonus + jitter
+        raw = -1.0 + (2.2 * overlap) + keyword_bonus + jitter
         return 1.0 / (1.0 + math.exp(-raw))
 
-    def _keyword_bonus(self, chunk_tokens: set[str], predicate_tokens: set[str]) -> float:
+    def _keyword_bonus(self, chunk: str, pred: str) -> float:
         bonus = 0.0
-        if {"retry", "backoff"} <= predicate_tokens and "retry" in chunk_tokens:
-            bonus += 0.65
-            if "backoff" not in chunk_tokens:
-                bonus += 0.35
-        if "networking" in predicate_tokens and {"network", "networking", "http"} & chunk_tokens:
-            bonus += 0.45
-        if {"retrieval", "ir"} & predicate_tokens and {"retrieval", "ranking", "search"} & chunk_tokens:
-            bonus += 0.35
+        if self._mentions(pred, self._RETRY_PRED) and self._mentions(chunk, self._RETRY_DOC):
+            bonus += 0.9
+            # retry WITHOUT backoff is the headline bug pattern — boost it.
+            if "backoff" in pred and "backoff" not in chunk:
+                bonus += 0.4
+        if self._mentions(pred, self._NET_PRED) and self._mentions(chunk, self._NET_DOC):
+            bonus += 1.2
+        if self._mentions(pred, self._IR_PRED) and self._mentions(chunk, self._IR_DOC):
+            bonus += 0.8
         return bonus
 
     def _stable_jitter(self, chunk_text: str, predicate: str) -> float:
