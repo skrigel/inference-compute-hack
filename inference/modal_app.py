@@ -447,32 +447,47 @@ def web_endpoint():
     - POST /warm: pre-prefill chunks
     - GET /health: replica status
     """
-    from fastapi import FastAPI, HTTPException
-    from pydantic import BaseModel
+    import math
+
+    from fastapi import Body, FastAPI, HTTPException
 
     api = FastAPI(title="Grep for Meaning Scorer")
     scorer = Scorer()
 
-    class ScoreRequest(BaseModel):
-        items: list[dict]  # [{"chunk_id", "chunk_text", "predicate"}]
-        tier: int = 1
-
-    class WarmRequest(BaseModel):
-        corpus_id: str
-        chunks: list[dict]  # [{"chunk_id", "text"}]
+    def _parse_prompt(prompt: str) -> tuple[str, str]:
+        """Extract chunk text and predicate from vLLMScorer prompt format."""
+        chunk_marker = "Chunk:\n"
+        question_marker = "\n\nQuestion:\nDoes this chunk satisfy the predicate: "
+        answer_marker = "\n\nAnswer:"
+        chunk_start = prompt.find(chunk_marker)
+        question_start = prompt.find(question_marker)
+        if chunk_start == -1 or question_start == -1 or question_start <= chunk_start:
+            raise ValueError("prompt format mismatch")
+        chunk_text = prompt[chunk_start + len(chunk_marker) : question_start]
+        predicate_start = question_start + len(question_marker)
+        answer_start = prompt.find(answer_marker, predicate_start)
+        if answer_start == -1:
+            predicate = prompt[predicate_start:].strip()
+        else:
+            predicate = prompt[predicate_start:answer_start].strip()
+        return chunk_text, predicate
 
     @api.post("/score")
-    async def score(req: ScoreRequest):
+    async def score(req: dict = Body(...)):
         try:
-            results = scorer.score_batch.remote(req.items, tier=req.tier)
+            items = req.get("items", [])
+            tier = int(req.get("tier", 1))
+            results = scorer.score_batch.remote(items, tier=tier)
             return {"results": results}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
     @api.post("/warm")
-    async def warm(req: WarmRequest):
+    async def warm(req: dict = Body(...)):
         try:
-            state = scorer.warm.remote(req.corpus_id, req.chunks)
+            corpus_id = str(req.get("corpus_id", "demo"))
+            chunks = req.get("chunks", [])
+            state = scorer.warm.remote(corpus_id, chunks)
             return state
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -481,6 +496,69 @@ def web_endpoint():
     async def health():
         try:
             return scorer.health.remote()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @api.get("/v1/models")
+    async def openai_models():
+        try:
+            health_payload = scorer.health.remote()
+            model_id = health_payload.get("model_id") or MODEL_NAME
+            return {
+                "object": "list",
+                "data": [
+                    {
+                        "id": model_id,
+                        "object": "model",
+                        "owned_by": "modal",
+                    }
+                ],
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @api.post("/v1/completions")
+    async def openai_completions(req: dict = Body(...)):
+        try:
+            model = str(req.get("model", MODEL_NAME))
+            prompt = str(req.get("prompt", ""))
+            if not prompt:
+                raise ValueError("missing prompt")
+            chunk_text, predicate = _parse_prompt(prompt)
+            item = {
+                "chunk_id": "openai-compat-chunk",
+                "chunk_text": chunk_text,
+                "predicate": predicate,
+            }
+            scored = scorer.score_batch.remote([item], tier=1)
+            if not scored:
+                raise ValueError("scorer returned no results")
+            result = scored[0]
+            p_yes = float(result.get("p_yes", 0.5))
+            p_no = float(result.get("p_no", 0.5))
+            p_yes = max(p_yes, 1e-12)
+            p_no = max(p_no, 1e-12)
+            logprobs = {
+                " Yes": math.log(p_yes),
+                " No": math.log(p_no),
+            }
+            return {
+                "id": "cmpl-modal-compat",
+                "object": "text_completion",
+                "model": model,
+                "choices": [
+                    {
+                        "index": 0,
+                        "text": " Yes" if p_yes >= p_no else " No",
+                        "logprobs": {
+                            "tokens": [" Yes" if p_yes >= p_no else " No"],
+                            "token_logprobs": [math.log(max(p_yes, p_no))],
+                            "top_logprobs": [logprobs],
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+            }
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 

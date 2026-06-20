@@ -1,5 +1,5 @@
 {
-  "commit": "3de70ca",
+  "commit": "e722980",
   "corpus_id": "demo",
   "corpus_size": 7,
   "label": "measured",
@@ -13,14 +13,14 @@
     "recall": 0.888889,
     "tp": 8.0
   },
-  "recommended_threshold": 0.01640298755872838,
+  "recommended_threshold": 0.016656991451971102,
   "rows": [
     {
       "chunk_id": "dfe71d6c715427ad",
       "expected": true,
       "predicate": "every place we retry a network call without backoff",
       "predicted": true,
-      "score": 0.22540258097170796,
+      "score": 0.22540235140280535,
       "title": "urllib3/connectionpool.py"
     },
     {
@@ -28,7 +28,7 @@
       "expected": true,
       "predicate": "every place we retry a network call without backoff",
       "predicted": true,
-      "score": 0.03676688529541957,
+      "score": 0.03732425064808538,
       "title": "requests/adapters.py"
     },
     {
@@ -36,7 +36,7 @@
       "expected": true,
       "predicate": "every place we retry a network call without backoff",
       "predicted": true,
-      "score": 0.09669780050904653,
+      "score": 0.09946170889201009,
       "title": "aiohttp/client.py"
     },
     {
@@ -44,7 +44,7 @@
       "expected": true,
       "predicate": "every place we retry a network call without backoff",
       "predicted": false,
-      "score": 0.001455926377710684,
+      "score": 0.0013893926501034575,
       "title": "app/db_session.py"
     },
     {
@@ -52,7 +52,7 @@
       "expected": true,
       "predicate": "every place we retry a network call without backoff",
       "predicted": true,
-      "score": 0.01640298755872838,
+      "score": 0.016656991451971102,
       "title": "jobs/worker.py"
     },
     {
@@ -60,7 +60,7 @@
       "expected": false,
       "predicate": "every place we retry a network call without backoff",
       "predicted": false,
-      "score": 0.000204418344853962,
+      "score": 0.00020441849406665298,
       "title": "Neural Retrieval for Code Search"
     },
     {
@@ -68,7 +68,7 @@
       "expected": false,
       "predicate": "every place we retry a network call without backoff",
       "predicted": false,
-      "score": 0.00031602008198053616,
+      "score": 0.0003063308827635453,
       "title": "demo/ui.ts"
     },
     {
@@ -76,7 +76,7 @@
       "expected": true,
       "predicate": "only in the networking layer",
       "predicted": true,
-      "score": 0.41489640039841363,
+      "score": 0.41110855755562264,
       "title": "urllib3/connectionpool.py"
     },
     {
@@ -84,7 +84,7 @@
       "expected": true,
       "predicate": "only in the networking layer",
       "predicted": true,
-      "score": 0.22815041342890127,
+      "score": 0.22815052140851297,
       "title": "requests/adapters.py"
     },
     {
@@ -92,7 +92,7 @@
       "expected": true,
       "predicate": "only in the networking layer",
       "predicted": true,
-      "score": 0.20688827223534667,
+      "score": 0.20688845828318594,
       "title": "aiohttp/client.py"
     },
     {
@@ -100,7 +100,7 @@
       "expected": false,
       "predicate": "only in the networking layer",
       "predicted": false,
-      "score": 0.00041829486826419393,
+      "score": 0.00042486372647999355,
       "title": "app/db_session.py"
     },
     {
@@ -108,7 +108,7 @@
       "expected": false,
       "predicate": "only in the networking layer",
       "predicted": false,
-      "score": 0.0013894557724823647,
+      "score": 0.0014112903337991263,
       "title": "jobs/worker.py"
     },
     {
@@ -116,7 +116,7 @@
       "expected": false,
       "predicate": "only in the networking layer",
       "predicted": false,
-      "score": 0.0015257228887862167,
+      "score": 0.0015740464630058122,
       "title": "Neural Retrieval for Code Search"
     },
     {
@@ -124,7 +124,7 @@
       "expected": false,
       "predicate": "only in the networking layer",
       "predicted": false,
-      "score": 0.0008305314314364037,
+      "score": 0.0008050304988728384,
       "title": "demo/ui.ts"
     },
     {
@@ -132,7 +132,7 @@
       "expected": false,
       "predicate": "retrieval ranking metrics",
       "predicted": false,
-      "score": 0.0010996841328552588,
+      "score": 0.001099684876120761,
       "title": "urllib3/connectionpool.py"
     },
     {
@@ -140,7 +140,7 @@
       "expected": false,
       "predicate": "retrieval ranking metrics",
       "predicted": false,
-      "score": 0.0005986474905439588,
+      "score": 0.0005986477251697893,
       "title": "requests/adapters.py"
     },
     {
@@ -148,7 +148,7 @@
       "expected": false,
       "predicate": "retrieval ranking metrics",
       "predicted": false,
-      "score": 0.0017555382464502938,
+      "score": 0.0018111312522600016,
       "title": "aiohttp/client.py"
     },
     {
@@ -156,7 +156,7 @@
       "expected": false,
       "predicate": "retrieval ranking metrics",
       "predicted": false,
-      "score": 0.0009263469814768976,
+      "score": 0.0009263473713219262,
       "title": "app/db_session.py"
     },
     {
@@ -164,7 +164,7 @@
       "expected": false,
       "predicate": "retrieval ranking metrics",
       "predicted": false,
-      "score": 0.002715891177458328,
+      "score": 0.002845811405957604,
       "title": "jobs/worker.py"
     },
     {
@@ -172,7 +172,7 @@
       "expected": true,
       "predicate": "retrieval ranking metrics",
       "predicted": true,
-      "score": 0.8577708481570717,
+      "score": 0.8577708536796228,
       "title": "Neural Retrieval for Code Search"
     },
     {
@@ -180,16 +180,16 @@
       "expected": false,
       "predicate": "retrieval ranking metrics",
       "predicted": false,
-      "score": 0.0006996299356354932,
+      "score": 0.0006888070024969751,
       "title": "demo/ui.ts"
     }
   ],
-  "run_id": "quality-36f7ff08",
-  "score_max": 0.8577708481570717,
-  "score_min": 0.000204418344853962,
+  "run_id": "quality-0405cf70",
+  "score_max": 0.8577708536796228,
+  "score_min": 0.00020441849406665298,
   "scorer_backend": "modal",
   "small_gate": true,
-  "threshold": 0.01640298755872838,
+  "threshold": 0.016402973211183575,
   "threshold_sweep": {
     "best": {
       "quality": {
@@ -200,7 +200,7 @@
         "recall": 0.888889,
         "tp": 8.0
       },
-      "threshold": 0.01640298755872838
+      "threshold": 0.016656991451971102
     },
     "rows": [
       {
@@ -223,7 +223,7 @@
           "recall": 1.0,
           "tp": 9.0
         },
-        "threshold": 0.000204418344853962
+        "threshold": 0.00020441849406665298
       },
       {
         "quality": {
@@ -234,7 +234,7 @@
           "recall": 1.0,
           "tp": 9.0
         },
-        "threshold": 0.00031602008198053616
+        "threshold": 0.0003063308827635453
       },
       {
         "quality": {
@@ -245,7 +245,7 @@
           "recall": 1.0,
           "tp": 9.0
         },
-        "threshold": 0.00041829486826419393
+        "threshold": 0.00042486372647999355
       },
       {
         "quality": {
@@ -256,7 +256,7 @@
           "recall": 1.0,
           "tp": 9.0
         },
-        "threshold": 0.0005986474905439588
+        "threshold": 0.0005986477251697893
       },
       {
         "quality": {
@@ -267,7 +267,7 @@
           "recall": 1.0,
           "tp": 9.0
         },
-        "threshold": 0.0006996299356354932
+        "threshold": 0.0006888070024969751
       },
       {
         "quality": {
@@ -278,7 +278,7 @@
           "recall": 1.0,
           "tp": 9.0
         },
-        "threshold": 0.0008305314314364037
+        "threshold": 0.0008050304988728384
       },
       {
         "quality": {
@@ -289,7 +289,7 @@
           "recall": 1.0,
           "tp": 9.0
         },
-        "threshold": 0.0009263469814768976
+        "threshold": 0.0009263473713219262
       },
       {
         "quality": {
@@ -300,7 +300,7 @@
           "recall": 1.0,
           "tp": 9.0
         },
-        "threshold": 0.0010996841328552588
+        "threshold": 0.001099684876120761
       },
       {
         "quality": {
@@ -311,18 +311,18 @@
           "recall": 1.0,
           "tp": 9.0
         },
-        "threshold": 0.0013894557724823647
+        "threshold": 0.0013893926501034575
       },
       {
         "quality": {
-          "f1": 0.857143,
-          "fn": 0.0,
-          "fp": 3.0,
-          "precision": 0.75,
-          "recall": 1.0,
-          "tp": 9.0
+          "f1": 0.761905,
+          "fn": 1.0,
+          "fp": 4.0,
+          "precision": 0.666667,
+          "recall": 0.888889,
+          "tp": 8.0
         },
-        "threshold": 0.001455926377710684
+        "threshold": 0.0014112903337991263
       },
       {
         "quality": {
@@ -333,7 +333,7 @@
           "recall": 0.888889,
           "tp": 8.0
         },
-        "threshold": 0.0015257228887862167
+        "threshold": 0.0015740464630058122
       },
       {
         "quality": {
@@ -344,7 +344,7 @@
           "recall": 0.888889,
           "tp": 8.0
         },
-        "threshold": 0.0017555382464502938
+        "threshold": 0.0018111312522600016
       },
       {
         "quality": {
@@ -355,7 +355,7 @@
           "recall": 0.888889,
           "tp": 8.0
         },
-        "threshold": 0.002715891177458328
+        "threshold": 0.002845811405957604
       },
       {
         "quality": {
@@ -366,7 +366,7 @@
           "recall": 0.888889,
           "tp": 8.0
         },
-        "threshold": 0.01640298755872838
+        "threshold": 0.016656991451971102
       },
       {
         "quality": {
@@ -377,7 +377,7 @@
           "recall": 0.777778,
           "tp": 7.0
         },
-        "threshold": 0.03676688529541957
+        "threshold": 0.03732425064808538
       },
       {
         "quality": {
@@ -388,7 +388,7 @@
           "recall": 0.666667,
           "tp": 6.0
         },
-        "threshold": 0.09669780050904653
+        "threshold": 0.09946170889201009
       },
       {
         "quality": {
@@ -399,7 +399,7 @@
           "recall": 0.555556,
           "tp": 5.0
         },
-        "threshold": 0.20688827223534667
+        "threshold": 0.20688845828318594
       },
       {
         "quality": {
@@ -410,7 +410,7 @@
           "recall": 0.444444,
           "tp": 4.0
         },
-        "threshold": 0.22540258097170796
+        "threshold": 0.22540235140280535
       },
       {
         "quality": {
@@ -421,7 +421,7 @@
           "recall": 0.333333,
           "tp": 3.0
         },
-        "threshold": 0.22815041342890127
+        "threshold": 0.22815052140851297
       },
       {
         "quality": {
@@ -432,7 +432,7 @@
           "recall": 0.222222,
           "tp": 2.0
         },
-        "threshold": 0.41489640039841363
+        "threshold": 0.41110855755562264
       },
       {
         "quality": {
@@ -443,7 +443,7 @@
           "recall": 0.111111,
           "tp": 1.0
         },
-        "threshold": 0.8577708481570717
+        "threshold": 0.8577708536796228
       },
       {
         "quality": {

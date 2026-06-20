@@ -1,0 +1,2008 @@
+{
+  "baseline": {
+    "by_workload": {
+      "multi_user_dynamic|gpu=1|concurrency=32|requests=96": {
+        "concurrency": 32,
+        "dataset_mode": "dynamic",
+        "gpu_count": 1,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.08288903375373595,
+              0.08288903375373595
+            ],
+            "max": 0.08288903375373595,
+            "mean": 0.08288903375373595,
+            "min": 0.08288903375373595,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.08288903375373595
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              32.0,
+              32.0
+            ],
+            "max": 32.0,
+            "mean": 32.0,
+            "min": 32.0,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              32.0
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              86.46336550003753,
+              86.46336550003753
+            ],
+            "max": 86.46336550003753,
+            "mean": 86.46336550003753,
+            "min": 86.46336550003753,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              86.46336550003753
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              160.6168890000106,
+              160.6168890000106
+            ],
+            "max": 160.6168890000106,
+            "mean": 160.6168890000106,
+            "min": 160.6168890000106,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              160.6168890000106
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              301.4588649581473,
+              301.4588649581473
+            ],
+            "max": 301.4588649581473,
+            "mean": 301.4588649581473,
+            "min": 301.4588649581473,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              301.4588649581473
+            ]
+          }
+        },
+        "num_requests": 96,
+        "scenario": "multi_user_dynamic"
+      },
+      "multi_user_dynamic|gpu=6|concurrency=32|requests=96": {
+        "concurrency": 32,
+        "dataset_mode": "dynamic",
+        "gpu_count": 6,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.08075529288517282,
+              0.08075529288517282
+            ],
+            "max": 0.08075529288517282,
+            "mean": 0.08075529288517282,
+            "min": 0.08075529288517282,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.08075529288517282
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              19.416666666666668,
+              19.416666666666668
+            ],
+            "max": 19.416666666666668,
+            "mean": 19.416666666666668,
+            "min": 19.416666666666668,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              19.416666666666668
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              92.04181466667194,
+              92.04181466667194
+            ],
+            "max": 92.04181466667194,
+            "mean": 92.04181466667194,
+            "min": 92.04181466667194,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              92.04181466667194
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              212.25026750001064,
+              212.25026750001064
+            ],
+            "max": 212.25026750001064,
+            "mean": 212.25026750001064,
+            "min": 212.25026750001064,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              212.25026750001064
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              1762.19201721094,
+              1762.19201721094
+            ],
+            "max": 1762.19201721094,
+            "mean": 1762.19201721094,
+            "min": 1762.19201721094,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              1762.19201721094
+            ]
+          }
+        },
+        "num_requests": 96,
+        "scenario": "multi_user_dynamic"
+      },
+      "multi_user_static|gpu=1|concurrency=32|requests=96": {
+        "concurrency": 32,
+        "dataset_mode": "static",
+        "gpu_count": 1,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.009497838969073422,
+              0.009497838969073422
+            ],
+            "max": 0.009497838969073422,
+            "mean": 0.009497838969073422,
+            "min": 0.009497838969073422,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.009497838969073422
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              10.0,
+              10.0
+            ],
+            "max": 10.0,
+            "mean": 10.0,
+            "min": 10.0,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              10.0
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              158.13422799999444,
+              158.13422799999444
+            ],
+            "max": 158.13422799999444,
+            "mean": 158.13422799999444,
+            "min": 158.13422799999444,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              158.13422799999444
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              205.08669375000466,
+              205.08669375000466
+            ],
+            "max": 205.08669375000466,
+            "mean": 205.08669375000466,
+            "min": 205.08669375000466,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              205.08669375000466
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              208.34128041383505,
+              208.34128041383505
+            ],
+            "max": 208.34128041383505,
+            "mean": 208.34128041383505,
+            "min": 208.34128041383505,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              208.34128041383505
+            ]
+          }
+        },
+        "num_requests": 96,
+        "scenario": "multi_user_static"
+      },
+      "multi_user_static|gpu=6|concurrency=32|requests=96": {
+        "concurrency": 32,
+        "dataset_mode": "static",
+        "gpu_count": 6,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.010272250256042424,
+              0.010272250256042424
+            ],
+            "max": 0.010272250256042424,
+            "mean": 0.010272250256042424,
+            "min": 0.010272250256042424,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.010272250256042424
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              11.416666666666666,
+              11.416666666666666
+            ],
+            "max": 11.416666666666666,
+            "mean": 11.416666666666666,
+            "min": 11.416666666666666,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              11.416666666666666
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              132.19746591666848,
+              132.19746591666848
+            ],
+            "max": 132.19746591666848,
+            "mean": 132.19746591666848,
+            "min": 132.19746591666848,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              132.19746591666848
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              244.47247325002763,
+              244.47247325002763
+            ],
+            "max": 244.47247325002763,
+            "mean": 244.47247325002763,
+            "min": 244.47247325002763,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              244.47247325002763
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              1351.9709765835341,
+              1351.9709765835341
+            ],
+            "max": 1351.9709765835341,
+            "mean": 1351.9709765835341,
+            "min": 1351.9709765835341,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              1351.9709765835341
+            ]
+          }
+        },
+        "num_requests": 96,
+        "scenario": "multi_user_static"
+      },
+      "single_user_dynamic|gpu=1|concurrency=1|requests=32": {
+        "concurrency": 1,
+        "dataset_mode": "dynamic",
+        "gpu_count": 1,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.01970879287686574,
+              0.01970879287686574
+            ],
+            "max": 0.01970879287686574,
+            "mean": 0.01970879287686574,
+            "min": 0.01970879287686574,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.01970879287686574
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              4.5,
+              4.5
+            ],
+            "max": 4.5,
+            "mean": 4.5,
+            "min": 4.5,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              4.5
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              13.542167500020241,
+              13.542167500020241
+            ],
+            "max": 13.542167500020241,
+            "mean": 13.542167500020241,
+            "min": 13.542167500020241,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              13.542167500020241
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              15.570493450036338,
+              15.570493450036338
+            ],
+            "max": 15.570493450036338,
+            "mean": 15.570493450036338,
+            "min": 15.570493450036338,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              15.570493450036338
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              72.29636552140087,
+              72.29636552140087
+            ],
+            "max": 72.29636552140087,
+            "mean": 72.29636552140087,
+            "min": 72.29636552140087,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              72.29636552140087
+            ]
+          }
+        },
+        "num_requests": 32,
+        "scenario": "single_user_dynamic"
+      },
+      "single_user_dynamic|gpu=6|concurrency=1|requests=32": {
+        "concurrency": 1,
+        "dataset_mode": "dynamic",
+        "gpu_count": 6,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.019072980290087548,
+              0.019072980290087548
+            ],
+            "max": 0.019072980290087548,
+            "mean": 0.019072980290087548,
+            "min": 0.019072980290087548,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.019072980290087548
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              15.638888888888888,
+              15.638888888888888
+            ],
+            "max": 15.638888888888888,
+            "mean": 15.638888888888888,
+            "min": 15.638888888888888,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              15.638888888888888
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              14.665460333329605,
+              14.665460333329605
+            ],
+            "max": 14.665460333329605,
+            "mean": 14.665460333329605,
+            "min": 14.665460333329605,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              14.665460333329605
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              27.15697930001113,
+              27.15697930001113
+            ],
+            "max": 27.15697930001113,
+            "mean": 27.15697930001113,
+            "min": 27.15697930001113,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              27.15697930001113
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              419.78435612458355,
+              419.78435612458355
+            ],
+            "max": 419.78435612458355,
+            "mean": 419.78435612458355,
+            "min": 419.78435612458355,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              419.78435612458355
+            ]
+          }
+        },
+        "num_requests": 32,
+        "scenario": "single_user_dynamic"
+      },
+      "single_user_static|gpu=1|concurrency=1|requests=32": {
+        "concurrency": 1,
+        "dataset_mode": "static",
+        "gpu_count": 1,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.0035806541402559175,
+              0.0035806541402559175
+            ],
+            "max": 0.0035806541402559175,
+            "mean": 0.0035806541402559175,
+            "min": 0.0035806541402559175,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.0035806541402559175
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              15.5,
+              15.5
+            ],
+            "max": 15.5,
+            "mean": 15.5,
+            "min": 15.5,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              15.5
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              12.23730100001319,
+              12.23730100001319
+            ],
+            "max": 12.23730100001319,
+            "mean": 12.23730100001319,
+            "min": 12.23730100001319,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              12.23730100001319
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              14.572535149997634,
+              14.572535149997634
+            ],
+            "max": 14.572535149997634,
+            "mean": 14.572535149997634,
+            "min": 14.572535149997634,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              14.572535149997634
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              78.54397939669371,
+              78.54397939669371
+            ],
+            "max": 78.54397939669371,
+            "mean": 78.54397939669371,
+            "min": 78.54397939669371,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              78.54397939669371
+            ]
+          }
+        },
+        "num_requests": 32,
+        "scenario": "single_user_static"
+      },
+      "single_user_static|gpu=6|concurrency=1|requests=32": {
+        "concurrency": 1,
+        "dataset_mode": "static",
+        "gpu_count": 6,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.0033511375041571606,
+              0.0033511375041571606
+            ],
+            "max": 0.0033511375041571606,
+            "mean": 0.0033511375041571606,
+            "min": 0.0033511375041571606,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.0033511375041571606
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              12.75,
+              12.75
+            ],
+            "max": 12.75,
+            "mean": 12.75,
+            "min": 12.75,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              12.75
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              13.947398999999194,
+              13.947398999999194
+            ],
+            "max": 13.947398999999194,
+            "mean": 13.947398999999194,
+            "min": 13.947398999999194,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              13.947398999999194
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              21.097802299985347,
+              21.097802299985347
+            ],
+            "max": 21.097802299985347,
+            "mean": 21.097802299985347,
+            "min": 21.097802299985347,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              21.097802299985347
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              441.0562954787841,
+              441.0562954787841
+            ],
+            "max": 441.0562954787841,
+            "mean": 441.0562954787841,
+            "min": 441.0562954787841,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              441.0562954787841
+            ]
+          }
+        },
+        "num_requests": 32,
+        "scenario": "single_user_static"
+      }
+    },
+    "run_count": 1
+  },
+  "candidate": {
+    "by_workload": {
+      "multi_user_dynamic|gpu=1|concurrency=32|requests=96": {
+        "concurrency": 32,
+        "dataset_mode": "dynamic",
+        "gpu_count": 1,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.08126091541957191,
+              0.08126091541957191
+            ],
+            "max": 0.08126091541957191,
+            "mean": 0.08126091541957191,
+            "min": 0.08126091541957191,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.08126091541957191
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              31.0,
+              31.0
+            ],
+            "max": 31.0,
+            "mean": 31.0,
+            "min": 31.0,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              31.0
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              86.76720299990848,
+              86.76720299990848
+            ],
+            "max": 86.76720299990848,
+            "mean": 86.76720299990848,
+            "min": 86.76720299990848,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              86.76720299990848
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              177.89665449998893,
+              177.89665449998893
+            ],
+            "max": 177.89665449998893,
+            "mean": 177.89665449998893,
+            "min": 177.89665449998893,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              177.89665449998893
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              295.53756653291964,
+              295.53756653291964
+            ],
+            "max": 295.53756653291964,
+            "mean": 295.53756653291964,
+            "min": 295.53756653291964,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              295.53756653291964
+            ]
+          }
+        },
+        "num_requests": 96,
+        "scenario": "multi_user_dynamic"
+      },
+      "multi_user_dynamic|gpu=6|concurrency=32|requests=96": {
+        "concurrency": 32,
+        "dataset_mode": "dynamic",
+        "gpu_count": 6,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.08186940759924402,
+              0.08186940759924402
+            ],
+            "max": 0.08186940759924402,
+            "mean": 0.08186940759924402,
+            "min": 0.08186940759924402,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.08186940759924402
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              15.0,
+              15.0
+            ],
+            "max": 15.0,
+            "mean": 15.0,
+            "min": 15.0,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              15.0
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              88.0794873333836,
+              88.0794873333836
+            ],
+            "max": 88.0794873333836,
+            "mean": 88.0794873333836,
+            "min": 88.0794873333836,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              88.0794873333836
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              223.91561475006938,
+              223.91561475006938
+            ],
+            "max": 223.91561475006938,
+            "mean": 223.91561475006938,
+            "min": 223.91561475006938,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              223.91561475006938
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              1786.5035389112597,
+              1786.5035389112597
+            ],
+            "max": 1786.5035389112597,
+            "mean": 1786.5035389112597,
+            "min": 1786.5035389112597,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              1786.5035389112597
+            ]
+          }
+        },
+        "num_requests": 96,
+        "scenario": "multi_user_dynamic"
+      },
+      "multi_user_static|gpu=1|concurrency=32|requests=96": {
+        "concurrency": 32,
+        "dataset_mode": "static",
+        "gpu_count": 1,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.00990967242782304,
+              0.00990967242782304
+            ],
+            "max": 0.00990967242782304,
+            "mean": 0.00990967242782304,
+            "min": 0.00990967242782304,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.00990967242782304
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              4.0,
+              4.0
+            ],
+            "max": 4.0,
+            "mean": 4.0,
+            "min": 4.0,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              4.0
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              139.62078700001257,
+              139.62078700001257
+            ],
+            "max": 139.62078700001257,
+            "mean": 139.62078700001257,
+            "min": 139.62078700001257,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              139.62078700001257
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              214.64339300004553,
+              214.64339300004553
+            ],
+            "max": 214.64339300004553,
+            "mean": 214.64339300004553,
+            "min": 214.64339300004553,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              214.64339300004553
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              217.37511541488522,
+              217.37511541488522
+            ],
+            "max": 217.37511541488522,
+            "mean": 217.37511541488522,
+            "min": 217.37511541488522,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              217.37511541488522
+            ]
+          }
+        },
+        "num_requests": 96,
+        "scenario": "multi_user_static"
+      },
+      "multi_user_static|gpu=6|concurrency=32|requests=96": {
+        "concurrency": 32,
+        "dataset_mode": "static",
+        "gpu_count": 6,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.013770931482950667,
+              0.013770931482950667
+            ],
+            "max": 0.013770931482950667,
+            "mean": 0.013770931482950667,
+            "min": 0.013770931482950667,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.013770931482950667
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              13.25,
+              13.25
+            ],
+            "max": 13.25,
+            "mean": 13.25,
+            "min": 13.25,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              13.25
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              81.15085183332364,
+              81.15085183332364
+            ],
+            "max": 81.15085183332364,
+            "mean": 81.15085183332364,
+            "min": 81.15085183332364,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              81.15085183332364
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              224.6086835000085,
+              224.6086835000085
+            ],
+            "max": 224.6086835000085,
+            "mean": 224.6086835000085,
+            "min": 224.6086835000085,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              224.6086835000085
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              1812.446077675939,
+              1812.446077675939
+            ],
+            "max": 1812.446077675939,
+            "mean": 1812.446077675939,
+            "min": 1812.446077675939,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              1812.446077675939
+            ]
+          }
+        },
+        "num_requests": 96,
+        "scenario": "multi_user_static"
+      },
+      "single_user_dynamic|gpu=1|concurrency=1|requests=32": {
+        "concurrency": 1,
+        "dataset_mode": "dynamic",
+        "gpu_count": 1,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.019191720908980782,
+              0.019191720908980782
+            ],
+            "max": 0.019191720908980782,
+            "mean": 0.019191720908980782,
+            "min": 0.019191720908980782,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.019191720908980782
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              4.0,
+              4.0
+            ],
+            "max": 4.0,
+            "mean": 4.0,
+            "min": 4.0,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              4.0
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              14.160739499970987,
+              14.160739499970987
+            ],
+            "max": 14.160739499970987,
+            "mean": 14.160739499970987,
+            "min": 14.160739499970987,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              14.160739499970987
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              15.51048875004426,
+              15.51048875004426
+            ],
+            "max": 15.51048875004426,
+            "mean": 15.51048875004426,
+            "min": 15.51048875004426,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              15.51048875004426
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              70.3996271354107,
+              70.3996271354107
+            ],
+            "max": 70.3996271354107,
+            "mean": 70.3996271354107,
+            "min": 70.3996271354107,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              70.3996271354107
+            ]
+          }
+        },
+        "num_requests": 32,
+        "scenario": "single_user_dynamic"
+      },
+      "single_user_dynamic|gpu=6|concurrency=1|requests=32": {
+        "concurrency": 1,
+        "dataset_mode": "dynamic",
+        "gpu_count": 6,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.02087250975175664,
+              0.02087250975175664
+            ],
+            "max": 0.02087250975175664,
+            "mean": 0.02087250975175664,
+            "min": 0.02087250975175664,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.02087250975175664
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              16.833333333333332,
+              16.833333333333332
+            ],
+            "max": 16.833333333333332,
+            "mean": 16.833333333333332,
+            "min": 16.833333333333332,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              16.833333333333332
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              12.749619166650442,
+              12.749619166650442
+            ],
+            "max": 12.749619166650442,
+            "mean": 12.749619166650442,
+            "min": 12.749619166650442,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              12.749619166650442
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              15.670237949967714,
+              15.670237949967714
+            ],
+            "max": 15.670237949967714,
+            "mean": 15.670237949967714,
+            "min": 15.670237949967714,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              15.670237949967714
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              459.39087303513554,
+              459.39087303513554
+            ],
+            "max": 459.39087303513554,
+            "mean": 459.39087303513554,
+            "min": 459.39087303513554,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              459.39087303513554
+            ]
+          }
+        },
+        "num_requests": 32,
+        "scenario": "single_user_dynamic"
+      },
+      "single_user_static|gpu=1|concurrency=1|requests=32": {
+        "concurrency": 1,
+        "dataset_mode": "static",
+        "gpu_count": 1,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.003746602725527466,
+              0.003746602725527466
+            ],
+            "max": 0.003746602725527466,
+            "mean": 0.003746602725527466,
+            "min": 0.003746602725527466,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.003746602725527466
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              15.5,
+              15.5
+            ],
+            "max": 15.5,
+            "mean": 15.5,
+            "min": 15.5,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              15.5
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              11.807805999993093,
+              11.807805999993093
+            ],
+            "max": 11.807805999993093,
+            "mean": 11.807805999993093,
+            "min": 11.807805999993093,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              11.807805999993093
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              13.270794249990558,
+              13.270794249990558
+            ],
+            "max": 13.270794249990558,
+            "mean": 13.270794249990558,
+            "min": 13.270794249990558,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              13.270794249990558
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              82.1841696390128,
+              82.1841696390128
+            ],
+            "max": 82.1841696390128,
+            "mean": 82.1841696390128,
+            "min": 82.1841696390128,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              82.1841696390128
+            ]
+          }
+        },
+        "num_requests": 32,
+        "scenario": "single_user_static"
+      },
+      "single_user_static|gpu=6|concurrency=1|requests=32": {
+        "concurrency": 1,
+        "dataset_mode": "static",
+        "gpu_count": 6,
+        "metrics": {
+          "derived_mfu_bf16_peak": {
+            "ci_95": [
+              0.003646966112321017,
+              0.003646966112321017
+            ],
+            "max": 0.003646966112321017,
+            "mean": 0.003646966112321017,
+            "min": 0.003646966112321017,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              0.003646966112321017
+            ]
+          },
+          "gpu_utilization_pct_mean": {
+            "ci_95": [
+              14.333333333333334,
+              14.333333333333334
+            ],
+            "max": 14.333333333333334,
+            "mean": 14.333333333333334,
+            "min": 14.333333333333334,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              14.333333333333334
+            ]
+          },
+          "latency_ms_p50": {
+            "ci_95": [
+              12.221058333333682,
+              12.221058333333682
+            ],
+            "max": 12.221058333333682,
+            "mean": 12.221058333333682,
+            "min": 12.221058333333682,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              12.221058333333682
+            ]
+          },
+          "latency_ms_p95": {
+            "ci_95": [
+              14.827013399988687,
+              14.827013399988687
+            ],
+            "max": 14.827013399988687,
+            "mean": 14.827013399988687,
+            "min": 14.827013399988687,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              14.827013399988687
+            ]
+          },
+          "requests_per_s": {
+            "ci_95": [
+              479.9914540186935,
+              479.9914540186935
+            ],
+            "max": 479.9914540186935,
+            "mean": 479.9914540186935,
+            "min": 479.9914540186935,
+            "n": 1,
+            "std": 0.0,
+            "values": [
+              479.9914540186935
+            ]
+          }
+        },
+        "num_requests": 32,
+        "scenario": "single_user_static"
+      }
+    },
+    "run_count": 1
+  },
+  "comparisons": [
+    {
+      "abs_delta": -5.921298425227633,
+      "baseline_mean": 301.4588649581473,
+      "baseline_std": 0.0,
+      "candidate_mean": 295.53756653291964,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": -1.9642143965644236,
+      "metric": "requests_per_s",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -1.9642143965644236,
+      "scenario": "multi_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "multi_user_dynamic|gpu=1|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 0.30383749987095143,
+      "baseline_mean": 86.46336550003753,
+      "baseline_std": 0.0,
+      "candidate_mean": 86.76720299990848,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "lower",
+      "gpu_count": 1,
+      "improvement_pct": -0.3514060528569404,
+      "metric": "latency_ms_p50",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 0.3514060528569404,
+      "scenario": "multi_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "multi_user_dynamic|gpu=1|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 17.27976549997834,
+      "baseline_mean": 160.6168890000106,
+      "baseline_std": 0.0,
+      "candidate_mean": 177.89665449998893,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "lower",
+      "gpu_count": 1,
+      "improvement_pct": -10.75837392167221,
+      "metric": "latency_ms_p95",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 10.75837392167221,
+      "scenario": "multi_user_dynamic",
+      "significant_approx": false,
+      "verdict": "regression",
+      "workload_key": "multi_user_dynamic|gpu=1|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": -1.0,
+      "baseline_mean": 32.0,
+      "baseline_std": 0.0,
+      "candidate_mean": 31.0,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": -3.125,
+      "metric": "gpu_utilization_pct_mean",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -3.125,
+      "scenario": "multi_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "multi_user_dynamic|gpu=1|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": -0.0016281183341640415,
+      "baseline_mean": 0.08288903375373595,
+      "baseline_std": 0.0,
+      "candidate_mean": 0.08126091541957191,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": -1.9642143965644423,
+      "metric": "derived_mfu_bf16_peak",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -1.9642143965644423,
+      "scenario": "multi_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "multi_user_dynamic|gpu=1|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 24.311521700319645,
+      "baseline_mean": 1762.19201721094,
+      "baseline_std": 0.0,
+      "candidate_mean": 1786.5035389112597,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 1.379618195002269,
+      "metric": "requests_per_s",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 1.379618195002269,
+      "scenario": "multi_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "multi_user_dynamic|gpu=6|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": -3.962327333288343,
+      "baseline_mean": 92.04181466667194,
+      "baseline_std": 0.0,
+      "candidate_mean": 88.0794873333836,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "lower",
+      "gpu_count": 6,
+      "improvement_pct": 4.304920918430229,
+      "metric": "latency_ms_p50",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -4.304920918430229,
+      "scenario": "multi_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "multi_user_dynamic|gpu=6|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 11.665347250058744,
+      "baseline_mean": 212.25026750001064,
+      "baseline_std": 0.0,
+      "candidate_mean": 223.91561475006938,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "lower",
+      "gpu_count": 6,
+      "improvement_pct": -5.496034180526137,
+      "metric": "latency_ms_p95",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 5.496034180526137,
+      "scenario": "multi_user_dynamic",
+      "significant_approx": false,
+      "verdict": "regression",
+      "workload_key": "multi_user_dynamic|gpu=6|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": -4.416666666666668,
+      "baseline_mean": 19.416666666666668,
+      "baseline_std": 0.0,
+      "candidate_mean": 15.0,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": -22.746781115879834,
+      "metric": "gpu_utilization_pct_mean",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -22.746781115879834,
+      "scenario": "multi_user_dynamic",
+      "significant_approx": false,
+      "verdict": "regression",
+      "workload_key": "multi_user_dynamic|gpu=6|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 0.0011141147140712043,
+      "baseline_mean": 0.08075529288517282,
+      "baseline_std": 0.0,
+      "candidate_mean": 0.08186940759924402,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 1.3796181950022535,
+      "metric": "derived_mfu_bf16_peak",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 1.3796181950022535,
+      "scenario": "multi_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "multi_user_dynamic|gpu=6|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 9.033835001050164,
+      "baseline_mean": 208.34128041383505,
+      "baseline_std": 0.0,
+      "candidate_mean": 217.37511541488522,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": 4.3360753966309336,
+      "metric": "requests_per_s",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 4.3360753966309336,
+      "scenario": "multi_user_static",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "multi_user_static|gpu=1|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": -18.513440999981867,
+      "baseline_mean": 158.13422799999444,
+      "baseline_std": 0.0,
+      "candidate_mean": 139.62078700001257,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "lower",
+      "gpu_count": 1,
+      "improvement_pct": 11.707421748049713,
+      "metric": "latency_ms_p50",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -11.707421748049713,
+      "scenario": "multi_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "multi_user_static|gpu=1|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 9.556699250040879,
+      "baseline_mean": 205.08669375000466,
+      "baseline_std": 0.0,
+      "candidate_mean": 214.64339300004553,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "lower",
+      "gpu_count": 1,
+      "improvement_pct": -4.659833885512946,
+      "metric": "latency_ms_p95",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 4.659833885512946,
+      "scenario": "multi_user_static",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "multi_user_static|gpu=1|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": -6.0,
+      "baseline_mean": 10.0,
+      "baseline_std": 0.0,
+      "candidate_mean": 4.0,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": -60.0,
+      "metric": "gpu_utilization_pct_mean",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -60.0,
+      "scenario": "multi_user_static",
+      "significant_approx": false,
+      "verdict": "regression",
+      "workload_key": "multi_user_static|gpu=1|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 0.0004118334587496185,
+      "baseline_mean": 0.009497838969073422,
+      "baseline_std": 0.0,
+      "candidate_mean": 0.00990967242782304,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": 4.3360753966309415,
+      "metric": "derived_mfu_bf16_peak",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 4.3360753966309415,
+      "scenario": "multi_user_static",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "multi_user_static|gpu=1|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 460.4751010924049,
+      "baseline_mean": 1351.9709765835341,
+      "baseline_std": 0.0,
+      "candidate_mean": 1812.446077675939,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 34.05954040936866,
+      "metric": "requests_per_s",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 34.05954040936866,
+      "scenario": "multi_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "multi_user_static|gpu=6|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": -51.046614083344835,
+      "baseline_mean": 132.19746591666848,
+      "baseline_std": 0.0,
+      "candidate_mean": 81.15085183332364,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "lower",
+      "gpu_count": 6,
+      "improvement_pct": 38.61391270201987,
+      "metric": "latency_ms_p50",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -38.61391270201987,
+      "scenario": "multi_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "multi_user_static|gpu=6|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": -19.863789750019123,
+      "baseline_mean": 244.47247325002763,
+      "baseline_std": 0.0,
+      "candidate_mean": 224.6086835000085,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "lower",
+      "gpu_count": 6,
+      "improvement_pct": 8.125164148727684,
+      "metric": "latency_ms_p95",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -8.125164148727684,
+      "scenario": "multi_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "multi_user_static|gpu=6|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 1.833333333333334,
+      "baseline_mean": 11.416666666666666,
+      "baseline_std": 0.0,
+      "candidate_mean": 13.25,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 16.058394160583948,
+      "metric": "gpu_utilization_pct_mean",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 16.058394160583948,
+      "scenario": "multi_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "multi_user_static|gpu=6|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": 0.003498681226908244,
+      "baseline_mean": 0.010272250256042424,
+      "baseline_std": 0.0,
+      "candidate_mean": 0.013770931482950667,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 34.05954040936865,
+      "metric": "derived_mfu_bf16_peak",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 34.05954040936865,
+      "scenario": "multi_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "multi_user_static|gpu=6|concurrency=32|requests=96"
+    },
+    {
+      "abs_delta": -1.8967383859901759,
+      "baseline_mean": 72.29636552140087,
+      "baseline_std": 0.0,
+      "candidate_mean": 70.3996271354107,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": -2.623559804577882,
+      "metric": "requests_per_s",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -2.623559804577882,
+      "scenario": "single_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "single_user_dynamic|gpu=1|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": 0.6185719999507455,
+      "baseline_mean": 13.542167500020241,
+      "baseline_std": 0.0,
+      "candidate_mean": 14.160739499970987,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "lower",
+      "gpu_count": 1,
+      "improvement_pct": -4.567747370942066,
+      "metric": "latency_ms_p50",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 4.567747370942066,
+      "scenario": "single_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "single_user_dynamic|gpu=1|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": -0.060004699992077803,
+      "baseline_mean": 15.570493450036338,
+      "baseline_std": 0.0,
+      "candidate_mean": 15.51048875004426,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "lower",
+      "gpu_count": 1,
+      "improvement_pct": 0.3853744275004834,
+      "metric": "latency_ms_p95",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -0.3853744275004834,
+      "scenario": "single_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "single_user_dynamic|gpu=1|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": -0.5,
+      "baseline_mean": 4.5,
+      "baseline_std": 0.0,
+      "candidate_mean": 4.0,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": -11.11111111111111,
+      "metric": "gpu_utilization_pct_mean",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -11.11111111111111,
+      "scenario": "single_user_dynamic",
+      "significant_approx": false,
+      "verdict": "regression",
+      "workload_key": "single_user_dynamic|gpu=1|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": -0.0005170719678849571,
+      "baseline_mean": 0.01970879287686574,
+      "baseline_std": 0.0,
+      "candidate_mean": 0.019191720908980782,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": -2.6235598045778756,
+      "metric": "derived_mfu_bf16_peak",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -2.6235598045778756,
+      "scenario": "single_user_dynamic",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "single_user_dynamic|gpu=1|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": 39.60651691055199,
+      "baseline_mean": 419.78435612458355,
+      "baseline_std": 0.0,
+      "candidate_mean": 459.39087303513554,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 9.434967342803402,
+      "metric": "requests_per_s",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 9.434967342803402,
+      "scenario": "single_user_dynamic",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_dynamic|gpu=6|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": -1.9158411666791633,
+      "baseline_mean": 14.665460333329605,
+      "baseline_std": 0.0,
+      "candidate_mean": 12.749619166650442,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "lower",
+      "gpu_count": 6,
+      "improvement_pct": 13.063627892573598,
+      "metric": "latency_ms_p50",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -13.063627892573598,
+      "scenario": "single_user_dynamic",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_dynamic|gpu=6|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": -11.486741350043417,
+      "baseline_mean": 27.15697930001113,
+      "baseline_std": 0.0,
+      "candidate_mean": 15.670237949967714,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "lower",
+      "gpu_count": 6,
+      "improvement_pct": 42.29756639406029,
+      "metric": "latency_ms_p95",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -42.29756639406029,
+      "scenario": "single_user_dynamic",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_dynamic|gpu=6|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": 1.1944444444444446,
+      "baseline_mean": 15.638888888888888,
+      "baseline_std": 0.0,
+      "candidate_mean": 16.833333333333332,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 7.637655417406751,
+      "metric": "gpu_utilization_pct_mean",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 7.637655417406751,
+      "scenario": "single_user_dynamic",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_dynamic|gpu=6|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": 0.001799529461669093,
+      "baseline_mean": 0.019072980290087548,
+      "baseline_std": 0.0,
+      "candidate_mean": 0.02087250975175664,
+      "candidate_std": 0.0,
+      "dataset_mode": "dynamic",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 9.434967342803418,
+      "metric": "derived_mfu_bf16_peak",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 9.434967342803418,
+      "scenario": "single_user_dynamic",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_dynamic|gpu=6|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": 3.640190242319079,
+      "baseline_mean": 78.54397939669371,
+      "baseline_std": 0.0,
+      "candidate_mean": 82.1841696390128,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": 4.634588507330343,
+      "metric": "requests_per_s",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 4.634588507330343,
+      "scenario": "single_user_static",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "single_user_static|gpu=1|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": -0.429495000020097,
+      "baseline_mean": 12.23730100001319,
+      "baseline_std": 0.0,
+      "candidate_mean": 11.807805999993093,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "lower",
+      "gpu_count": 1,
+      "improvement_pct": 3.509719994789979,
+      "metric": "latency_ms_p50",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -3.509719994789979,
+      "scenario": "single_user_static",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "single_user_static|gpu=1|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": -1.3017409000070757,
+      "baseline_mean": 14.572535149997634,
+      "baseline_std": 0.0,
+      "candidate_mean": 13.270794249990558,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "lower",
+      "gpu_count": 1,
+      "improvement_pct": 8.932837605866313,
+      "metric": "latency_ms_p95",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -8.932837605866313,
+      "scenario": "single_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_static|gpu=1|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": 0.0,
+      "baseline_mean": 15.5,
+      "baseline_std": 0.0,
+      "candidate_mean": 15.5,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": 0.0,
+      "metric": "gpu_utilization_pct_mean",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 0.0,
+      "scenario": "single_user_static",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "single_user_static|gpu=1|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": 0.00016594858527154864,
+      "baseline_mean": 0.0035806541402559175,
+      "baseline_std": 0.0,
+      "candidate_mean": 0.003746602725527466,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 1,
+      "improvement_pct": 4.634588507330337,
+      "metric": "derived_mfu_bf16_peak",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 4.634588507330337,
+      "scenario": "single_user_static",
+      "significant_approx": false,
+      "verdict": "neutral",
+      "workload_key": "single_user_static|gpu=1|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": 38.93515853990942,
+      "baseline_mean": 441.0562954787841,
+      "baseline_std": 0.0,
+      "candidate_mean": 479.9914540186935,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 8.827707242596723,
+      "metric": "requests_per_s",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 8.827707242596723,
+      "scenario": "single_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_static|gpu=6|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": -1.7263406666655126,
+      "baseline_mean": 13.947398999999194,
+      "baseline_std": 0.0,
+      "candidate_mean": 12.221058333333682,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "lower",
+      "gpu_count": 6,
+      "improvement_pct": 12.37750971823214,
+      "metric": "latency_ms_p50",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -12.37750971823214,
+      "scenario": "single_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_static|gpu=6|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": -6.27078889999666,
+      "baseline_mean": 21.097802299985347,
+      "baseline_std": 0.0,
+      "candidate_mean": 14.827013399988687,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "lower",
+      "gpu_count": 6,
+      "improvement_pct": 29.722474458872977,
+      "metric": "latency_ms_p95",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": -29.722474458872977,
+      "scenario": "single_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_static|gpu=6|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": 1.583333333333334,
+      "baseline_mean": 12.75,
+      "baseline_std": 0.0,
+      "candidate_mean": 14.333333333333334,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 12.418300653594775,
+      "metric": "gpu_utilization_pct_mean",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 12.418300653594775,
+      "scenario": "single_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_static|gpu=6|concurrency=1|requests=32"
+    },
+    {
+      "abs_delta": 0.00029582860816385623,
+      "baseline_mean": 0.0033511375041571606,
+      "baseline_std": 0.0,
+      "candidate_mean": 0.003646966112321017,
+      "candidate_std": 0.0,
+      "dataset_mode": "static",
+      "direction": "higher",
+      "gpu_count": 6,
+      "improvement_pct": 8.827707242596707,
+      "metric": "derived_mfu_bf16_peak",
+      "p_value_normal_approx": null,
+      "rel_delta_pct": 8.827707242596707,
+      "scenario": "single_user_static",
+      "significant_approx": false,
+      "verdict": "improved",
+      "workload_key": "single_user_static|gpu=6|concurrency=1|requests=32"
+    }
+  ],
+  "generated_at_unix": 1781957978,
+  "name": "modal-throughput-baseline",
+  "opt_id": "OPT-MODAL-001",
+  "rag_rows": [],
+  "regression_summary": {
+    "comparison_count": 40,
+    "improvement_count": 17,
+    "regression_count": 5,
+    "verdict": "regression"
+  }
+}

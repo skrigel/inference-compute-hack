@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 from collections.abc import AsyncIterator, Iterable, Iterator
 
@@ -12,7 +13,7 @@ from backend.state import facet_summary, histogram
 
 # Default batch size for cold scans. A knob, not the KPI: small enough that the
 # dashboard visibly fills as it scans, large enough to keep vLLM batches efficient.
-BATCH_SIZE = 64
+BATCH_SIZE = int(os.environ.get("QUERY_BATCH_SIZE", "64"))
 
 StreamEvent = ResultEvent | AggregateEvent | DoneEvent
 
@@ -31,6 +32,7 @@ async def query_stream(
     threshold: float = 0.5,
     cache: ScoreCache,
     batch_size: int = BATCH_SIZE,
+    tier: int = 1,
 ) -> AsyncIterator[StreamEvent]:
     """Score the corpus in batches and stream results best-first with running aggregates.
 
@@ -58,7 +60,7 @@ async def query_stream(
                 for chunk in batch
                 if chunk.chunk_id in missing
             ]
-            for result in await scorer.score_batch(requests):
+            for result in await scorer.score_batch(requests, tier=tier):
                 cache.put(result.chunk_id, clause_id, result)
 
         # Pull every chunk without changing hit counters; missing() already

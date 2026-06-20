@@ -22,6 +22,7 @@ from eval.weave_ops import DEFAULT_WEAVE_PROJECT, init_weave, weave_op
 ARTIFACT_DIR = Path(__file__).resolve().parent / "artifacts"
 QUALITY_THRESHOLD = 0.5
 MIN_F1 = 0.7
+QUALITY_ARTIFACT = ARTIFACT_DIR / "phase04_quality_gate.json"
 
 GOLD_PREDICATES = [
     {
@@ -58,6 +59,22 @@ def _git_commit() -> str:
 
 def _active_backend() -> str:
     return os.environ.get("SCORER_BACKEND", "mock").lower()
+
+
+def _default_quality_threshold(backend: str) -> float:
+    if backend not in {"modal", "vllm"}:
+        return QUALITY_THRESHOLD
+    try:
+        payload = json.loads(QUALITY_ARTIFACT.read_text())
+    except OSError:
+        return QUALITY_THRESHOLD
+    recommended = payload.get("recommended_threshold")
+    if recommended is None:
+        return QUALITY_THRESHOLD
+    try:
+        return float(recommended)
+    except (TypeError, ValueError):
+        return QUALITY_THRESHOLD
 
 
 def _set_backend(backend: str) -> None:
@@ -161,10 +178,11 @@ async def run_quality_gate(
     backend: str,
     *,
     artifact_dir: Path = ARTIFACT_DIR,
-    threshold: float = QUALITY_THRESHOLD,
+    threshold: float | None = None,
     force: bool = False,
 ) -> dict:
     _set_backend(backend)
+    threshold = _default_quality_threshold(backend) if threshold is None else threshold
     scorer = make_scorer()
     chunks = demo_chunks()
     rows = []
@@ -228,7 +246,7 @@ async def run_quality_gate_traced(
     backend: str,
     *,
     artifact_dir: Path = ARTIFACT_DIR,
-    threshold: float = QUALITY_THRESHOLD,
+    threshold: float | None = None,
     force: bool = False,
 ) -> dict:
     return await run_quality_gate(backend, artifact_dir=artifact_dir, threshold=threshold, force=force)
@@ -239,7 +257,7 @@ def run_quality_gate_with_weave(
     project: str = DEFAULT_WEAVE_PROJECT,
     *,
     artifact_dir: Path = ARTIFACT_DIR,
-    threshold: float = QUALITY_THRESHOLD,
+    threshold: float | None = None,
     force: bool = False,
 ) -> dict:
     init_weave(project)
@@ -492,7 +510,12 @@ def main() -> None:
     parser.add_argument("--backend", choices=["mock", "modal", "vllm"], default=os.environ.get("SCORER_BACKEND", "mock"))
     parser.add_argument("--gate-only", action="store_true", help="run the Phase 04 quality gate only")
     parser.add_argument("--tag", default=None, help="run a named Phase 04 freeze, e.g. --tag freeze")
-    parser.add_argument("--threshold", type=float, default=QUALITY_THRESHOLD, help="classification threshold for quality gates")
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="classification threshold for quality gates; defaults to the calibrated real-backend threshold when available",
+    )
     parser.add_argument("--force", action="store_true", help="write artifacts even if the quality gate is below threshold")
     parser.add_argument(
         "--weave-project",

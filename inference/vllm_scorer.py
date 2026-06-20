@@ -5,6 +5,7 @@ import itertools
 import math
 import os
 import time
+import zlib
 from collections.abc import Iterable
 from typing import Any
 
@@ -59,6 +60,8 @@ class VLLMScorer(ScorerClient):
         model_id: str = "tier1-filter",
         timeout_s: float = 30.0,
         max_concurrency: int = 128,
+        priority_reserved: int = 0,
+        routing_mode: str = "round_robin",
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self._replicas = [replica.rstrip("/") for replica in replicas if replica.strip()]
@@ -67,7 +70,15 @@ class VLLMScorer(ScorerClient):
         self._model_id = model_id
         self._replica_counter = itertools.count()
         self._client = httpx.AsyncClient(timeout=timeout_s, transport=transport)
-        self._semaphore = asyncio.Semaphore(max(1, max_concurrency))
+        self._max_concurrency = max(1, max_concurrency)
+        self._priority_reserved = max(0, min(priority_reserved, self._max_concurrency - 1))
+        bulk_capacity = max(1, self._max_concurrency - self._priority_reserved)
+        self._global_semaphore = asyncio.Semaphore(self._max_concurrency)
+        self._bulk_semaphore = asyncio.Semaphore(bulk_capacity)
+        normalized_routing = routing_mode.strip().lower()
+        if normalized_routing not in {"round_robin", "chunk_sticky"}:
+            raise ValueError("routing_mode must be 'round_robin' or 'chunk_sticky'")
+        self._routing_mode = normalized_routing
         self._warmed_corpora: dict[str, int] = {}
 
     @classmethod
@@ -78,6 +89,8 @@ class VLLMScorer(ScorerClient):
             model_id=os.environ.get("VLLM_MODEL_ID", "tier1-filter"),
             timeout_s=float(os.environ.get("VLLM_TIMEOUT_S", "30")),
             max_concurrency=int(os.environ.get("VLLM_MAX_CONCURRENCY", "128")),
+            priority_reserved=int(os.environ.get("VLLM_PRIORITY_RESERVED", "16")),
+            routing_mode=os.environ.get("VLLM_ROUTING_MODE", "chunk_sticky"),
         )
 
     async def warm(self, corpus_id: str, chunks: list[Chunk]) -> PrefixState:
@@ -119,6 +132,9 @@ class VLLMScorer(ScorerClient):
             "ready": any(replica["ready"] for replica in replicas),
             "backend": "vllm",
             "model_id": self._model_id,
+            "routing_mode": self._routing_mode,
+            "max_concurrency": self._max_concurrency,
+            "priority_reserved": self._priority_reserved,
             "replicas": replicas,
             "warmed_corpora": dict(self._warmed_corpora),
         }
@@ -135,8 +151,14 @@ class VLLMScorer(ScorerClient):
     def _next_replica(self) -> str:
         return self._replicas[next(self._replica_counter) % len(self._replicas)]
 
+    def _route_replica(self, item: ScoreRequest) -> str:
+        if self._routing_mode == "chunk_sticky":
+            idx = zlib.crc32(item.chunk_id.encode("utf-8")) % len(self._replicas)
+            return self._replicas[idx]
+        return self._next_replica()
+
     async def _score_one(self, item: ScoreRequest, *, tier: int) -> ScoreResult:
-        replica = self._next_replica()
+        replica = self._route_replica(item)
         started = time.perf_counter()
         payload = {
             "model": self._model_id,
@@ -145,8 +167,16 @@ class VLLMScorer(ScorerClient):
             "temperature": 0,
             "logprobs": 20,
         }
-        async with self._semaphore:
-            response = await self._client.post(f"{replica}/completions", json=payload)
+        bulk_acquired = False
+        if tier > 0:
+            await self._bulk_semaphore.acquire()
+            bulk_acquired = True
+        try:
+            async with self._global_semaphore:
+                response = await self._client.post(f"{replica}/completions", json=payload)
+        finally:
+            if bulk_acquired:
+                self._bulk_semaphore.release()
         if response.status_code >= 400:
             raise VLLMScoringError(f"vLLM request failed on {replica}: HTTP {response.status_code} {response.text[:300]}")
         p_yes, p_no = yes_no_probabilities(response.json())
