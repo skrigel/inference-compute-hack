@@ -19,13 +19,13 @@ python -m eval.agent_loop --n-docs 60 --task-count 3 --max-steps 5
 3. Run:
 
 ```bash
-modal run inference/modal_app.py::extension3_agent_loop_smoke --n-docs 60 --task-count 3 --max-steps 5
+prime --help
 ```
 
-4. Run:
+4. Optional if resuming. Run:
 
 ```bash
-prime --help
+prime train checkpoints <existing-run-id>
 ```
 
 Pass criteria:
@@ -42,4 +42,11 @@ Only after the smoke passes and the user explicitly approves credit use:
 prime train run eval/configs/extension3_prime/prime_train.example.toml
 ```
 
-Stop immediately if baseline eval artifacts are missing, the heldout split is empty, or the first pilot run fails to improve heldout reward.
+Checkpoint settings:
+
+- Target hardware: `8x H100 80GB on Prime`.
+- Full checkpoints every `25` steps with `keep_cloud = true`.
+- Adapter uploads every `25` steps; keep last `4` adapters.
+- To resume, run `prime train checkpoints <run-id>` and set top-level `checkpoint_id`.
+
+Stop immediately if baseline eval artifacts are missing, the heldout split is empty, no checkpoint appears after the first interval, or the first pilot run fails to improve heldout reward.

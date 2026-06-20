@@ -1,5 +1,0 @@
-{
-  "latest_checkpoint": "eval/artifacts/modal_checkpoints/dry_run_checkpoints/checkpoint_step_000012.json",
-  "paid_modal_gpu_launched": false,
-  "step": 12
-}

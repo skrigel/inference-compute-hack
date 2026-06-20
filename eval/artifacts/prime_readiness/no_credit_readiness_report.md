@@ -12,6 +12,8 @@
 ## Blocking Items
 
 - prime CLI is not available or did not respond to --help
+- 8-H100 Prime capacity or reservation has not been recorded
+- heldout baseline eval artifact has not been recorded
 - explicit user approval for Prime credit use has not been recorded
 
 ## Artifacts

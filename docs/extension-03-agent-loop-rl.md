@@ -6,13 +6,12 @@ AI claim without bloating the demo: cheap inference lets an agent run many fast
 query-refinement attempts, verify evidence, and stop when the result crosses a
 quality threshold.
 
-The current implementation is intentionally split in three layers:
+The current implementation is intentionally split in two layers:
 
 1. `eval.agent_loop`: executable dynamic-corpus environment and cheap metrics.
 2. `eval.agent_loop_prime`: cohort manifests, reward contract, training config
-   template, metric-to-lift schema, and no-credit readiness smoke.
-3. `eval.agent_loop_modal_checkpoints`: Modal 6-H100 budget cap, checkpoint
-   cadence, resume pointer, and no-credit checkpoint dry run.
+   template, metric-to-lift schema, no-credit readiness smoke, and 8-H100 Prime
+   checkpoint policy.
 
 ## Thesis
 
@@ -130,12 +129,18 @@ Then validate Prime CLI/auth without training:
 prime --help
 ```
 
+If resuming an existing run, list available checkpoints without launching new
+training:
+
+```bash
+prime train checkpoints <existing-run-id>
+```
+
 Pass criteria before any paid training launch:
 
 - `paid_training_launched` is `false`.
 - Local smoke `mean_truth_gain >= 0.1`.
 - Local smoke `pass_rate >= 0.8`.
-- Modal CPU smoke completes and writes artifacts.
 - Prime CLI exists and responds to `--help`.
 - User explicitly approves credit use for the named training run.
 
@@ -224,6 +229,51 @@ This is a conservative pilot choice; verify current Prime image/model support
 and pricing before launch. Move to a larger model only after the pipeline has a
 passing tiny run.
 
+## Prime 8-H100 Checkpoint Policy
+
+The current training target is 8 H100s on Prime. The committed config records
+this in `eval/configs/extension3_prime/prime_train.example.toml`:
+
+```toml
+[hardware]
+target = "8x H100 80GB on Prime"
+gpu_type = "H100"
+gpu_count = 8
+```
+
+Checkpointing should be frequent enough that an interruption loses at most one
+short window of RL rollouts:
+
+```toml
+[checkpoints]
+interval = 25
+keep_cloud = true
+
+[adapters]
+interval = 25
+keep_last = 4
+
+[val]
+interval = 25
+
+[resume]
+checkpoint_id = ""
+checkpoint_list_command = "prime train checkpoints <run-id>"
+```
+
+Operational rules:
+
+- Do not start the full cohort grid until a first tiny run writes at least one
+  checkpoint and one adapter artifact.
+- After each checkpoint window, verify reward is finite and selected bytes are
+  not drifting toward full-corpus selection.
+- Keep cloud checkpoints enabled for the first training session even if adapter
+  uploads are also enabled.
+- To resume, run `prime train checkpoints <run-id>`, copy the checkpoint id into
+  top-level `checkpoint_id`, and relaunch the same config.
+- If the first checkpoint cannot be listed or resumed, stop before spending the
+  rest of the credits.
+
 ## Prime Launch Gate
 
 The paid command is:
@@ -235,8 +285,8 @@ prime train run eval/configs/extension3_prime/prime_train.example.toml
 Do not run it until every item is true:
 
 - local no-credit readiness report passed;
-- Modal CPU smoke passed;
 - Prime CLI is installed and authenticated;
+- 8-H100 Prime capacity is available or reserved;
 - the Verifiers environment package has been created from the reward contract;
 - baseline eval artifact exists for heldout cohorts;
 - cohort manifest has at least one train and one heldout cohort;
@@ -249,7 +299,8 @@ Stop after the first paid pilot if:
 - selected bytes trend toward selecting the full corpus;
 - logs do not include cohort id, run id, base model, adapter artifact, and git
   commit;
-- the first adapter cannot be evaluated against heldout cohorts.
+- the first adapter cannot be evaluated against heldout cohorts;
+- no checkpoint or adapter artifact appears by the first checkpoint interval.
 
 ## Metric-To-Lift Output
 
@@ -284,74 +335,3 @@ hosted environment:
 
 The repo-side rule is stricter than the external docs: paid training is blocked
 until the no-credit smoke and explicit user approval are both recorded.
-
-## Modal 6-H100 Checkpoint Plan
-
-Since the immediate training path may use Modal with only an `$18` budget, the
-Modal path is budget-capped and checkpoint-heavy. The config assumes 6 H100s and
-uses a GPU-only price constant of `$0.001097` per H100-second. With 6 H100s,
-that is `$0.006582` per wall-clock second, so `$18` buys about `45.6` minutes
-before CPU, memory, build, storage, and pricing drift. The committed plan keeps
-roughly 20% reserve and caps planned training at about `36.45` minutes.
-
-Generate the Modal checkpoint templates:
-
-```bash
-python -m eval.agent_loop_modal_checkpoints \
-  --output-dir eval/configs/extension3_modal \
-  --templates-only
-```
-
-Run the no-credit local checkpoint dry run:
-
-```bash
-python -m eval.agent_loop_modal_checkpoints \
-  --output-dir eval/artifacts/modal_checkpoints \
-  --total-steps 12 \
-  --save-every-steps 3
-```
-
-Generated files:
-
-| file | role |
-|---|---|
-| `eval/configs/extension3_modal/modal_checkpoint_policy.example.json` | budget, GPU request, checkpoint retention, stop conditions |
-| `eval/configs/extension3_modal/modal_6h100_checkpoint_train.example.toml` | paid-run config template with `gpu_request = "H100:6"` |
-| `eval/configs/extension3_modal/MODAL_CHECKPOINT_RUNBOOK.md` | exact dry-run, micro-run, and full budget run procedure |
-| `eval/artifacts/modal_checkpoints/local_checkpoint_dry_run_report.json` | local proof that checkpoint writes and latest pointer work |
-| `eval/artifacts/modal_checkpoints/dry_run_checkpoints/latest.json` | local resume pointer |
-
-Checkpoint policy:
-
-- save every `180` seconds or `25` optimizer steps, whichever comes first;
-- save first checkpoint after `5` optimizer steps;
-- keep last `4` checkpoints plus the best checkpoint;
-- write checkpoint contents first, then update `latest.json`;
-- resume from `latest.json` by default.
-
-Paid Modal stages:
-
-1. Stage 0, no credit: run local checkpoint dry run and Modal CPU smoke only.
-2. Stage 1, paid micro: optional 6-H100 run capped at first checkpoint and less
-   than `$2` GPU estimate.
-3. Stage 2, paid budget: full 6-H100 run only after Stage 1 produces a
-   loadable checkpoint.
-
-Stop immediately if:
-
-- estimated spend reaches 80% of budget;
-- no checkpoint has been written within the first 6 minutes;
-- reward is NaN or constant for two checkpoint windows;
-- selected bytes trend toward selecting the full corpus;
-- latest checkpoint cannot be loaded in a resume dry run.
-
-The future paid launch shape is:
-
-```bash
-modal run inference/modal_app.py::extension3_checkpointed_posttrain \
-  --config eval/configs/extension3_modal/modal_6h100_checkpoint_train.example.toml
-```
-
-That entrypoint is intentionally not implemented yet. Add it only when the
-training code is ready, the no-credit checkpoint dry run passes, the account has
-budget, and the user approves the paid Modal run.

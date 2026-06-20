@@ -10,12 +10,32 @@ purpose = "Measure whether cheap pre-training cohort metrics predict post-RL lif
 base = "Qwen/Qwen2.5-1.5B-Instruct"
 adapter = "lora"
 
+[hardware]
+target = "8x H100 80GB on Prime"
+gpu_type = "H100"
+gpu_count = 8
+
 [algorithm]
 name = "GRPO"
 rollouts_per_example = 8
 max_turns = 5
 temperature = 0.7
 top_p = 0.95
+
+[checkpoints]
+interval = 25
+keep_cloud = true
+
+[adapters]
+interval = 25
+keep_last = 4
+
+[val]
+interval = 25
+
+[resume]
+checkpoint_id = ""
+checkpoint_list_command = "prime train checkpoints <run-id>"
 
 [environment]
 id = "extension3-agent-loop"
@@ -26,4 +46,4 @@ heldout_split = "heldout"
 [launch_gate]
 requires_prime_credits = true
 command = "prime train run eval/configs/extension3_prime/prime_train.example.toml"
-allowed_only_after = ["local no-credit readiness report has passed", "Modal CPU smoke has passed", "Prime CLI is authenticated", "baseline eval artifact exists", "user explicitly approves using Prime credits"]
+allowed_only_after = ["local no-credit readiness report has passed", "Prime CLI is authenticated", "8-H100 Prime capacity is available or reserved", "baseline eval artifact exists", "user explicitly approves using Prime credits"]

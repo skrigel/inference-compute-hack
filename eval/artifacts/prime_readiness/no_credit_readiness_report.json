@@ -10,6 +10,8 @@
   },
   "blocking_items": [
     "prime CLI is not available or did not respond to --help",
+    "8-H100 Prime capacity or reservation has not been recorded",
+    "heldout baseline eval artifact has not been recorded",
     "explicit user approval for Prime credit use has not been recorded"
   ],
   "checks": {
@@ -29,8 +31,8 @@
       "reason": "This smoke path never invokes prime train run."
     }
   },
-  "generated_ms": 10.283,
-  "next_allowed_action": "Run Modal CPU smoke, then only launch Prime training after explicit credit approval.",
+  "generated_ms": 9.871,
+  "next_allowed_action": "Authenticate Prime, confirm 8-H100 capacity, then only launch Prime training after explicit credit approval.",
   "paid_training_launched": false,
   "ready_for_prime_training_launch": false,
   "schema_version": "extension3.no_credit_readiness_report.v1",

@@ -14,8 +14,8 @@ This directory breaks the build into phase-level operating docs. The top-level
 - [`optimization-results-ledger.md`](optimization-results-ledger.md) - consolidated
   performance baseline, Weave logging contract, and optimization changelog format.
 - [`extension-03-agent-loop-rl.md`](extension-03-agent-loop-rl.md) - RL-style
-  query-refinement environment, Prime/Modal readiness gates, cohorts, metrics,
-  no-credit smoke path, and 6-H100 checkpoint budget plan.
+  query-refinement environment, Prime readiness gates, cohorts, metrics,
+  no-credit smoke path, and 8-H100 checkpoint policy.
 
 ## Phase docs
 

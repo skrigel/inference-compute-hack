@@ -192,12 +192,28 @@ def build_prime_training_config() -> dict[str, Any]:
             "adapter": "lora",
             "selection_reason": "Small enough for a pilot, still capable of short query rewriting and stop decisions.",
         },
+        "hardware": {
+            "target": "8x H100 80GB on Prime",
+            "gpu_type": "H100",
+            "gpu_count": 8,
+            "note": "Keep this as the run request/cluster target; Hosted Training configs may map hardware through the Prime UI or run provisioning layer.",
+        },
         "algorithm": {
             "name": "GRPO",
             "rollouts_per_example": 8,
             "max_turns": 5,
             "temperature": 0.7,
             "top_p": 0.95,
+        },
+        "checkpointing": {
+            "checkpoint_interval": 25,
+            "keep_cloud_checkpoints": True,
+            "adapter_interval": 25,
+            "adapter_keep_last": 4,
+            "validation_interval": 25,
+            "checkpoint_list_command": "prime train checkpoints <run-id>",
+            "resume_field": "checkpoint_id",
+            "resume_note": "Set top-level checkpoint_id to a listed checkpoint id to warm-start a resumed run.",
         },
         "environment": {
             "id": "extension3-agent-loop",
@@ -210,8 +226,8 @@ def build_prime_training_config() -> dict[str, Any]:
             "requires_prime_credits": True,
             "allowed_only_after": [
                 "local no-credit readiness report has passed",
-                "Modal CPU smoke has passed",
                 "Prime CLI is authenticated",
+                "8-H100 Prime capacity is available or reserved",
                 "baseline eval artifact exists",
                 "user explicitly approves using Prime credits",
             ],
@@ -274,8 +290,8 @@ def build_no_credit_smoke_plan() -> dict[str, Any]:
         "commands": [
             "python -m eval.agent_loop_prime --output-dir eval/artifacts/prime_readiness --smoke-docs 60 --task-count 3",
             "python -m eval.agent_loop --n-docs 60 --task-count 3 --max-steps 5",
-            "modal run inference/modal_app.py::extension3_agent_loop_smoke --n-docs 60 --task-count 3 --max-steps 5",
             "prime --help",
+            "prime train checkpoints <existing-run-id>",
         ],
         "pass_criteria": {
             "paid_training_launched": False,
@@ -336,6 +352,8 @@ def run_no_credit_readiness_check(
         blocking_items.append("local no-credit agent-loop smoke failed")
     if not prime_cli["passed"]:
         blocking_items.append("prime CLI is not available or did not respond to --help")
+    blocking_items.append("8-H100 Prime capacity or reservation has not been recorded")
+    blocking_items.append("heldout baseline eval artifact has not been recorded")
     blocking_items.append("explicit user approval for Prime credit use has not been recorded")
     report = {
         "schema_version": "extension3.no_credit_readiness_report.v1",
@@ -359,7 +377,7 @@ def run_no_credit_readiness_check(
             },
         },
         "artifacts": {key: str(path) for key, path in artifacts.items()},
-        "next_allowed_action": "Run Modal CPU smoke, then only launch Prime training after explicit credit approval.",
+        "next_allowed_action": "Authenticate Prime, confirm 8-H100 capacity, then only launch Prime training after explicit credit approval.",
     }
     report_path = output_dir / "no_credit_readiness_report.json"
     report_md_path = output_dir / "no_credit_readiness_report.md"
@@ -430,12 +448,32 @@ def _training_toml(config: dict[str, Any]) -> str:
             f'base = "{config["model"]["candidate_base"]}"',
             f'adapter = "{config["model"]["adapter"]}"',
             "",
+            "[hardware]",
+            f'target = "{config["hardware"]["target"]}"',
+            f'gpu_type = "{config["hardware"]["gpu_type"]}"',
+            f'gpu_count = {config["hardware"]["gpu_count"]}',
+            "",
             "[algorithm]",
             f'name = "{config["algorithm"]["name"]}"',
             f'rollouts_per_example = {config["algorithm"]["rollouts_per_example"]}',
             f'max_turns = {config["algorithm"]["max_turns"]}',
             f'temperature = {config["algorithm"]["temperature"]}',
             f'top_p = {config["algorithm"]["top_p"]}',
+            "",
+            "[checkpoints]",
+            f'interval = {config["checkpointing"]["checkpoint_interval"]}',
+            f'keep_cloud = {str(config["checkpointing"]["keep_cloud_checkpoints"]).lower()}',
+            "",
+            "[adapters]",
+            f'interval = {config["checkpointing"]["adapter_interval"]}',
+            f'keep_last = {config["checkpointing"]["adapter_keep_last"]}',
+            "",
+            "[val]",
+            f'interval = {config["checkpointing"]["validation_interval"]}',
+            "",
+            "[resume]",
+            'checkpoint_id = ""',
+            f'checkpoint_list_command = "{config["checkpointing"]["checkpoint_list_command"]}"',
             "",
             "[environment]",
             f'id = "{config["environment"]["id"]}"',
@@ -446,7 +484,7 @@ def _training_toml(config: dict[str, Any]) -> str:
             "[launch_gate]",
             f'requires_prime_credits = {str(config["launch"]["requires_prime_credits"]).lower()}',
             f'command = "{config["launch"]["command"]}"',
-            'allowed_only_after = ["local no-credit readiness report has passed", "Modal CPU smoke has passed", "Prime CLI is authenticated", "baseline eval artifact exists", "user explicitly approves using Prime credits"]',
+            'allowed_only_after = ["local no-credit readiness report has passed", "Prime CLI is authenticated", "8-H100 Prime capacity is available or reserved", "baseline eval artifact exists", "user explicitly approves using Prime credits"]',
             "",
         ]
     )
@@ -464,7 +502,8 @@ def _runbook_markdown(packet: dict[str, Any]) -> str:
         "",
     ]
     for idx, command in enumerate(smoke["commands"], start=1):
-        lines.extend([f"{idx}. Run:", "", "```bash", command, "```", ""])
+        label = "Optional if resuming. Run:" if "checkpoints <existing-run-id>" in command else "Run:"
+        lines.extend([f"{idx}. {label}", "", "```bash", command, "```", ""])
     lines.extend(
         [
             "Pass criteria:",
@@ -481,7 +520,14 @@ def _runbook_markdown(packet: dict[str, Any]) -> str:
             training["launch"]["command"],
             "```",
             "",
-            "Stop immediately if baseline eval artifacts are missing, the heldout split is empty, or the first pilot run fails to improve heldout reward.",
+            "Checkpoint settings:",
+            "",
+            f"- Target hardware: `{training['hardware']['target']}`.",
+            f"- Full checkpoints every `{training['checkpointing']['checkpoint_interval']}` steps with `keep_cloud = true`.",
+            f"- Adapter uploads every `{training['checkpointing']['adapter_interval']}` steps; keep last `{training['checkpointing']['adapter_keep_last']}` adapters.",
+            f"- To resume, run `{training['checkpointing']['checkpoint_list_command']}` and set top-level `checkpoint_id`.",
+            "",
+            "Stop immediately if baseline eval artifacts are missing, the heldout split is empty, no checkpoint appears after the first interval, or the first pilot run fails to improve heldout reward.",
             "",
         ]
     )

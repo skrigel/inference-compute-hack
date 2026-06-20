@@ -16,6 +16,10 @@ class Extension3PrimeReadinessTests(unittest.TestCase):
         self.assertGreaterEqual(len(packet["cohort_manifest"]["cohorts"]), 8)
         self.assertIn("prime train run", packet["prime_training_config"]["launch"]["command"])
         self.assertTrue(packet["prime_training_config"]["launch"]["requires_prime_credits"])
+        self.assertEqual(packet["prime_training_config"]["hardware"]["gpu_count"], 8)
+        self.assertEqual(packet["prime_training_config"]["hardware"]["gpu_type"], "H100")
+        self.assertLessEqual(packet["prime_training_config"]["checkpointing"]["checkpoint_interval"], 25)
+        self.assertTrue(packet["prime_training_config"]["checkpointing"]["keep_cloud_checkpoints"])
         for command in packet["no_credit_smoke"]["commands"]:
             self.assertNotIn("prime train run", command)
         for cohort in packet["cohort_manifest"]["cohorts"]:
@@ -38,6 +42,12 @@ class Extension3PrimeReadinessTests(unittest.TestCase):
 
             self.assertGreaterEqual(len(cohorts["cohorts"]), 8)
             self.assertEqual(train_config["run"]["project"], "inference-compute-hack")
+            self.assertEqual(train_config["hardware"]["gpu_count"], 8)
+            self.assertEqual(train_config["hardware"]["gpu_type"], "H100")
+            self.assertEqual(train_config["checkpoints"]["interval"], 25)
+            self.assertTrue(train_config["checkpoints"]["keep_cloud"])
+            self.assertEqual(train_config["adapters"]["keep_last"], 4)
+            self.assertEqual(train_config["resume"]["checkpoint_id"], "")
             self.assertEqual(train_config["environment"]["id"], "extension3-agent-loop")
             self.assertEqual(lift_schema["schema_version"], "extension3.metric_to_lift.v1")
 
