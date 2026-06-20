@@ -197,6 +197,7 @@ async def run_quality_gate(
             )
 
     quality = _classification_metrics(y_true, y_pred)
+    threshold_sweep = _threshold_sweep(y_true, scores)
     payload = {
         "run_id": f"quality-{uuid.uuid4().hex[:8]}",
         "commit": _git_commit(),
@@ -206,6 +207,8 @@ async def run_quality_gate(
         "corpus_size": len(chunks),
         "threshold": threshold,
         "quality": quality,
+        "threshold_sweep": threshold_sweep,
+        "recommended_threshold": threshold_sweep["best"]["threshold"],
         "small_gate": True,
         "n_cases": len(rows),
         "score_min": min(scores) if scores else None,
@@ -221,8 +224,14 @@ async def run_quality_gate(
 
 
 @weave_op(name="eval.run_quality_gate")
-async def run_quality_gate_traced(backend: str, *, artifact_dir: Path = ARTIFACT_DIR, force: bool = False) -> dict:
-    return await run_quality_gate(backend, artifact_dir=artifact_dir, force=force)
+async def run_quality_gate_traced(
+    backend: str,
+    *,
+    artifact_dir: Path = ARTIFACT_DIR,
+    threshold: float = QUALITY_THRESHOLD,
+    force: bool = False,
+) -> dict:
+    return await run_quality_gate(backend, artifact_dir=artifact_dir, threshold=threshold, force=force)
 
 
 def run_quality_gate_with_weave(
@@ -230,10 +239,11 @@ def run_quality_gate_with_weave(
     project: str = DEFAULT_WEAVE_PROJECT,
     *,
     artifact_dir: Path = ARTIFACT_DIR,
+    threshold: float = QUALITY_THRESHOLD,
     force: bool = False,
 ) -> dict:
     init_weave(project)
-    return asyncio.run(run_quality_gate_traced(backend, artifact_dir=artifact_dir, force=force))
+    return asyncio.run(run_quality_gate_traced(backend, artifact_dir=artifact_dir, threshold=threshold, force=force))
 
 
 async def run_freeze(
@@ -342,6 +352,25 @@ def _classification_metrics(y_true: list[bool], y_pred: list[bool]) -> dict[str,
     }
 
 
+def _threshold_sweep(y_true: list[bool], scores: list[float]) -> dict:
+    thresholds = sorted({0.0, 1.0, *scores})
+    rows = []
+    for threshold in thresholds:
+        y_pred = [score >= threshold for score in scores]
+        quality = _classification_metrics(y_true, y_pred)
+        rows.append({"threshold": threshold, "quality": quality})
+    best = max(
+        rows,
+        key=lambda row: (
+            row["quality"]["f1"],
+            row["quality"]["recall"],
+            row["quality"]["precision"],
+            row["threshold"],
+        ),
+    )
+    return {"best": best, "rows": rows}
+
+
 def _write_quality_artifacts(payload: dict, artifact_dir: Path) -> None:
     artifact_dir.mkdir(parents=True, exist_ok=True)
     (artifact_dir / "phase04_quality_gate.json").write_text(json.dumps(payload, indent=2, sort_keys=True))
@@ -358,6 +387,7 @@ def _write_quality_artifacts(payload: dict, artifact_dir: Path) -> None:
             f"- precision: `{quality['precision']}`",
             f"- recall: `{quality['recall']}`",
             f"- f1: `{quality['f1']}`",
+            f"- recommended_threshold: `{payload['recommended_threshold']}`",
             f"- label: `{payload['label']}`",
             "",
             "This is a small Phase 04 gate over the pinned demo corpus and scripted predicates.",
@@ -462,6 +492,7 @@ def main() -> None:
     parser.add_argument("--backend", choices=["mock", "modal", "vllm"], default=os.environ.get("SCORER_BACKEND", "mock"))
     parser.add_argument("--gate-only", action="store_true", help="run the Phase 04 quality gate only")
     parser.add_argument("--tag", default=None, help="run a named Phase 04 freeze, e.g. --tag freeze")
+    parser.add_argument("--threshold", type=float, default=QUALITY_THRESHOLD, help="classification threshold for quality gates")
     parser.add_argument("--force", action="store_true", help="write artifacts even if the quality gate is below threshold")
     parser.add_argument(
         "--weave-project",
@@ -473,9 +504,14 @@ def main() -> None:
     try:
         if args.gate_only:
             payload = (
-                run_quality_gate_with_weave(args.backend, args.weave_project, force=args.force)
+                run_quality_gate_with_weave(
+                    args.backend,
+                    args.weave_project,
+                    threshold=args.threshold,
+                    force=args.force,
+                )
                 if args.weave
-                else asyncio.run(run_quality_gate(args.backend, force=args.force))
+                else asyncio.run(run_quality_gate(args.backend, threshold=args.threshold, force=args.force))
             )
         elif args.tag is not None:
             payload = (

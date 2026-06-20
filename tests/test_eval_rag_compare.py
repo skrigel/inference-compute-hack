@@ -49,7 +49,26 @@ class RagCompareTests(unittest.TestCase):
             self.assertEqual(row["n_docs"], 7)
             self.assertGreater(row["retrieve_ms_p50"], 0)
             self.assertGreater(row["single_process_retrieve_qps_p50"], 0)
+            self.assertIn("quality_comparison", payload)
+            self.assertIn("rag", payload["quality_comparison"])
+            self.assertIn("recall", payload["quality_comparison"]["rag"]["quality"])
+            self.assertIn("optimization_findings", payload)
+            self.assertGreaterEqual(len(payload["optimization_findings"]), 1)
             self.assertIn("RAG backend", output_md.read_text())
+
+    def test_rag_quality_metrics_use_gold_predicates(self):
+        from eval.rag_compare import evaluate_rag_quality
+
+        quality = evaluate_rag_quality(top_k=5)
+
+        self.assertEqual(quality["corpus_size"], 7)
+        self.assertEqual(quality["top_k"], 5)
+        self.assertGreaterEqual(quality["quality"]["recall"], 0.0)
+        self.assertLessEqual(quality["quality"]["recall"], 1.0)
+        self.assertEqual(len(quality["rows"]), 3)
+        for row in quality["rows"]:
+            self.assertIn("predicate", row)
+            self.assertIn("recall_at_k", row)
 
 
 if __name__ == "__main__":
