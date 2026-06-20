@@ -26,6 +26,9 @@ class ScoreCache:
             self._hits += 1
         return result
 
+    def peek(self, chunk_id: str, clause_id: str) -> ScoreResult | None:
+        return self._scores.get((chunk_id, clause_id))
+
     def put(self, chunk_id: str, clause_id: str, result: ScoreResult) -> None:
         self._scores[(chunk_id, clause_id)] = result
 
@@ -42,7 +45,14 @@ class ScoreCache:
 
     def missing(self, clause_id: str, candidate_ids: set[str]) -> set[str]:
         """Candidate chunks with no cached score — the only ones needing inference."""
-        return {cid for cid in candidate_ids if (cid, clause_id) not in self._scores}
+        missing = set()
+        for chunk_id in candidate_ids:
+            if (chunk_id, clause_id) in self._scores:
+                self._hits += 1
+            else:
+                self._misses += 1
+                missing.add(chunk_id)
+        return missing
 
     def evict_clause(self, clause_id: str) -> None:
         for key in [k for k in self._scores if k[1] == clause_id]:

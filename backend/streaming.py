@@ -61,10 +61,11 @@ async def query_stream(
             for result in await scorer.score_batch(requests):
                 cache.put(result.chunk_id, clause_id, result)
 
-        # Pull every chunk in the batch from cache (hits + fresh scores).
+        # Pull every chunk without changing hit counters; missing() already
+        # recorded whether each candidate was a cache hit or scorer miss.
         batch_results: list[ScoreResult] = []
         for chunk in batch:
-            cached = cache.get(chunk.chunk_id, clause_id)
+            cached = cache.peek(chunk.chunk_id, clause_id)
             if cached is not None:
                 batch_results.append(cached)
                 seen_scores[chunk.chunk_id] = cached
