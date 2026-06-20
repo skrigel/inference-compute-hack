@@ -42,7 +42,7 @@ from backend.select import auto_threshold, smart_select
 from backend.state import BackendState, facet_summary, histogram
 from backend.streaming import query_stream
 
-app = FastAPI(title="Inference Compute Hack Backend", version="0.1.0")
+app = FastAPI(title="FlashGrep Backend", version="0.1.0")
 state = BackendState()
 cache = ScoreCache()
 scorer = make_scorer()

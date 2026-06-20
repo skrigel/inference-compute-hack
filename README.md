@@ -1,4 +1,4 @@
-# Grep for Meaning
+# FlashGrep
 
 **An interactive semantic filter that runs natural-language queries directly over raw text — no index,
 no embeddings, no schema.** Type a predicate, watch matches stream into a live dashboard, refine in
