@@ -5,8 +5,6 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 
-from datasets import load_dataset
-
 from data.schema import Chunk, ChunkMeta, chunk_id_of
 
 
@@ -21,6 +19,8 @@ def _extract_title(text: str, docid: str) -> str:
 @lru_cache(maxsize=1)
 def _load_raw_corpus() -> list[dict]:
     """Load raw corpus from HuggingFace (cached)."""
+    from datasets import load_dataset  # deferred: heavy optional dependency
+
     ds = load_dataset("Tevatron/browsecomp-plus-corpus", split="train")
     return list(ds)
 

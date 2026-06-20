@@ -14,12 +14,12 @@ from fastapi.responses import StreamingResponse
 from inference.config import make_scorer
 from inference.scorer import ScoreRequest, ScoreResult
 
+from backend.beam import run_beam
 from backend.cache import ScoreCache
 from backend.classifier import ClassifiedRefine, classify_refine
 from backend.clause import ClauseRecord, label_for
 from backend.schemas import (
     AggregateEvent,
-    BeamCandidate,
     BeamEvent,
     Chip,
     ChipEvent,
@@ -36,7 +36,7 @@ from backend.schemas import (
     SelectRequest,
     SelectResponse,
 )
-from backend.select import auto_threshold, facet_tokens, smart_select
+from backend.select import auto_threshold, smart_select
 from backend.state import BackendState, facet_summary, histogram
 from backend.streaming import query_stream
 
@@ -265,12 +265,15 @@ async def refine_events(request: RefineRequest) -> list[BeamEvent | ChipEvent | 
     previous_survivors = _survivors(parent_scores)
     beam_event: BeamEvent | None = None
     if request.utterance and request.beam_width > 1:
-        beam_event, winner_text = await _run_beam(
+        beam_event, winner_text = await run_beam(
+            scorer,
             request.utterance,
             request.beam_width,
             previous_survivors,
             parent_scores,
             chunks_by_id,
+            threshold=state.threshold,
+            min_coverage=MIN_BEAM_COVERAGE,
         )
         operation, text, confidence, target_chunk_id = (
             RefineOp.require,
@@ -334,96 +337,6 @@ async def refine_events(request: RefineRequest) -> list[BeamEvent | ChipEvent | 
     if beam_event is not None:
         return [beam_event, chip_event, diff_event, aggregate, done]
     return [chip_event, diff_event, aggregate, done]
-
-
-def _candidate_predicates(
-    utterance: str,
-    survivors: set[str],
-    chunks_by_id: dict[str, Chunk],
-    beam_width: int,
-) -> list[str]:
-    """Generate a small candidate clause vocabulary for the beam.
-
-    The raw utterance is always candidate 0; the rest are facet-narrowed variants
-    derived from the facets most common among the current survivors.
-    """
-    base = utterance.strip()
-    candidates = [base]
-    counts: dict[str, int] = {}
-    for chunk_id in survivors:
-        chunk = chunks_by_id.get(chunk_id)
-        if chunk is None:
-            continue
-        for token in facet_tokens(chunk):
-            counts[token] = counts.get(token, 0) + 1
-    for token, _ in sorted(counts.items(), key=lambda item: (-item[1], item[0])):
-        name, _, value = token.partition(":")
-        variant = f"{base} ({name} {value})"
-        if variant not in candidates:
-            candidates.append(variant)
-        if len(candidates) >= beam_width:
-            break
-    return candidates[:beam_width]
-
-
-async def _score_candidate(
-    text: str,
-    survivors: set[str],
-    parent_scores: dict[str, ScoreResult],
-    chunks_by_id: dict[str, Chunk],
-) -> tuple[float, float, int]:
-    """Evaluate one beam candidate. Returns ``(objective, coverage, selected)``.
-
-    Objective = mean P(Yes) of the chunks that survive the candidate (require
-    semantics: parent score x candidate score); coverage = fraction of parent
-    survivors retained.
-    """
-    ids = [chunk_id for chunk_id in survivors if chunk_id in chunks_by_id]
-    if not ids:
-        return 0.0, 0.0, 0
-    requests = [
-        ScoreRequest(chunk_id=chunk_id, chunk_text=chunks_by_id[chunk_id].text, predicate=text)
-        for chunk_id in ids
-    ]
-    selected_scores: list[float] = []
-    for result in await scorer.score_batch(requests, tier=0):
-        parent = parent_scores.get(result.chunk_id)
-        combined = (parent.score if parent else 1.0) * result.score
-        if combined >= state.threshold:
-            selected_scores.append(combined)
-    coverage = len(selected_scores) / len(ids)
-    objective = sum(selected_scores) / len(selected_scores) if selected_scores else 0.0
-    return objective, coverage, len(selected_scores)
-
-
-async def _run_beam(
-    utterance: str,
-    beam_width: int,
-    survivors: set[str],
-    parent_scores: dict[str, ScoreResult],
-    chunks_by_id: dict[str, Chunk],
-) -> tuple[BeamEvent, str]:
-    """Axis 3 (Truth): explore candidate clauses and objective-select the winner."""
-    started = time.perf_counter()
-    candidates = _candidate_predicates(utterance, survivors, chunks_by_id, beam_width)
-    evaluated: list[tuple[str, float, float, int]] = []
-    for text in candidates:
-        objective, coverage, selected = await _score_candidate(text, survivors, parent_scores, chunks_by_id)
-        evaluated.append((text, objective, coverage, selected))
-    eligible = [item for item in evaluated if item[2] >= MIN_BEAM_COVERAGE]
-    pool = eligible or evaluated
-    chosen = max(pool, key=lambda item: (item[1], item[2]))
-    chosen_index = evaluated.index(chosen)
-    event = BeamEvent(
-        beam_width=beam_width,
-        candidates=[
-            BeamCandidate(text=text, objective=objective, coverage=coverage, selected=selected, chosen=(index == chosen_index))
-            for index, (text, objective, coverage, selected) in enumerate(evaluated)
-        ],
-        chosen_index=chosen_index,
-        refine_ms=_elapsed_ms(started),
-    )
-    return event, chosen[0]
 
 
 def _refine_intent(request: RefineRequest) -> tuple[RefineOp, str, float, str | None]:

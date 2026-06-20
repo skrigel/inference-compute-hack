@@ -1,10 +1,16 @@
 import json
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
 
+# The full RAG-vs-6xH100 comparison loads the BrowseComp corpus, which pulls the
+# optional HuggingFace `datasets` dependency. Skip it gracefully when absent.
+_HAS_DATASETS = importlib.util.find_spec("datasets") is not None
+
 
 class RagCompareTests(unittest.TestCase):
+    @unittest.skipUnless(_HAS_DATASETS, "requires optional 'datasets' dependency")
     def test_rag_compare_writes_json_and_markdown(self):
         from eval.rag_compare import run_rag_vs_6xh100
 
