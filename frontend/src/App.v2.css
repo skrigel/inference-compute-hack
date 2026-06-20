@@ -1359,3 +1359,29 @@ body {
     margin-top: var(--s2);
   }
 }
+
+/* ============================================
+   Page Layout
+   ============================================ */
+
+.page-content {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--s4);
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s4);
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--label);
+  letter-spacing: -0.02em;
+}
