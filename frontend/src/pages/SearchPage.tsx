@@ -289,10 +289,13 @@ function ThresholdSection({ histogram, threshold, onThreshold, hasRun, matched, 
   return (
     <section className="threshold-section">
       <div className="threshold-header">
-        <span className="threshold-label">Relevance Threshold</span>
+        <span className="threshold-label">Minimum Relevance</span>
         <span className="threshold-stats">
-          <strong>{matched}</strong> of {total} <span className="threshold-value">{threshold.toFixed(2)}</span>
+          <strong>{matched}</strong> of {total} results <span className="threshold-value">{threshold.toFixed(2)}</span>
         </span>
+      </div>
+      <div className="threshold-hint">
+        Drag the slider to set the minimum score. Bars show how many results fall in each score range.
       </div>
       <Histogram histogram={histogram} threshold={threshold} onThreshold={onThreshold} hasRun={hasRun} />
     </section>
@@ -346,8 +349,8 @@ function Histogram({ histogram, threshold, onThreshold, hasRun }: HistogramProps
       </div>
       <div className="threshold-thumb" style={{ left: `calc(${threshold * 100}% + 12px)` }} />
       <div className="histogram-axis">
-        <span>0</span>
-        <span>1</span>
+        <span>Low</span>
+        <span>High</span>
       </div>
     </div>
   );
@@ -431,177 +434,194 @@ interface ComputePanelProps {
   d: ReturnType<typeof useDashboard>;
 }
 
-// The Compute panel hosts the three infinite-compute axes as explicit dials:
-// Memory (corpus in scope), Movement (what to move), Truth (predicate beam).
+// Advanced controls panel - search depth, auto-select, and refine mode.
 function ComputePanel({ d }: ComputePanelProps) {
-  return (
-    <section className={`compute-panel${d.agentRunning ? " agent-active" : ""}`}>
-      <div className="compute-header">
-        <span className="compute-title">Compute</span>
-        <span className="compute-sub">one budget · three axes</span>
-        <button
-          className={`agent-btn${d.agentRunning ? " running" : ""}`}
-          onClick={() => void d.runAgent()}
-          disabled={d.agentRunning}
-        >
-          {d.agentRunning ? "Agent running…" : "▶ Run agent"}
-        </button>
-      </div>
-      {(d.agentRunning || d.agentLog.length > 0) && (
-        <div className="agent-trace">
-          <div className="agent-trace-head">
-            <span className={`agent-dot${d.agentRunning ? " live" : ""}`} />
-            <span className="agent-trace-title">
-              {d.agentRunning ? "Agent driving the three axes…" : "Agent run complete"}
-            </span>
-          </div>
-          <ol className="agent-log">
-            {d.agentLog.map((line, index) => (
-              <li
-                className={`agent-log-line${
-                  d.agentRunning && index === d.agentLog.length - 1 ? " current" : " done"
-                }`}
-                key={index}
-              >
-                {line}
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-      <div className="compute-grid">
-        <div className="axis-card">
-          <div className="axis-head">
-            <span className="axis-tag axis-memory">Memory</span>
-            <span className="axis-name">Corpus in scope</span>
-          </div>
-          <input
-            className="axis-range"
-            type="range"
-            min={5}
-            max={100}
-            step={5}
-            value={Math.round(d.computeBudget * 100)}
-            onChange={(event) => d.setComputeBudget(Number(event.target.value) / 100)}
-            onPointerUp={() => d.rescan()}
-            onKeyUp={() => d.rescan()}
-            aria-label="Compute budget"
-          />
-          <div className="axis-readout">
-            <strong>{Math.round(d.computeBudget * 100)}%</strong> budget · scored{" "}
-            <strong>{d.corpusScope.scored}</strong> of {d.corpusScope.total} chunks
-          </div>
-        </div>
+  const [expanded, setExpanded] = useState(false);
 
-        <div className="axis-card">
-          <div className="axis-head">
-            <span className="axis-tag axis-movement">Movement</span>
-            <span className="axis-name">What to move</span>
-          </div>
-          <label className="axis-control">
-            <span>Precision target {d.precisionTarget.toFixed(2)}</span>
-            <input
-              className="axis-range"
-              type="range"
-              min={50}
-              max={99}
-              step={1}
-              value={Math.round(d.precisionTarget * 100)}
-              onChange={(event) => d.setPrecisionTarget(Number(event.target.value) / 100)}
-            />
-          </label>
-          <div className="axis-control-row">
-            <label>
-              Move K
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={d.movementBudget}
-                onChange={(event) => d.setMovementBudget(Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Beam B
-              <input
-                type="number"
-                min={1}
-                max={16}
-                value={d.selectionBeamWidth}
-                onChange={(event) => d.setSelectionBeamWidth(Number(event.target.value))}
-              />
-            </label>
-          </div>
-          <div className="axis-buttons">
-            <button className="axis-btn" onClick={() => d.autoThreshold()} disabled={!d.hasRun}>
-              Auto-threshold
+  return (
+    <section className={`compute-panel${d.agentRunning ? " agent-active" : ""}${expanded ? " expanded" : ""}`}>
+      <button
+        className="compute-header"
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+      >
+        <span className="compute-title">Advanced</span>
+        <span className="compute-sub">Search depth, auto-select, refine mode</span>
+        <span className={`expand-icon${expanded ? " open" : ""}`}>▼</span>
+      </button>
+
+      {expanded && (
+        <>
+          <div className="agent-row">
+            <button
+              className={`agent-btn${d.agentRunning ? " running" : ""}`}
+              onClick={() => void d.runAgent()}
+              disabled={d.agentRunning}
+            >
+              {d.agentRunning ? "Agent running…" : "▶ Auto-pilot"}
             </button>
-            <button className="axis-btn" onClick={() => d.smartSelect()} disabled={!d.hasRun}>
-              Smart select
-            </button>
-            {d.selection && (
-              <button className="axis-btn ghost" onClick={() => d.clearSelection()}>
-                Clear
-              </button>
-            )}
+            <span className="agent-hint">Automatically search, filter, and refine</span>
           </div>
-          {d.selection && (
-            <div className="axis-readout">
-              {d.selection.mode === "threshold" ? (
-                <>
-                  threshold <strong>{d.selection.threshold.toFixed(2)}</strong> ·{" "}
-                  <strong>{d.selection.selectedIds.length}</strong> selected
-                </>
-              ) : (
-                <>
-                  <strong>{d.selection.selectedIds.length}</strong> moved · {d.selection.coveredFacets.length}{" "}
-                  facets · obj <strong>{d.selection.objective.toFixed(2)}</strong> (greedy floor{" "}
-                  {d.selection.greedyObjective.toFixed(2)})
-                </>
+
+          {(d.agentRunning || d.agentLog.length > 0) && (
+            <div className="agent-trace">
+              <div className="agent-trace-head">
+                <span className={`agent-dot${d.agentRunning ? " live" : ""}`} />
+                <span className="agent-trace-title">
+                  {d.agentRunning ? "Running auto-pilot…" : "Auto-pilot complete"}
+                </span>
+              </div>
+              <ol className="agent-log">
+                {d.agentLog.map((line, index) => (
+                  <li
+                    className={`agent-log-line${
+                      d.agentRunning && index === d.agentLog.length - 1 ? " current" : " done"
+                    }`}
+                    key={index}
+                  >
+                    {line}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          <div className="compute-grid">
+            <div className="axis-card">
+              <div className="axis-head">
+                <span className="axis-tag axis-memory">Depth</span>
+                <span className="axis-name">Search Depth</span>
+              </div>
+              <div className="axis-desc">How much of the corpus to score (lower = faster, higher = more thorough)</div>
+              <input
+                className="axis-range"
+                type="range"
+                min={5}
+                max={100}
+                step={5}
+                value={Math.round(d.computeBudget * 100)}
+                onChange={(event) => d.setComputeBudget(Number(event.target.value) / 100)}
+                onPointerUp={() => d.rescan()}
+                onKeyUp={() => d.rescan()}
+                aria-label="Search depth"
+              />
+              <div className="axis-readout">
+                <strong>{Math.round(d.computeBudget * 100)}%</strong> · scored{" "}
+                <strong>{d.corpusScope.scored}</strong> of {d.corpusScope.total} items
+              </div>
+            </div>
+
+            <div className="axis-card">
+              <div className="axis-head">
+                <span className="axis-tag axis-movement">Select</span>
+                <span className="axis-name">Auto-Select</span>
+              </div>
+              <div className="axis-desc">Automatically pick high-quality, diverse results</div>
+              <label className="axis-control">
+                <span>Quality threshold: {Math.round(d.precisionTarget * 100)}%</span>
+                <input
+                  className="axis-range"
+                  type="range"
+                  min={50}
+                  max={99}
+                  step={1}
+                  value={Math.round(d.precisionTarget * 100)}
+                  onChange={(event) => d.setPrecisionTarget(Number(event.target.value) / 100)}
+                />
+              </label>
+              <div className="axis-control-row">
+                <label>
+                  Max results
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={d.movementBudget}
+                    onChange={(event) => d.setMovementBudget(Number(event.target.value))}
+                  />
+                </label>
+                <label>
+                  Diversity
+                  <input
+                    type="number"
+                    min={1}
+                    max={16}
+                    value={d.selectionBeamWidth}
+                    onChange={(event) => d.setSelectionBeamWidth(Number(event.target.value))}
+                  />
+                </label>
+              </div>
+              <div className="axis-buttons">
+                <button className="axis-btn" onClick={() => d.autoThreshold()} disabled={!d.hasRun}>
+                  Set threshold
+                </button>
+                <button className="axis-btn" onClick={() => d.smartSelect()} disabled={!d.hasRun}>
+                  Pick diverse
+                </button>
+                {d.selection && (
+                  <button className="axis-btn ghost" onClick={() => d.clearSelection()}>
+                    Clear
+                  </button>
+                )}
+              </div>
+              {d.selection && (
+                <div className="axis-readout">
+                  {d.selection.mode === "threshold" ? (
+                    <>
+                      Threshold set to <strong>{d.selection.threshold.toFixed(2)}</strong> ·{" "}
+                      <strong>{d.selection.selectedIds.length}</strong> selected
+                    </>
+                  ) : (
+                    <>
+                      <strong>{d.selection.selectedIds.length}</strong> picked · covers{" "}
+                      {d.selection.coveredFacets.length} categories
+                    </>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
 
-        <div className="axis-card">
-          <div className="axis-head">
-            <span className="axis-tag axis-truth">Truth</span>
-            <span className="axis-name">Predicate beam</span>
-          </div>
-          <label className="axis-control">
-            <span>
-              Beam width {d.beamWidth}
-              {d.beamWidth === 1 ? " · single clause" : " · search"}
-            </span>
-            <input
-              className="axis-range"
-              type="range"
-              min={1}
-              max={8}
-              step={1}
-              value={d.beamWidth}
-              onChange={(event) => d.setBeamWidth(Number(event.target.value))}
-            />
-          </label>
-          <div className="axis-readout axis-hint">
-            {d.beamWidth === 1
-              ? "Refine tries one clause (human / agent drives)."
-              : `Refine explores ${d.beamWidth} candidates; the objective keeps the best.`}
-          </div>
-          {d.beamCandidates && d.beamCandidates.length > 0 && (
-            <div className="beam-candidates">
-              {d.beamCandidates.map((candidate, index) => (
-                <div className={`beam-row${candidate.chosen ? " chosen" : ""}`} key={index}>
-                  <span className="beam-text">{candidate.text}</span>
-                  <span className="beam-metric">
-                    obj {candidate.objective.toFixed(2)} · cov {Math.round(candidate.coverage * 100)}%
-                  </span>
+            <div className="axis-card">
+              <div className="axis-head">
+                <span className="axis-tag axis-truth">Refine</span>
+                <span className="axis-name">Refine Mode</span>
+              </div>
+              <div className="axis-desc">How refinements are applied when you add filters</div>
+              <label className="axis-control">
+                <span>
+                  {d.beamWidth === 1 ? "Single (manual)" : `Explore ${d.beamWidth} options`}
+                </span>
+                <input
+                  className="axis-range"
+                  type="range"
+                  min={1}
+                  max={8}
+                  step={1}
+                  value={d.beamWidth}
+                  onChange={(event) => d.setBeamWidth(Number(event.target.value))}
+                />
+              </label>
+              <div className="axis-readout axis-hint">
+                {d.beamWidth === 1
+                  ? "Each filter applies exactly as typed."
+                  : `Tries ${d.beamWidth} variations and keeps the best one.`}
+              </div>
+              {d.beamCandidates && d.beamCandidates.length > 0 && (
+                <div className="beam-candidates">
+                  {d.beamCandidates.map((candidate, index) => (
+                    <div className={`beam-row${candidate.chosen ? " chosen" : ""}`} key={index}>
+                      <span className="beam-text">{candidate.text}</span>
+                      <span className="beam-metric">
+                        score {candidate.objective.toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }
