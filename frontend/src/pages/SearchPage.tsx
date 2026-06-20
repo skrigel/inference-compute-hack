@@ -114,7 +114,7 @@ export function SearchPage() {
         docsPerSec={d.docsPerSec}
         elapsedMs={d.elapsedMs}
         latHistory={d.latHistory}
-        selectedIds={d.selection?.selectedIds ?? []}
+        selectedIds={d.selection?.mode === "smart" ? d.selection.selectedIds : []}
         onClickRefine={d.runClickRefine}
       />
     </main>
