@@ -89,7 +89,7 @@ export function useDashboard(seedQuery: string) {
 
       cacheRef.current.clear();
       chipSnapshotsRef.current.clear();
-      setChips([]);
+      // Note: chips intentionally NOT cleared - refinements persist across queries
       setHasRun(true);
       setStreaming(true);
       setScanned(0);
