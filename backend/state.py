@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from data.browsecomp_loader import load_browsecomp_corpus
 from data.schema import Chunk, ChunkMeta, chunk_id_of
 from inference.scorer import PrefixState, ScoreResult
 
@@ -26,6 +27,13 @@ class BackendState:
     def load_demo(self) -> list[Chunk]:
         self.corpus_id = "demo"
         self.chunks = demo_chunks()
+        self.current_clause = None
+        self.clauses.clear()
+        return self.chunks
+
+    def load_browsecomp(self, limit: int | None = None) -> list[Chunk]:
+        self.corpus_id = "browsecomp"
+        self.chunks = load_browsecomp_corpus(limit=limit)
         self.current_clause = None
         self.clauses.clear()
         return self.chunks

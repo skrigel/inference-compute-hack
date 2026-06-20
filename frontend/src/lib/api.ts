@@ -8,7 +8,7 @@ const MODE: DataMode = (import.meta.env.VITE_DATA_MODE ?? "mock") === "live" ? "
 
 export interface DashboardApi {
   mode: DataMode;
-  ingest(corpusId: string, documents?: FreshDocument[]): Promise<{ n_chunks: number; facets: Facets }>;
+  ingest(corpusId: string, documents?: FreshDocument[], limit?: number): Promise<{ n_chunks: number; facets: Facets }>;
   query(request: QueryRequest, onEvent: (event: QueryEvent) => void, signal?: AbortSignal): Promise<void>;
   refine(request: RefineRequest, onEvent: (event: RefineEvent) => void, signal?: AbortSignal): Promise<void>;
   deleteClause(clauseId: string): Promise<{ removed: boolean; refine_ms: number }>;
@@ -46,9 +46,9 @@ export function createApi(): DashboardApi {
   if (MODE === "live") {
     return {
       mode: "live",
-      async ingest(corpusId, documents) {
+      async ingest(corpusId, documents, limit) {
         try {
-          return await ingestLive(corpusId, documents);
+          return await ingestLive(corpusId, documents, limit);
         } catch (error) {
           console.warn("live ingest failed; falling back to mock", error);
           return ingestMock(corpusId, documents);

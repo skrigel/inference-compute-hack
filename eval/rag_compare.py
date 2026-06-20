@@ -9,6 +9,7 @@ from typing import Any
 
 from backend.state import demo_chunks
 from baseline.rag import RagBaseline
+from data.browsecomp_loader import browsecomp_docs
 from eval.bench import GOLD_PREDICATES, _classification_metrics, _git_commit
 
 
@@ -176,7 +177,15 @@ def _measure_rag_size(*, n_docs: int, query: str, top_k: int, runs: int) -> dict
 
 
 def _scaled_docs(n_docs: int) -> list[tuple[str, str]]:
-    base = [(chunk.doc_id, chunk.text) for chunk in demo_chunks()]
+    """Return n_docs (doc_id, text) tuples from BrowseComp-Plus corpus.
+
+    Uses the ~100k BrowseComp-Plus corpus directly. If n_docs exceeds corpus
+    size, replicates with copy suffixes.
+    """
+    base = browsecomp_docs()
+    if n_docs <= len(base):
+        return base[:n_docs]
+    # Replicate if needed (unlikely given 100k corpus)
     return [
         (f"{doc_id}:copy-{idx}", text)
         for idx in range((n_docs + len(base) - 1) // len(base))

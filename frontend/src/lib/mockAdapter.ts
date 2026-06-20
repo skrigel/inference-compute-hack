@@ -36,7 +36,7 @@ interface MockItem {
 // A spread of ~24 items: varied scores (0.1–0.97), both modalities, several
 // categories and years, with the retry/backoff/networking items scored high so
 // the seeded demo predicate lands convincingly.
-const BASE_ITEMS: MockItem[] = [
+const DEMO_ITEMS: MockItem[] = [
   { chunk_id: "m01", score: 0.96, type: "code", title: "urllib3/connectionpool.py", category: "python", year: 2023, path: "src/urllib3/connectionpool.py", repo: "urllib3" },
   { chunk_id: "m02", score: 0.93, type: "code", title: "requests/adapters.py", category: "python", year: 2022, path: "src/requests/adapters.py", repo: "requests" },
   { chunk_id: "m03", score: 0.9, type: "code", title: "tenacity/retry.py", category: "python", year: 2024, path: "src/tenacity/retry.py", repo: "tenacity" },
@@ -62,8 +62,26 @@ const BASE_ITEMS: MockItem[] = [
   { chunk_id: "m23", score: 0.11, type: "code", title: "math/statistics.py", category: "python", year: 2019, path: "lib/statistics.py", repo: "cpython" },
   { chunk_id: "m24", score: 0.08, type: "paper", title: "Diffusion Language Models", category: "cs.CL", year: 2025, path: null, repo: null },
 ];
+
+// BrowseComp+ mock items - simulated web documents
+const BROWSECOMP_ITEMS: MockItem[] = Array.from({ length: 100 }, (_, i) => ({
+  chunk_id: `bcp-${i}`,
+  score: Math.max(0.05, 0.95 - (i * 0.009) + (Math.sin(i) * 0.1)),
+  type: "paper" as const,
+  title: `BrowseComp Document ${i + 1}`,
+  category: ["news", "wiki", "blog", "academic", "forum"][i % 5],
+  year: 2020 + (i % 6),
+  path: `https://example.com/doc/${i}`,
+  repo: null,
+}));
+
+let activeCorpus: "demo" | "browsecomp" = "demo";
 let freshItems: MockItem[] = [];
 let clauseSeq = 1;
+
+function getBaseItems(): MockItem[] {
+  return activeCorpus === "browsecomp" ? BROWSECOMP_ITEMS : DEMO_ITEMS;
+}
 
 function toResult(item: MockItem, rank: number): ResultEvent {
   return {
@@ -85,7 +103,7 @@ function toResult(item: MockItem, rank: number): ResultEvent {
 }
 
 function mockItems(): MockItem[] {
-  return [...BASE_ITEMS, ...freshItems];
+  return [...getBaseItems(), ...freshItems];
 }
 
 function mockResults(): ResultEvent[] {
@@ -93,19 +111,26 @@ function mockResults(): ResultEvent[] {
 }
 
 export async function ingestMock(
-  _corpusId: string,
+  corpusId: string,
   documents: FreshDocument[] = [],
 ): Promise<{ n_chunks: number; facets: Facets }> {
-  freshItems = documents.map((document, index) => ({
-    chunk_id: `fresh-${Date.now()}-${index}`,
-    score: document.text.toLowerCase().includes("sentinel") ? 0.97 : 0.72,
-    type: document.type,
-    title: document.title,
-    category: document.category ?? document.lang ?? "fresh",
-    year: document.year ?? new Date().getFullYear(),
-    path: document.path,
-    repo: document.repo,
-  }));
+  // Switch corpus based on corpusId
+  if (corpusId === "browsecomp" || corpusId === "demo") {
+    activeCorpus = corpusId;
+    freshItems = [];
+  }
+  if (documents.length > 0) {
+    freshItems = documents.map((document, index) => ({
+      chunk_id: `fresh-${Date.now()}-${index}`,
+      score: document.text.toLowerCase().includes("sentinel") ? 0.97 : 0.72,
+      type: document.type,
+      title: document.title,
+      category: document.category ?? document.lang ?? "fresh",
+      year: document.year ?? new Date().getFullYear(),
+      path: document.path,
+      repo: document.repo,
+    }));
+  }
   return { n_chunks: mockResults().length, facets: allFacets() };
 }
 

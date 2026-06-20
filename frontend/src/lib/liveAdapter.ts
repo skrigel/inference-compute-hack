@@ -6,11 +6,12 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 export async function ingestLive(
   corpusId: string,
   documents: FreshDocument[] = [],
+  limit?: number,
 ): Promise<{ n_chunks: number; facets: Facets }> {
   const response = await fetch(`${API_BASE}/ingest`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ corpus_id: corpusId, documents }),
+    body: JSON.stringify({ corpus_id: corpusId, documents, limit }),
   });
   if (!response.ok) throw new Error(`ingest failed: ${response.status}`);
   const data = await response.json();

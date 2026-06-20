@@ -23,6 +23,7 @@ class RefineOp(str, Enum):
 class IngestRequest(BaseModel):
     corpus_id: str
     documents: list["FreshDocument"] = Field(default_factory=list)
+    limit: int | None = None  # For browsecomp: max docs to load (None = all ~100k)
 
 
 class FreshDocument(BaseModel):

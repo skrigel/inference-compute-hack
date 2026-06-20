@@ -263,6 +263,18 @@ export function useDashboard(seedQuery: string) {
     [predicate, runQuery],
   );
 
+  const ingestCorpus = useCallback(
+    async (corpusId: "demo" | "browsecomp", limit?: number) => {
+      cacheRef.current.clear();
+      chipSnapshotsRef.current.clear();
+      setChips([]);
+      setView(EMPTY_VIEW);
+      setHasRun(false);
+      await api.ingest(corpusId, [], limit);
+    },
+    [],
+  );
+
   useEffect(() => {
     // Guard against React StrictMode's double mount-invoke firing the seed query twice.
     if (seededRef.current) return;
@@ -296,6 +308,7 @@ export function useDashboard(seedQuery: string) {
     runClickRefine,
     removeChip,
     ingestFreshFiles,
+    ingestCorpus,
     mode: api.mode,
   };
 }

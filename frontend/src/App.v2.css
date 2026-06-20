@@ -1979,6 +1979,28 @@ body {
   color: var(--label-tertiary);
 }
 
+.corpus-select {
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid var(--separator);
+  border-radius: var(--r1);
+  background: var(--bg-primary);
+  color: var(--label);
+  cursor: pointer;
+}
+
+.corpus-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.corpus-loading {
+  font-size: 12px;
+  color: var(--system-blue);
+  margin-left: var(--s2);
+}
+
 /* ============================================
    Hint Card
    ============================================ */

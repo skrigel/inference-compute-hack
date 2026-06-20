@@ -59,13 +59,16 @@ async def healthz() -> dict:
 
 @app.post("/ingest")
 async def ingest(request: IngestRequest) -> IngestResponse:
-    if request.corpus_id != "demo" and not request.documents:
-        raise HTTPException(status_code=404, detail="Phase 0/1 only support corpus_id='demo'")
+    if request.corpus_id not in ("demo", "browsecomp") and not request.documents:
+        raise HTTPException(status_code=404, detail="Supported corpus_id: 'demo', 'browsecomp', or provide documents")
 
     if request.documents:
         if not state.chunks:
             state.load_demo()
         chunks = state.append_documents(request.documents)
+        cache.clear()
+    elif request.corpus_id == "browsecomp":
+        chunks = state.load_browsecomp(limit=request.limit)
         cache.clear()
     else:
         chunks = state.load_demo()
