@@ -55,8 +55,8 @@ cached per clause.
 
 ```mermaid
 flowchart LR
-  UI["frontend/ · React+Vite<br/>histogram+threshold · facets · feed"]
-  API["backend/ · FastAPI async<br/>/ingest /query /results · score cache · aggregates"]
+  UI["frontend/ · React+Vite<br/>histogram+threshold · facets · feed · refine+fresh files"]
+  API["backend/ · FastAPI async<br/>/ingest /query /refine /results · score cache · clauses"]
   SC["inference/ · ScorerClient<br/>MockScorer (GPU-free) | VLLMScorer (planned 8×H100)"]
   D[("data/ · corpus.jsonl + labels")]
   E["eval/ + baseline/ · bench, RAG comparison"]
@@ -67,12 +67,11 @@ flowchart LR
   E --> SC
 ```
 
-* **Frontend:** React 19 + Vite 8 + TypeScript + plain CSS; capped best-first results feed; consumes a
-  single multiplexed SSE stream; the draggable histogram threshold re-cuts **cached** scores
-  client-side with zero inference.
-* **Backend:** FastAPI async; Phase 1 implements `/ingest`, `/query`, and `/results`; in-memory raw
-  chunks + score cache (**no DB** — aligned with the recompute-over-store thesis). `/refine` and the
-  clause engine are the next phase.
+* **Frontend:** React 19 + Vite 8 + TypeScript + plain CSS; capped best-first results feed, refine
+  box, removable chips, click keep/drop controls, and fresh-file ingest. The draggable histogram
+  threshold re-cuts **cached** scores client-side with zero inference.
+* **Backend:** FastAPI async; `/ingest`, `/query`, `/refine`, `/results`, and `DELETE /clause/{id}`;
+  in-memory raw chunks + score cache (**no DB** — aligned with the recompute-over-store thesis).
 * **Inference:** one `ScorerClient` interface with a deterministic GPU-free `MockScorer` for local dev.
   The real `VLLMScorer`/H100 swap is planned after the Phase 1 mock-backed loop is stable.
 * **Eval:** `baseline/rag.py` is a standard embeddings+FAISS pipeline used **only** to time index-build
@@ -184,9 +183,9 @@ Charts from the mock are stamped **PROJECTED (mock)**; the frozen run uses the r
 ## Demo (≈90 s)
 
 Five core beats — stream best-first → click-NOT refine → AND refine → threshold drag → drag-in fresh
-file — with word-sense recovery and the eval slide as optional closers. Every beat has a canned twin
-(`scripts/replay_sse.py`, recorded from a real vLLM run) so a live hiccup degrades gracefully instead
-of dying. Full script and operator runbook in `DEMO.md`.
+file — with word-sense recovery and the eval slide as optional closers. Phase 2 includes a mock canned
+SSE fixture at `eval/artifacts/phase2_mock_refine.sse`; real vLLM fixtures replace it in Phase 4.
+Full script and operator runbook in `DEMO.md`.
 
 **Degradation ladder ("never nothing on stage"):** real vLLM → `SCORER_BACKEND=mock` → canned SSE
 replay → explicit op buttons → pre-staged 2nd corpus → the irreducible `ingest→query→refine→threshold`

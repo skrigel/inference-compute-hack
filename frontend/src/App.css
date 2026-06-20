@@ -32,6 +32,10 @@ input {
   font: inherit;
 }
 
+button {
+  font: inherit;
+}
+
 .surface {
   display: flex;
   flex-direction: column;
@@ -234,6 +238,101 @@ input {
   cursor: not-allowed;
 }
 
+/* refine */
+.refine-panel {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.refine-form {
+  display: flex;
+  gap: 8px;
+}
+.refine-form input {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 9px 11px;
+  outline: none;
+}
+.refine-form input:focus {
+  border-color: var(--cyan);
+}
+.refine-form button,
+.card-actions button {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--mono);
+  border-radius: 7px;
+  cursor: pointer;
+}
+.refine-form button {
+  min-width: 74px;
+  padding: 9px 12px;
+}
+.refine-form button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.chip-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 30px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border: 1px solid var(--cyan-soft);
+  background: rgba(61, 217, 196, 0.08);
+  color: var(--ink);
+  border-radius: 7px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+.chip span,
+.chip i {
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-style: normal;
+}
+.chip b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  font-size: 11px;
+}
+.dropzone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+.dropzone.on {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.dropzone input {
+  display: none;
+}
+
 /* histogram */
 .hist-head {
   display: flex;
@@ -416,6 +515,22 @@ input {
 .snip {
   font-size: 11px;
   color: var(--ink-dim);
+}
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.card-actions button {
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  color: var(--ink-dim);
+}
+.card-actions button:hover {
+  border-color: var(--amber);
+  color: var(--amber);
 }
 
 /* performance */

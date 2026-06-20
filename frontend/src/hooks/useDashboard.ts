@@ -9,7 +9,7 @@ import {
   recutHistogram,
   type CachedScore,
 } from "../lib/scoreCache";
-import type { Facets, HistogramBin, QueryEvent } from "../lib/types";
+import type { Chip, Facets, FreshDocument, HistogramBin, QueryEvent, RefineEvent } from "../lib/types";
 
 export type LatencyKind = "cold" | "warm" | "cached";
 export type Tab = "rel" | "foot" | "perf";
@@ -34,6 +34,18 @@ function viewFromCache(cache: ScoreCache, threshold: number): DashboardView {
   };
 }
 
+function readFileText(file: File): Promise<string> {
+  if ("text" in file && typeof file.text === "function") {
+    return file.text();
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error ?? new Error(`Failed to read ${file.name}`));
+    reader.readAsText(file);
+  });
+}
+
 const EMPTY_VIEW: DashboardView = {
   histogram: recutHistogram([]),
   facets: EMPTY_FACETS,
@@ -44,6 +56,8 @@ const EMPTY_VIEW: DashboardView = {
 export function useDashboard(seedQuery: string) {
   const cacheRef = useRef(new ScoreCache());
   const abortRef = useRef<AbortController | null>(null);
+  const refineAbortRef = useRef<AbortController | null>(null);
+  const chipSnapshotsRef = useRef(new Map<string, CachedScore[]>());
   const thresholdRef = useRef(0.5);
   const seededRef = useRef(false);
 
@@ -51,6 +65,7 @@ export function useDashboard(seedQuery: string) {
   const [threshold, setThresholdState] = useState(0.5);
   const [hasRun, setHasRun] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [refining, setRefining] = useState(false);
   const [scanned, setScanned] = useState(0);
   const [etaMs, setEtaMs] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -59,6 +74,7 @@ export function useDashboard(seedQuery: string) {
   const [latencyKind, setLatencyKind] = useState<LatencyKind>("cold");
   const [latHistory, setLatHistory] = useState<number[]>([]);
   const [view, setView] = useState<DashboardView>(EMPTY_VIEW);
+  const [chips, setChips] = useState<Chip[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>("rel");
 
   const pushLatency = useCallback((ms: number) => {
@@ -72,6 +88,8 @@ export function useDashboard(seedQuery: string) {
       abortRef.current = controller;
 
       cacheRef.current.clear();
+      chipSnapshotsRef.current.clear();
+      setChips([]);
       setHasRun(true);
       setStreaming(true);
       setScanned(0);
@@ -134,6 +152,117 @@ export function useDashboard(seedQuery: string) {
     [pushLatency],
   );
 
+  const applyRefineEvent = useCallback(
+    (event: RefineEvent, snapshot: CachedScore[]) => {
+      if (event.type === "chip") {
+        chipSnapshotsRef.current.set(event.chip.clause_id, snapshot);
+        setChips((prev) => [...prev, event.chip]);
+        setLatencyMs(event.refine_ms);
+        setLatencyKind(event.latency_kind);
+        return;
+      }
+      if (event.type === "diff") {
+        for (const chunkId of event.removed) cacheRef.current.remove(chunkId);
+        for (const item of event.rescored) cacheRef.current.updateScore(item.chunk_id, item.score);
+        for (const item of event.added) cacheRef.current.upsert(item);
+        setView(viewFromCache(cacheRef.current, thresholdRef.current));
+        return;
+      }
+      if (event.type === "aggregate") {
+        setScanned(event.scanned);
+        setEtaMs(event.eta_ms);
+        setView(viewFromCache(cacheRef.current, thresholdRef.current));
+        return;
+      }
+      if (event.type === "done") {
+        setElapsedMs(event.elapsed_ms);
+        setDocsPerSec(event.elapsed_ms ? Math.round((event.scanned / event.elapsed_ms) * 1000) : 0);
+        setLatencyMs(event.elapsed_ms);
+        setLatencyKind(event.warm ? "warm" : "cold");
+        pushLatency(event.elapsed_ms);
+      }
+    },
+    [pushLatency],
+  );
+
+  const runRefineRequest = useCallback(
+    async (request: Parameters<typeof api.refine>[0]) => {
+      refineAbortRef.current?.abort();
+      const controller = new AbortController();
+      refineAbortRef.current = controller;
+      const snapshot = cacheRef.current.all();
+      setRefining(true);
+      try {
+        await api.refine(request, (event) => {
+          if (controller.signal.aborted) return;
+          applyRefineEvent(event, snapshot);
+        }, controller.signal);
+      } finally {
+        if (refineAbortRef.current === controller) setRefining(false);
+      }
+    },
+    [applyRefineEvent],
+  );
+
+  const runRefine = useCallback(
+    async (utterance: string) => {
+      const trimmed = utterance.trim();
+      if (!trimmed) return;
+      await runRefineRequest({ utterance: trimmed });
+    },
+    [runRefineRequest],
+  );
+
+  const runClickRefine = useCallback(
+    async (chunkId: string, sign: "+" | "-") => {
+      await runRefineRequest({ click: { chunk_id: chunkId, sign } });
+    },
+    [runRefineRequest],
+  );
+
+  const removeChip = useCallback(
+    async (clauseId: string) => {
+      const response = await api.deleteClause(clauseId);
+      if (!response.removed) return;
+      const snapshot = chipSnapshotsRef.current.get(clauseId);
+      if (snapshot) {
+        cacheRef.current.replaceAll(snapshot);
+        setView(viewFromCache(cacheRef.current, thresholdRef.current));
+      }
+      setChips((prev) => {
+        const index = prev.findIndex((chip) => chip.clause_id === clauseId);
+        if (index === -1) return prev;
+        for (const chip of prev.slice(index)) chipSnapshotsRef.current.delete(chip.clause_id);
+        return prev.slice(0, index);
+      });
+      setLatencyMs(response.refine_ms);
+      setLatencyKind("cached");
+      pushLatency(response.refine_ms);
+    },
+    [pushLatency],
+  );
+
+  const ingestFreshFiles = useCallback(
+    async (files: File[] | FileList) => {
+      const documents: FreshDocument[] = await Promise.all(
+        Array.from(files).map(async (file) => ({
+          title: file.name,
+          text: await readFileText(file),
+          type: "code",
+          category: file.name.split(".").pop() || "fresh",
+          year: new Date().getFullYear(),
+          path: file.name,
+          lang: file.name.split(".").pop() || null,
+          repo: "fresh",
+        })),
+      );
+      if (!documents.length) return;
+      await api.ingest("demo", documents);
+      await runQuery(predicate);
+    },
+    [predicate, runQuery],
+  );
+
   useEffect(() => {
     // Guard against React StrictMode's double mount-invoke firing the seed query twice.
     if (seededRef.current) return;
@@ -150,6 +279,7 @@ export function useDashboard(seedQuery: string) {
     setThreshold,
     hasRun,
     streaming,
+    refining,
     scanned,
     etaMs,
     elapsedMs,
@@ -158,9 +288,14 @@ export function useDashboard(seedQuery: string) {
     latencyKind,
     latHistory,
     view,
+    chips,
     activeTab,
     setActiveTab,
     runQuery,
+    runRefine,
+    runClickRefine,
+    removeChip,
+    ingestFreshFiles,
     mode: api.mode,
   };
 }

@@ -22,11 +22,39 @@ class RefineOp(str, Enum):
 
 class IngestRequest(BaseModel):
     corpus_id: str
+    documents: list["FreshDocument"] = Field(default_factory=list)
+
+
+class FreshDocument(BaseModel):
+    title: str
+    text: str
+    type: Literal["paper", "code"] = "code"
+    category: str | None = None
+    year: int | None = None
+    path: str | None = None
+    lang: str | None = None
+    repo: str | None = None
 
 
 class QueryRequest(BaseModel):
     predicate: str
     threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+
+
+class ClickRequest(BaseModel):
+    chunk_id: str
+    sign: Literal["+", "-"]
+
+
+class BrushRequest(BaseModel):
+    lo: float = Field(ge=0.0, le=1.0)
+    hi: float = Field(ge=0.0, le=1.0)
+
+
+class RefineRequest(BaseModel):
+    utterance: str | None = None
+    click: ClickRequest | None = None
+    brush: BrushRequest | None = None
 
 
 class FacetBucket(BaseModel):
@@ -101,6 +129,31 @@ class DoneEvent(BaseModel):
     summary: str
 
 
+class Chip(BaseModel):
+    clause_id: str
+    op: RefineOp
+    text: str
+    label: str
+    removable: bool
+    confidence: float
+
+
+class ChipEvent(BaseModel):
+    type: Literal["chip"] = "chip"
+    operation: RefineOp
+    chip: Chip
+    refine_ms: int
+    latency_kind: Literal["cold", "warm", "cached"]
+
+
+class DiffEvent(BaseModel):
+    type: Literal["diff"] = "diff"
+    added: list[ResultEvent]
+    removed: list[str]
+    rescored: list[dict[str, float | str]]
+    refine_ms: int
+
+
 class IngestResponse(BaseModel):
     corpus_id: str
     n_chunks: int
@@ -115,3 +168,8 @@ class ResultsResponse(BaseModel):
     threshold: float
     top_k: int | None = None
     total_matched: int
+
+
+class ClauseDeleteResponse(BaseModel):
+    removed: bool
+    refine_ms: int

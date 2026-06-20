@@ -4,11 +4,17 @@ import {
   type DoneEvent,
   type Facets,
   type FacetBucket,
+  type FreshDocument,
   type HistogramBin,
+  type ChipEvent,
+  type DiffEvent,
   type QueryEvent,
   type QueryRequest,
+  type RefineEvent,
+  type RefineRequest,
   type ResultEvent,
 } from "./types";
+import { classifyRefine } from "./classify";
 
 // Stagger between streamed results so the dashboard visibly fills on mock —
 // ~24 results x 28ms ≈ a ~700ms "cold" scan feel, matching the demo fallback.
@@ -30,7 +36,7 @@ interface MockItem {
 // A spread of ~24 items: varied scores (0.1–0.97), both modalities, several
 // categories and years, with the retry/backoff/networking items scored high so
 // the seeded demo predicate lands convincingly.
-const MOCK_ITEMS: MockItem[] = [
+const BASE_ITEMS: MockItem[] = [
   { chunk_id: "m01", score: 0.96, type: "code", title: "urllib3/connectionpool.py", category: "python", year: 2023, path: "src/urllib3/connectionpool.py", repo: "urllib3" },
   { chunk_id: "m02", score: 0.93, type: "code", title: "requests/adapters.py", category: "python", year: 2022, path: "src/requests/adapters.py", repo: "requests" },
   { chunk_id: "m03", score: 0.9, type: "code", title: "tenacity/retry.py", category: "python", year: 2024, path: "src/tenacity/retry.py", repo: "tenacity" },
@@ -56,6 +62,8 @@ const MOCK_ITEMS: MockItem[] = [
   { chunk_id: "m23", score: 0.11, type: "code", title: "math/statistics.py", category: "python", year: 2019, path: "lib/statistics.py", repo: "cpython" },
   { chunk_id: "m24", score: 0.08, type: "paper", title: "Diffusion Language Models", category: "cs.CL", year: 2025, path: null, repo: null },
 ];
+let freshItems: MockItem[] = [];
+let clauseSeq = 1;
 
 function toResult(item: MockItem, rank: number): ResultEvent {
   return {
@@ -76,19 +84,37 @@ function toResult(item: MockItem, rank: number): ResultEvent {
   };
 }
 
-const MOCK_RESULTS: ResultEvent[] = [...MOCK_ITEMS]
-  .sort((a, b) => b.score - a.score)
-  .map((item, index) => toResult(item, index));
+function mockItems(): MockItem[] {
+  return [...BASE_ITEMS, ...freshItems];
+}
 
-export async function ingestMock(_corpusId: string): Promise<{ n_chunks: number; facets: Facets }> {
-  return { n_chunks: MOCK_RESULTS.length, facets: allFacets() };
+function mockResults(): ResultEvent[] {
+  return [...mockItems()].sort((a, b) => b.score - a.score).map((item, index) => toResult(item, index));
+}
+
+export async function ingestMock(
+  _corpusId: string,
+  documents: FreshDocument[] = [],
+): Promise<{ n_chunks: number; facets: Facets }> {
+  freshItems = documents.map((document, index) => ({
+    chunk_id: `fresh-${Date.now()}-${index}`,
+    score: document.text.toLowerCase().includes("sentinel") ? 0.97 : 0.72,
+    type: document.type,
+    title: document.title,
+    category: document.category ?? document.lang ?? "fresh",
+    year: document.year ?? new Date().getFullYear(),
+    path: document.path,
+    repo: document.repo,
+  }));
+  return { n_chunks: mockResults().length, facets: allFacets() };
 }
 
 function allFacets(): Facets {
+  const results = mockResults();
   return {
-    type: makeFacet("type", MOCK_RESULTS),
-    category: makeFacet("category", MOCK_RESULTS),
-    year: makeFacet("year", MOCK_RESULTS),
+    type: makeFacet("type", results),
+    category: makeFacet("category", results),
+    year: makeFacet("year", results),
   };
 }
 
@@ -97,33 +123,132 @@ export async function* queryMock(
   signal?: AbortSignal,
 ): AsyncGenerator<QueryEvent> {
   const startedAt = Date.now();
+  const results = mockResults();
   // Stream EVERY scored chunk best-first (like the backend) so the client cache
   // is complete and threshold drag is a pure recut.
-  for (const result of MOCK_RESULTS) {
+  for (const result of results) {
     if (signal?.aborted) return;
     yield result;
     await sleep(STREAM_DELAY_MS);
   }
 
-  const matched = MOCK_RESULTS.filter((result) => result.score >= request.threshold);
+  const matched = results.filter((result) => result.score >= request.threshold);
   yield makeAggregate(matched, request.threshold);
 
   yield {
     type: "done",
-    scanned: MOCK_RESULTS.length,
+    scanned: results.length,
     matched: matched.length,
     elapsed_ms: Date.now() - startedAt,
     warm: false,
-    summary: `${MOCK_RESULTS.length} scanned · ${matched.length} matched`,
+    summary: `${results.length} scanned · ${matched.length} matched`,
   } satisfies DoneEvent;
 }
 
+export async function* refineMock(
+  request: RefineRequest,
+  signal?: AbortSignal,
+): AsyncGenerator<RefineEvent> {
+  const startedAt = Date.now();
+  const results = mockResults();
+  const { operation, text, confidence } = refineIntent(request);
+  const clauseId = `m-c${clauseSeq++}`;
+  const chip = {
+    clause_id: clauseId,
+    op: operation,
+    text,
+    label: operation[0].toUpperCase() + operation.slice(1),
+    removable: true,
+    confidence,
+  };
+  const refineMs = request.click ? 4 : 180;
+  const diff = makeRefineDiff(request, results);
+  const nextResults = applyMockDiff(results, diff);
+  const matched = nextResults.filter((result) => result.score >= 0.5);
+
+  if (signal?.aborted) return;
+  yield {
+    type: "chip",
+    operation,
+    chip,
+    refine_ms: refineMs,
+    latency_kind: request.click ? "cached" : "warm",
+  } satisfies ChipEvent;
+  await sleep(request.click ? 4 : 80);
+  if (signal?.aborted) return;
+  yield { ...diff, refine_ms: refineMs } satisfies DiffEvent;
+  yield makeAggregate(matched, 0.5);
+  yield {
+    type: "done",
+    scanned: diff.rescored.length,
+    matched: matched.length,
+    elapsed_ms: refineMs || Date.now() - startedAt,
+    warm: true,
+    summary: `${diff.rescored.length} rescored · ${matched.length} matched`,
+  } satisfies DoneEvent;
+}
+
+export async function deleteClauseMock(_clauseId: string): Promise<{ removed: boolean; refine_ms: number }> {
+  return { removed: true, refine_ms: 4 };
+}
+
+function refineIntent(request: RefineRequest): { operation: ChipEvent["operation"]; text: string; confidence: number } {
+  if (request.click) {
+    return {
+      operation: request.click.sign === "-" ? "exclude" : "require",
+      text: `${request.click.sign === "-" ? "drop" : "keep"} ${request.click.chunk_id}`,
+      confidence: 1,
+    };
+  }
+  if (request.brush) {
+    return { operation: "brush", text: `${request.brush.lo} to ${request.brush.hi}`, confidence: 1 };
+  }
+  const classified = classifyRefine(request.utterance ?? "");
+  return { operation: classified.operation, text: request.utterance ?? "", confidence: classified.confidence };
+}
+
+function makeRefineDiff(request: RefineRequest, results: ResultEvent[]): Omit<DiffEvent, "refine_ms"> {
+  if (request.click) {
+    if (request.click.sign === "-") {
+      return { type: "diff", added: [], removed: [request.click.chunk_id], rescored: [] };
+    }
+    return {
+      type: "diff",
+      added: [],
+      removed: [],
+      rescored: [{ chunk_id: request.click.chunk_id, score: 1 }],
+    };
+  }
+
+  const classified = classifyRefine(request.utterance ?? "");
+  const wantsPython = /\bpython\b/i.test(request.utterance ?? "");
+  const removed: string[] = [];
+  const rescored = results.map((result) => {
+    let score = result.score;
+    if (classified.operation === "exclude") score = result.score * 0.3;
+    if (classified.operation === "require") score = wantsPython && result.meta.category !== "python" ? result.score * 0.35 : result.score * 0.96;
+    if (classified.operation === "refocus") score = result.meta.type === "paper" ? Math.max(0.72, result.score) : result.score * 0.55;
+    if (score < 0.5 && result.score >= 0.5) removed.push(result.chunk_id);
+    return { chunk_id: result.chunk_id, score: Number(score.toFixed(3)) };
+  });
+  return { type: "diff", added: [], removed, rescored };
+}
+
+function applyMockDiff(results: ResultEvent[], diff: Omit<DiffEvent, "refine_ms">): ResultEvent[] {
+  const removed = new Set(diff.removed);
+  const rescored = new Map(diff.rescored.map((item) => [item.chunk_id, item.score]));
+  return results
+    .filter((result) => !removed.has(result.chunk_id))
+    .map((result) => ({ ...result, score: rescored.get(result.chunk_id) ?? result.score }));
+}
+
 function makeAggregate(matched: ResultEvent[], threshold: number): AggregateEvent {
+  const results = mockResults();
   return {
     type: "aggregate",
-    scanned: MOCK_RESULTS.length,
+    scanned: results.length,
     matched: matched.length,
-    histogram: makeHistogram(MOCK_RESULTS),
+    histogram: makeHistogram(results),
     facets: {
       type: makeFacet("type", matched),
       category: makeFacet("category", matched),
@@ -150,7 +275,7 @@ function makeHistogram(results: ResultEvent[]): HistogramBin[] {
 function makeFacet(key: "type" | "category" | "year", relevantResults: ResultEvent[]): FacetBucket[] {
   const totals = new Map<string, number>();
   const relevant = new Map<string, number>();
-  for (const result of MOCK_RESULTS) {
+  for (const result of mockResults()) {
     const bucketKey = String(result.meta[key] ?? "unknown");
     totals.set(bucketKey, (totals.get(bucketKey) ?? 0) + 1);
   }

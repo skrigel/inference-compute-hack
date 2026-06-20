@@ -18,6 +18,11 @@ class ScoreCache:
     _hits: int = 0
     _misses: int = 0
 
+    def clear(self) -> None:
+        self._scores.clear()
+        self._hits = 0
+        self._misses = 0
+
     def get(self, chunk_id: str, clause_id: str) -> ScoreResult | None:
         result = self._scores.get((chunk_id, clause_id))
         if result is None:

@@ -1,0 +1,7 @@
+data: {"type":"chip","operation":"require","chip":{"clause_id":"c2","op":"require","text":"only networking layer","label":"Require","removable":true,"confidence":0.84},"refine_ms":180,"latency_kind":"warm"}
+
+data: {"type":"diff","added":[],"removed":["demo-low-score"],"rescored":[{"chunk_id":"demo-retry","score":0.77},{"chunk_id":"demo-backoff","score":0.73}],"refine_ms":180}
+
+data: {"type":"aggregate","scanned":2,"matched":2,"histogram":[{"lo":0.0,"hi":0.05,"count":0},{"lo":0.05,"hi":0.1,"count":0},{"lo":0.1,"hi":0.15,"count":0},{"lo":0.15,"hi":0.2,"count":0},{"lo":0.2,"hi":0.25,"count":0},{"lo":0.25,"hi":0.3,"count":0},{"lo":0.3,"hi":0.35,"count":0},{"lo":0.35,"hi":0.4,"count":0},{"lo":0.4,"hi":0.45,"count":0},{"lo":0.45,"hi":0.5,"count":0},{"lo":0.5,"hi":0.55,"count":0},{"lo":0.55,"hi":0.6,"count":0},{"lo":0.6,"hi":0.65,"count":0},{"lo":0.65,"hi":0.7,"count":0},{"lo":0.7,"hi":0.75,"count":1},{"lo":0.75,"hi":0.8,"count":1},{"lo":0.8,"hi":0.85,"count":0},{"lo":0.85,"hi":0.9,"count":0},{"lo":0.9,"hi":0.95,"count":0},{"lo":0.95,"hi":1.0,"count":0}],"facets":{"type":[{"key":"code","relevant":2,"total":2}],"category":[{"key":"python","relevant":2,"total":2}],"year":[{"key":"2024","relevant":1,"total":1},{"key":"2023","relevant":1,"total":1}]},"threshold":0.5,"eta_ms":0}
+
+data: {"type":"done","scanned":2,"matched":2,"elapsed_ms":180,"warm":true,"summary":"2 rescored · 2 matched"}

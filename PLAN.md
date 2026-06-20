@@ -98,10 +98,10 @@ This single hour is the highest-leverage time in the whole 24.
 ```mermaid
 flowchart LR
   subgraph Frontend["frontend/  (React+Vite+TypeScript) — Owner C"]
-    UI[Dashboard: Histogram+threshold · FacetBars · ResultFeed · LatencyReadout · Phase2 RefineBox/ChipRail]
+    UI[Dashboard: Histogram+threshold · FacetBars · ResultFeed · RefineBox · ChipRail · LatencyReadout]
   end
   subgraph Backend["backend/  (FastAPI async) — Owner B"]
-    API[/ingest /query /results now; /refine Phase2/]
+    API[/ingest /query /refine /results/]
     CL[clause.py · candidate-set scoping]
     CA[cache.py · (chunk_id,clause_id)→score]
     AG[aggregate.py · histogram + facets]
@@ -129,8 +129,8 @@ flowchart LR
 
 **Stack:** vLLM target (`enable_prefix_caching=True, max_tokens=1, logprobs=20`, continuous batching) ·
 FastAPI + async, single multiplexed SSE stream · React 19 + Vite 8 + TypeScript + plain CSS, capped
-best-first feed today · raw chunks + score cache **in memory, no DB** · standard embeddings+FAISS RAG
-in `baseline/`, **eval only**.
+best-first feed, refine chips, and fresh-file ingest · raw chunks + score cache **in memory, no DB** ·
+standard embeddings+FAISS RAG in `baseline/`, **eval only**.
 
 ```
 grep-for-meaning/
@@ -143,7 +143,7 @@ grep-for-meaning/
     config.py        # SCORER_BACKEND swap point, make_scorer()
     serve.sh         # 6 single-GPU AWQ replicas (+ reserved Tier-2)
   backend/       # FastAPI                                               [OWNER B]
-    main.py          # /ingest /query /results now; /refine next — single multiplexed SSE
+    main.py          # /ingest /query /refine /results — single multiplexed SSE
     schemas.py       # pydantic wire models (import inference + data types)
     state.py         # in-memory SessionState (chunks, clause tree, caches)
     chunker.py       # raw → chunks (imports data/schema.chunk_id_of)
