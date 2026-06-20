@@ -45,6 +45,24 @@ VLLM_HISTOGRAM_PREFIXES = (
     "vllm:request_prefill_time_seconds",
 )
 
+LENBIN_SHORT_MAX = int(os.environ.get("LENBIN_SHORT_MAX", "512"))
+LENBIN_MEDIUM_MAX = int(os.environ.get("LENBIN_MEDIUM_MAX", "2048"))
+
+
+def _estimate_tokens(text: str) -> int:
+    """Rough token count estimate: ~1.3 tokens per word for English."""
+    words = len(text.split())
+    return int(words * 1.3)
+
+
+def _length_bin(token_count: int) -> str:
+    """Categorize token count into short/medium/long bins."""
+    if token_count < LENBIN_SHORT_MAX:
+        return "short"
+    if token_count < LENBIN_MEDIUM_MAX:
+        return "medium"
+    return "long"
+
 
 class VLLMScoringError(RuntimeError):
     """Raised when a vLLM response cannot be mapped to a Yes/No score."""
@@ -76,8 +94,8 @@ class VLLMScorer(ScorerClient):
         self._global_semaphore = asyncio.Semaphore(self._max_concurrency)
         self._bulk_semaphore = asyncio.Semaphore(bulk_capacity)
         normalized_routing = routing_mode.strip().lower()
-        if normalized_routing not in {"round_robin", "chunk_sticky"}:
-            raise ValueError("routing_mode must be 'round_robin' or 'chunk_sticky'")
+        if normalized_routing not in {"round_robin", "chunk_sticky", "length_bin"}:
+            raise ValueError("routing_mode must be 'round_robin', 'chunk_sticky', or 'length_bin'")
         self._routing_mode = normalized_routing
         self._warmed_corpora: dict[str, int] = {}
 
@@ -155,6 +173,11 @@ class VLLMScorer(ScorerClient):
         if self._routing_mode == "chunk_sticky":
             idx = zlib.crc32(item.chunk_id.encode("utf-8")) % len(self._replicas)
             return self._replicas[idx]
+        if self._routing_mode == "length_bin":
+            token_count = _estimate_tokens(item.chunk_text)
+            bin_name = _length_bin(token_count)
+            bin_idx = {"short": 0, "medium": 1, "long": 2}.get(bin_name, 0)
+            return self._replicas[bin_idx % len(self._replicas)]
         return self._next_replica()
 
     async def _score_one(self, item: ScoreRequest, *, tier: int) -> ScoreResult:
