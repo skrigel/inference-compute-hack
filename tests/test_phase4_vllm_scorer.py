@@ -110,6 +110,54 @@ class VLLMScorerTests(unittest.TestCase):
 
         self.assertEqual(seen_hosts, ["r1", "r2", "r1"])
 
+    def test_chunk_sticky_routing_keeps_same_chunk_on_same_replica(self):
+        from inference.scorer import ScoreRequest
+        from inference.vllm_scorer import VLLMScorer
+
+        seen_hosts = []
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            seen_hosts.append(request.url.host)
+            return httpx.Response(200, json=completion_response(0, {" Yes": -0.1, " No": -2.0}))
+
+        scorer = VLLMScorer(
+            ["http://r1/v1", "http://r2/v1"],
+            routing_mode="chunk_sticky",
+            transport=httpx.MockTransport(handler),
+        )
+        asyncio.run(
+            scorer.score_batch(
+                [
+                    ScoreRequest("same-chunk", "chunk 1", "predicate 1"),
+                    ScoreRequest("same-chunk", "chunk 1", "predicate 2"),
+                ]
+            )
+        )
+
+        self.assertEqual(len(seen_hosts), 2)
+        self.assertEqual(seen_hosts[0], seen_hosts[1])
+
+    def test_health_reports_routing_and_priority_settings(self):
+        from inference.vllm_scorer import VLLMScorer
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path.endswith("/models"):
+                return httpx.Response(200, json={"data": []})
+            return httpx.Response(200, json=completion_response(0, {" Yes": -0.1, " No": -2.0}))
+
+        scorer = VLLMScorer(
+            ["http://r1/v1"],
+            max_concurrency=8,
+            priority_reserved=2,
+            routing_mode="chunk_sticky",
+            transport=httpx.MockTransport(handler),
+        )
+        health = asyncio.run(scorer.health())
+
+        self.assertEqual(health["routing_mode"], "chunk_sticky")
+        self.assertEqual(health["max_concurrency"], 8)
+        self.assertEqual(health["priority_reserved"], 2)
+
     def test_prometheus_parser_keeps_mfu_latency_and_queue_metrics(self):
         from inference.vllm_scorer import parse_vllm_prometheus_metrics
 

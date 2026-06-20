@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import json
+import os
 import time
 from collections.abc import AsyncIterator
 from dataclasses import replace
@@ -43,6 +44,7 @@ scorer = make_scorer()
 # evict each other's cached column. `itertools.count` is atomic under the GIL,
 # avoiding the read-modify-write race a shared counter would have.
 _clause_seq = itertools.count(1)
+REFINE_BATCH_SIZE = max(1, int(os.environ.get("REFINE_BATCH_SIZE", "64")))
 
 
 @app.get("/healthz")
@@ -107,6 +109,7 @@ async def query(request: QueryRequest) -> StreamingResponse:
             clause_id=clause_id,
             threshold=request.threshold,
             cache=cache,
+            tier=1,
         ):
             yield sse(event)
 
@@ -297,8 +300,10 @@ async def _apply_refine(
             for chunk_id in sorted(missing)
             if chunk_id in chunks_by_id
         ]
-        for result in await scorer.score_batch(requests):
-            cache.put(result.chunk_id, clause_id, result)
+        for start in range(0, len(requests), REFINE_BATCH_SIZE):
+            batch = requests[start : start + REFINE_BATCH_SIZE]
+            for result in await scorer.score_batch(batch, tier=0):
+                cache.put(result.chunk_id, clause_id, result)
 
     for chunk_id in candidate_ids:
         clause_score = cache.peek(chunk_id, clause_id)
