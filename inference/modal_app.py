@@ -69,6 +69,7 @@ GPU_MEMORY_UTILIZATION = _env_float("GPU_MEMORY_UTILIZATION", 0.92)
 ENABLE_MFU_METRICS = _env_flag("ENABLE_MFU_METRICS", True)
 KV_CACHE_DTYPE = os.environ.get("KV_CACHE_DTYPE", "auto")
 SCORER_MIN_CONTAINERS = _env_int("SCORER_MIN_CONTAINERS", N_REPLICAS)
+BENCHMARK_PROMPT_VARIANT = os.environ.get("BENCHMARK_PROMPT_VARIANT", "compact")
 
 # vLLM engine configuration per PLAN.md and REFINEMENTS.md
 VLLM_ENGINE_KWARGS: dict[str, Any] = {
@@ -591,14 +592,21 @@ def _percentile(values: list[float], pct: float) -> float:
     return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
 
 
-def _benchmark_prompt(i: int) -> str:
+def _benchmark_prompt(i: int, variant: str = BENCHMARK_PROMPT_VARIANT) -> str:
+    chunk = (
+        f"service batch {i}: retry logic, GPU queue saturation, prefix-cache behavior, "
+        "latency measurement under load"
+    )
+    predicate = "GPU queue saturation and throughput metrics"
+    if variant == "compact":
+        return f"Chunk: {chunk}\nPredicate: {predicate}\nRelevant? Answer Yes or No:"
     return f"""You are a strict semantic filter. Answer only Yes or No.
 
 Chunk:
-The service batch {i} describes retry logic, GPU queue saturation, prefix-cache behavior, and latency measurement under load.
+The {chunk}.
 
 Question:
-Does this chunk satisfy the predicate: GPU queue saturation and throughput metrics
+Does this chunk satisfy the predicate: {predicate}
 
 Answer:"""
 
@@ -619,6 +627,7 @@ def openai_server_benchmark(
     gpu_memory_utilization: float = GPU_MEMORY_UTILIZATION,
     max_num_batched_tokens: int = 8192,
     enable_mfu_metrics: bool = True,
+    prompt_variant: str = BENCHMARK_PROMPT_VARIANT,
     replica_label: str = "replica-0",
 ) -> dict:
     """Run vLLM's OpenAI-compatible server and collect latency/throughput/MFU."""
@@ -715,7 +724,7 @@ def openai_server_benchmark(
     async def _post_completion(client: httpx.AsyncClient, idx: int) -> dict:
         payload = {
             "model": "tier1-filter",
-            "prompt": _benchmark_prompt(idx),
+            "prompt": _benchmark_prompt(idx, prompt_variant),
             "max_tokens": 1,
             "temperature": 0,
             "logprobs": 5,
@@ -766,6 +775,7 @@ def openai_server_benchmark(
                 "concurrency": concurrency,
                 "gpu_memory_utilization": gpu_memory_utilization,
                 "max_num_batched_tokens": max_num_batched_tokens,
+                "prompt_variant": prompt_variant,
                 "enable_mfu_metrics_requested": enable_mfu_metrics,
                 "enable_mfu_metrics_supported": mfu_flag_supported,
                 "enable_mfu_metrics_active": enable_mfu_metrics and mfu_flag_supported,
@@ -811,6 +821,7 @@ def benchmark_openai_server(
     concurrency: int = 32,
     gpu_memory_utilization: float = GPU_MEMORY_UTILIZATION,
     max_num_batched_tokens: int = 8192,
+    prompt_variant: str = BENCHMARK_PROMPT_VARIANT,
 ):
     """Benchmark vLLM's OpenAI server on Modal and write a Phase 04 artifact."""
     import asyncio
@@ -825,6 +836,7 @@ def benchmark_openai_server(
                 concurrency=concurrency,
                 gpu_memory_utilization=gpu_memory_utilization,
                 max_num_batched_tokens=max_num_batched_tokens,
+                prompt_variant=prompt_variant,
                 replica_label=f"replica-{idx}",
             )
             for idx in range(num_replicas)
@@ -844,6 +856,7 @@ def benchmark_openai_server(
         "vllm_version": VLLM_METRICS_VERSION,
         "gpu_memory_utilization": gpu_memory_utilization,
         "max_num_batched_tokens": max_num_batched_tokens,
+        "prompt_variant": prompt_variant,
         "aggregate_client": {
             "requests_per_s": sum(item["requests_per_s"] for item in client_summaries),
             "prompt_tokens_per_s": sum(item["prompt_tokens_per_s"] for item in client_summaries),

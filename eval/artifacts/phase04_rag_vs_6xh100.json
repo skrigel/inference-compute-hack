@@ -1,0 +1,720 @@
+{
+  "caveats": [
+    "RAG backend is the repo's pure-Python hashing-vectorizer fallback, not tuned FAISS or a neural embedding model.",
+    "RAG numbers are retrieve-only: no LLM answer generation, no cross-encoder rerank, and no semantic continuity across refine turns.",
+    "The 6xH100 reference is the vLLM OpenAI-server semantic scoring benchmark with max_tokens=1 and MFU metrics enabled.",
+    "Fresh-file total models the structural RAG requirement to rebuild embeddings/index before the new document is retrievable."
+  ],
+  "commit": "3de70ca",
+  "optimization_findings": [
+    {
+      "bottleneck": "The H100s are not queue-bound; short one-token scoring requests leave most peak FLOPs unused.",
+      "evidence": {
+        "derived_mfu_bf16_peak_mean": 0.06059334956039208,
+        "server_e2e_latency_avg_ms_mean": 39.77851693828901,
+        "server_prefill_avg_ms_mean": 20.01347555989752,
+        "server_queue_avg_ms_mean": 0.017414861977593787
+      },
+      "fix": "Use compact scoring prompts, then sweep concurrency/max-num-batched-tokens upward after the quality gate passes.",
+      "name": "low_mfu_short_request_overhead",
+      "status": "compact benchmark prompt added; production prompt should only change after measured quality is present."
+    },
+    {
+      "bottleneck": "The model separates positives, but the default 0.5 threshold throws away recall.",
+      "evidence": {
+        "current_quality": {
+          "f1": 0.941176,
+          "fn": 1.0,
+          "fp": 0.0,
+          "precision": 1.0,
+          "recall": 0.888889,
+          "tp": 8.0
+        },
+        "current_threshold": 0.01640298755872838,
+        "recommended_quality": {
+          "f1": 0.941176,
+          "fn": 1.0,
+          "fp": 0.0,
+          "precision": 1.0,
+          "recall": 0.888889,
+          "tp": 8.0
+        },
+        "recommended_threshold": 0.01640298755872838
+      },
+      "fix": "Use the recommended threshold for the demo operating point, then validate on a larger gold set.",
+      "name": "threshold_calibration",
+      "status": "applied"
+    },
+    {
+      "bottleneck": "Most work is prompt prefill for a one-token classifier.",
+      "evidence": {
+        "prompt_tokens_per_request": 56.84375
+      },
+      "fix": "Default future benchmark runs to a compact prompt variant and report prompt tokens per request.",
+      "name": "prompt_prefill_cost",
+      "status": "applied in Modal OpenAI-server benchmark path."
+    }
+  ],
+  "quality_comparison": {
+    "delta": {
+      "f1": 0.191176,
+      "precision": 0.4,
+      "recall": -0.11111099999999996
+    },
+    "ours": {
+      "artifact": "/private/tmp/inference-compute-hack-modal-prompt/eval/artifacts/phase04_quality_gate.json",
+      "backend": "modal",
+      "model_id": "Qwen/Qwen2.5-3B-Instruct-AWQ",
+      "quality": {
+        "f1": 0.941176,
+        "fn": 1.0,
+        "fp": 0.0,
+        "precision": 1.0,
+        "recall": 0.888889,
+        "tp": 8.0
+      },
+      "recommended_threshold": 0.01640298755872838,
+      "run_id": "quality-36f7ff08",
+      "status": "measured",
+      "threshold": 0.01640298755872838,
+      "threshold_sweep_best": {
+        "quality": {
+          "f1": 0.941176,
+          "fn": 1.0,
+          "fp": 0.0,
+          "precision": 1.0,
+          "recall": 0.888889,
+          "tp": 8.0
+        },
+        "threshold": 0.01640298755872838
+      }
+    },
+    "rag": {
+      "backend": "numpy-fallback",
+      "corpus_size": 7,
+      "quality": {
+        "f1": 0.75,
+        "fn": 0.0,
+        "fp": 6.0,
+        "precision": 0.6,
+        "recall": 1.0,
+        "tp": 9.0
+      },
+      "rows": [
+        {
+          "f1_at_k": 1.0,
+          "hit_titles": [
+            "aiohttp/client.py",
+            "urllib3/connectionpool.py",
+            "jobs/worker.py",
+            "requests/adapters.py",
+            "app/db_session.py"
+          ],
+          "positive_titles": [
+            "aiohttp/client.py",
+            "app/db_session.py",
+            "jobs/worker.py",
+            "requests/adapters.py",
+            "urllib3/connectionpool.py"
+          ],
+          "precision_at_k": 1.0,
+          "predicate": "every place we retry a network call without backoff",
+          "recall_at_k": 1.0,
+          "retrieve_ms_total": 0.05329196574166417
+        },
+        {
+          "f1_at_k": 0.75,
+          "hit_titles": [
+            "requests/adapters.py",
+            "aiohttp/client.py",
+            "urllib3/connectionpool.py",
+            "app/db_session.py",
+            "demo/ui.ts"
+          ],
+          "positive_titles": [
+            "aiohttp/client.py",
+            "requests/adapters.py",
+            "urllib3/connectionpool.py"
+          ],
+          "precision_at_k": 0.6,
+          "predicate": "only in the networking layer",
+          "recall_at_k": 1.0,
+          "retrieve_ms_total": 0.049749971367418766
+        },
+        {
+          "f1_at_k": 0.333333,
+          "hit_titles": [
+            "Neural Retrieval for Code Search",
+            "urllib3/connectionpool.py",
+            "requests/adapters.py",
+            "demo/ui.ts",
+            "jobs/worker.py"
+          ],
+          "positive_titles": [
+            "Neural Retrieval for Code Search"
+          ],
+          "precision_at_k": 0.2,
+          "predicate": "retrieval ranking metrics",
+          "recall_at_k": 1.0,
+          "retrieve_ms_total": 0.048626039642840624
+        }
+      ],
+      "top_k": 5
+    }
+  },
+  "query": "GPU queue saturation and throughput metrics",
+  "rag_backend": "numpy-fallback",
+  "rag_rows": [
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 0.15724805416539311,
+      "index_build_ms": 0.000500003807246685,
+      "index_embed_ms": 0.11016603093594313,
+      "index_total_ms": 0.11066603474318981,
+      "n_docs": 7,
+      "rag_fresh_file_total_vs_vllm_p50": 0.0034359727041799793,
+      "rag_retrieve_latency_vs_vllm_p50": 0.0010178475535978792,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 13.60292919555618,
+      "retrieve_ms_max": 0.05016702925786376,
+      "retrieve_ms_mean": 0.047160570310162644,
+      "retrieve_ms_min": 0.04558300133794546,
+      "retrieve_ms_p50": 0.0465820194222033,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 0.03966700751334429,
+          "query_embed_ms": 0.010500021744519472,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.05016702925786376,
+          "wall_ms": 0.0522089540027082
+        },
+        {
+          "ann_ms": 0.037624966353178024,
+          "query_embed_ms": 0.010624993592500687,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.04824995994567871,
+          "wall_ms": 0.050250033382326365
+        },
+        {
+          "ann_ms": 0.0373339862562716,
+          "query_embed_ms": 0.010207993909716606,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.04754198016598821,
+          "wall_ms": 0.04904100205749273
+        },
+        {
+          "ann_ms": 0.036415993236005306,
+          "query_embed_ms": 0.010166026186197996,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.0465820194222033,
+          "wall_ms": 0.04783296026289463
+        },
+        {
+          "ann_ms": 0.03629195271059871,
+          "query_embed_ms": 0.009792041964828968,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.046083994675427675,
+          "wall_ms": 0.04729203647002578
+        },
+        {
+          "ann_ms": 0.03620801726356149,
+          "query_embed_ms": 0.009707990102469921,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.04591600736603141,
+          "wall_ms": 0.04704197635874152
+        },
+        {
+          "ann_ms": 0.03604200901463628,
+          "query_embed_ms": 0.009540992323309183,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.04558300133794546,
+          "wall_ms": 0.04670803900808096
+        }
+      ],
+      "single_process_retrieve_qps_p50": 21467.510691976364,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-0",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "2103.00020:copy-0",
+          "score": 0.2357022603955159
+        },
+        {
+          "doc_id": "repo:aiohttp#client.py:copy-0",
+          "score": 0.20412414523193154
+        },
+        {
+          "doc_id": "repo:urllib3#connectionpool.py:copy-0",
+          "score": 0.1873171623163388
+        },
+        {
+          "doc_id": "repo:app#db_session.py:copy-0",
+          "score": 0.09622504486493764
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 1.9182919641025364,
+      "index_build_ms": 0.001334003172814846,
+      "index_embed_ms": 1.3692909851670265,
+      "index_total_ms": 1.3706249883398414,
+      "n_docs": 100,
+      "rag_fresh_file_total_vs_vllm_p50": 0.04191593252003938,
+      "rag_retrieve_latency_vs_vllm_p50": 0.011966881178206368,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 1.1570022295096658,
+      "retrieve_ms_max": 0.6320830434560776,
+      "retrieve_ms_mean": 0.5570777242870203,
+      "retrieve_ms_min": 0.5262509803287685,
+      "retrieve_ms_p50": 0.5476669757626951,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 0.621916027739644,
+          "query_embed_ms": 0.010167015716433525,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.6320830434560776,
+          "wall_ms": 0.6350419716909528
+        },
+        {
+          "ann_ms": 0.5320000345818698,
+          "query_embed_ms": 0.015166995581239462,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5471670301631093,
+          "wall_ms": 0.5496249650605023
+        },
+        {
+          "ann_ms": 0.5154589889571071,
+          "query_embed_ms": 0.010791991371661425,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5262509803287685,
+          "wall_ms": 0.528500007931143
+        },
+        {
+          "ann_ms": 0.534959021024406,
+          "query_embed_ms": 0.01087499549612403,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.54583401652053,
+          "wall_ms": 0.5480420077219605
+        },
+        {
+          "ann_ms": 0.5361249786801636,
+          "query_embed_ms": 0.011541997082531452,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5476669757626951,
+          "wall_ms": 0.5495829973369837
+        },
+        {
+          "ann_ms": 0.5370830185711384,
+          "query_embed_ms": 0.010624993592500687,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5477080121636391,
+          "wall_ms": 0.5495410296134651
+        },
+        {
+          "ann_ms": 0.5423750262707472,
+          "query_embed_ms": 0.010458985343575478,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5528340116143227,
+          "wall_ms": 0.5546669708564878
+        }
+      ],
+      "single_process_retrieve_qps_p50": 1825.9271496284296,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-9",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-8",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-7",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-6",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-5",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 19.73012404050678,
+      "index_build_ms": 0.01704104943200946,
+      "index_embed_ms": 14.191999973263592,
+      "index_total_ms": 14.209041022695601,
+      "n_docs": 1000,
+      "rag_fresh_file_total_vs_vllm_p50": 0.43111609878468105,
+      "rag_retrieve_latency_vs_vllm_p50": 0.12063927052959227,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 0.114769495394667,
+      "retrieve_ms_max": 5.650333012454212,
+      "retrieve_ms_mean": 5.526303438403245,
+      "retrieve_ms_min": 5.457333056256175,
+      "retrieve_ms_p50": 5.521083017811179,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 5.516709003131837,
+          "query_embed_ms": 0.0112500274553895,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.527959030587226,
+          "wall_ms": 5.5390410125255585
+        },
+        {
+          "ann_ms": 5.447749979794025,
+          "query_embed_ms": 0.015208031982183456,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.462958011776209,
+          "wall_ms": 5.473333003465086
+        },
+        {
+          "ann_ms": 5.442375026177615,
+          "query_embed_ms": 0.014958030078560114,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.457333056256175,
+          "wall_ms": 5.466708971653134
+        },
+        {
+          "ann_ms": 5.638708011247218,
+          "query_embed_ms": 0.011625001206994057,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.650333012454212,
+          "wall_ms": 5.659333022776991
+        },
+        {
+          "ann_ms": 5.509332986548543,
+          "query_embed_ms": 0.011249969247728586,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.520582955796272,
+          "wall_ms": 5.529459042008966
+        },
+        {
+          "ann_ms": 5.510208022315055,
+          "query_embed_ms": 0.01087499549612403,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.521083017811179,
+          "wall_ms": 5.531041999347508
+        },
+        {
+          "ann_ms": 5.531082977540791,
+          "query_embed_ms": 0.012792006600648165,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.543874984141439,
+          "wall_ms": 5.554916977416724
+        }
+      ],
+      "single_process_retrieve_qps_p50": 181.12388398688628,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-99",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-98",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-97",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-96",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-95",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 98.70100097032264,
+      "index_build_ms": 0.05545897874981165,
+      "index_embed_ms": 70.77845901949331,
+      "index_total_ms": 70.83391799824312,
+      "n_docs": 5000,
+      "rag_fresh_file_total_vs_vllm_p50": 2.156681346610305,
+      "rag_retrieve_latency_vs_vllm_p50": 0.6089139668238674,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 0.0227383652828364,
+      "retrieve_ms_max": 32.44224993977696,
+      "retrieve_ms_mean": 28.43421427366723,
+      "retrieve_ms_min": 27.42445800686255,
+      "retrieve_ms_p50": 27.867082972079515,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 32.43049996672198,
+          "query_embed_ms": 0.011749973054975271,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 32.44224993977696,
+          "wall_ms": 32.502542017027736
+        },
+        {
+          "ann_ms": 27.69158303271979,
+          "query_embed_ms": 0.02058397512882948,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.71216700784862,
+          "wall_ms": 27.768291998654604
+        },
+        {
+          "ann_ms": 27.848249999806285,
+          "query_embed_ms": 0.018832972273230553,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.867082972079515,
+          "wall_ms": 27.92045898968354
+        },
+        {
+          "ann_ms": 27.40558300865814,
+          "query_embed_ms": 0.018874998204410076,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.42445800686255,
+          "wall_ms": 27.479542011860758
+        },
+        {
+          "ann_ms": 27.730041998438537,
+          "query_embed_ms": 0.016000005416572094,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.74604200385511,
+          "wall_ms": 27.80204202281311
+        },
+        {
+          "ann_ms": 27.867999975569546,
+          "query_embed_ms": 0.01687504118308425,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.88487501675263,
+          "wall_ms": 27.939707972109318
+        },
+        {
+          "ann_ms": 27.944957953877747,
+          "query_embed_ms": 0.017667014617472887,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.96262496849522,
+          "wall_ms": 28.018458979204297
+        }
+      ],
+      "single_process_retrieve_qps_p50": 35.88463137680812,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-99",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-98",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-97",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-96",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-95",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 200.56270895292982,
+      "index_build_ms": 0.11199997970834374,
+      "index_embed_ms": 144.88762500695884,
+      "index_total_ms": 144.9996249866672,
+      "n_docs": 10000,
+      "rag_fresh_file_total_vs_vllm_p50": 4.3824262061382155,
+      "rag_retrieve_latency_vs_vllm_p50": 1.214089680673165,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 0.011404189018215792,
+      "retrieve_ms_max": 60.2179579436779,
+      "retrieve_ms_mean": 56.165767692229046,
+      "retrieve_ms_min": 55.26654195273295,
+      "retrieve_ms_p50": 55.56308396626264,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 60.20662497030571,
+          "query_embed_ms": 0.01133297337219119,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 60.2179579436779,
+          "wall_ms": 60.32829196192324
+        },
+        {
+          "ann_ms": 55.544333008583635,
+          "query_embed_ms": 0.020249979570508003,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 55.56458298815414,
+          "wall_ms": 55.676499963738024
+        },
+        {
+          "ann_ms": 55.48762500984594,
+          "query_embed_ms": 0.020915991626679897,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 55.50854100147262,
+          "wall_ms": 55.62366603408009
+        },
+        {
+          "ann_ms": 55.561082961503416,
+          "query_embed_ms": 0.023500004317611456,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 55.58458296582103,
+          "wall_ms": 55.70150003768504
+        },
+        {
+          "ann_ms": 55.54070899961516,
+          "query_embed_ms": 0.022374966647475958,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 55.56308396626264,
+          "wall_ms": 55.67475000862032
+        },
+        {
+          "ann_ms": 55.24166696704924,
+          "query_embed_ms": 0.024874985683709383,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 55.26654195273295,
+          "wall_ms": 55.38241699105129
+        },
+        {
+          "ann_ms": 55.43412500992417,
+          "query_embed_ms": 0.02095801755785942,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 55.45508302748203,
+          "wall_ms": 55.56999996770173
+        }
+      ],
+      "single_process_retrieve_qps_p50": 17.997561125426195,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-999",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-998",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-997",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-996",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-995",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 529.4300829409622,
+      "index_build_ms": 0.27474999660626054,
+      "index_embed_ms": 389.9098339607008,
+      "index_total_ms": 390.18458395730704,
+      "n_docs": 25000,
+      "rag_fresh_file_total_vs_vllm_p50": 11.568393156989757,
+      "rag_retrieve_latency_vs_vllm_p50": 3.0426051134758976,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 0.004550609654252691,
+      "retrieve_ms_max": 149.06912500737235,
+      "retrieve_ms_mean": 140.59911298266212,
+      "retrieve_ms_min": 138.1894169608131,
+      "retrieve_ms_p50": 139.24549898365512,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 149.05729197198525,
+          "query_embed_ms": 0.01183303538709879,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 149.06912500737235,
+          "wall_ms": 149.38370801974088
+        },
+        {
+          "ann_ms": 139.30629199603572,
+          "query_embed_ms": 0.02174999099224806,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 139.32804198702797,
+          "wall_ms": 139.63824999518692
+        },
+        {
+          "ann_ms": 139.21233295695856,
+          "query_embed_ms": 0.024291977752000093,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 139.23662493471056,
+          "wall_ms": 139.54662502510473
+        },
+        {
+          "ann_ms": 140.15787502285093,
+          "query_embed_ms": 0.02258300082758069,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 140.1804580236785,
+          "wall_ms": 140.49320796038955
+        },
+        {
+          "ann_ms": 139.21954098623246,
+          "query_embed_ms": 0.025957997422665358,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 139.24549898365512,
+          "wall_ms": 139.56091698491946
+        },
+        {
+          "ann_ms": 138.92145798308775,
+          "query_embed_ms": 0.02316699828952551,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 138.94462498137727,
+          "wall_ms": 139.2504580435343
+        },
+        {
+          "ann_ms": 138.16362497163936,
+          "query_embed_ms": 0.02579198917374015,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 138.1894169608131,
+          "wall_ms": 138.51845799945295
+        }
+      ],
+      "single_process_retrieve_qps_p50": 7.1815606773572025,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-999",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-998",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-997",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-996",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-995",
+          "score": 0.2886751345948129
+        }
+      ]
+    }
+  ],
+  "run_id": "rag-vs-6xh100-1781944574",
+  "runs_per_size": 7,
+  "six_h100_reference": {
+    "artifact": "/private/tmp/inference-compute-hack-modal-prompt/eval/artifacts/phase04_modal_openai_server_benchmark.json",
+    "derived_mfu_bf16_peak_mean": 0.06059334956039208,
+    "estimated_tflops_per_gpu_mean": 59.95711939000796,
+    "gpu_memory_utilization": 0.92,
+    "latency_ms_p50_mean": 45.7652221666649,
+    "latency_ms_p95_max": 182.2964013499984,
+    "model": "Qwen/Qwen2.5-3B-Instruct-AWQ",
+    "replicas": 6,
+    "requests_per_s": 1578.1535273292016,
+    "run_id": "modal-openai-server-1781943051",
+    "total_tokens_per_s": 91286.3180964485,
+    "vllm_version": "0.22.1"
+  },
+  "top_k": 5
+}

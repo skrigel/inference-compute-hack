@@ -47,6 +47,18 @@ class Phase4EvalBenchTests(unittest.TestCase):
             self.assertTrue((artifact_dir / "phase04_metrics.json").exists())
             self.assertTrue((artifact_dir / "phase04_environment.md").exists())
 
+    def test_threshold_sweep_recommends_recall_preserving_cutoff(self):
+        from eval.bench import _threshold_sweep
+
+        y_true = [True, True, False, False]
+        scores = [0.2, 0.1, 0.03, 0.01]
+
+        sweep = _threshold_sweep(y_true, scores)
+
+        self.assertEqual(sweep["best"]["threshold"], 0.1)
+        self.assertEqual(sweep["best"]["quality"]["recall"], 1.0)
+        self.assertEqual(sweep["best"]["quality"]["precision"], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()
