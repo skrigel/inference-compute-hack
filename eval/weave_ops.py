@@ -4,7 +4,7 @@ import importlib
 import netrc
 import os
 from collections.abc import Callable
-from typing import TypeVar
+from typing import Any, TypeVar
 
 
 DEFAULT_WEAVE_PROJECT = "sasha-krigel-massachusetts-institute-of-technology/inference-hack"
@@ -35,18 +35,19 @@ def _has_wandb_auth() -> bool:
     return any(credentials.authenticators(host) for host in ("api.wandb.ai", "wandb.ai"))
 
 
-def init_weave(project: str = DEFAULT_WEAVE_PROJECT):
+def init_weave(project: str = DEFAULT_WEAVE_PROJECT, *, global_attributes: dict[str, Any] | None = None):
     """Initialize W&B Weave for eval traces."""
 
     if not _has_wandb_auth():
         raise WeaveSetupError("W&B auth is missing. Run `wandb login` or set `WANDB_API_KEY` before `--weave`.")
     try:
-        return _load_weave().init(project)
+        kwargs = {"global_attributes": global_attributes} if global_attributes else {}
+        return _load_weave().init(project, **kwargs)
     except Exception as exc:
         raise WeaveSetupError(f"Could not initialize Weave project {project!r}: {exc}") from exc
 
 
-def weave_op(func: F | None = None, *, name: str | None = None):
+def weave_op(func: F | None = None, *, name: str | None = None, **kwargs: Any):
     """Decorate an eval function when Weave exists; otherwise leave it alone.
 
     This keeps CI and local mock evals dependency-free while making the same
@@ -64,5 +65,8 @@ def weave_op(func: F | None = None, *, name: str | None = None):
     if weave is None:
         return identity(func) if func is not None else identity
 
-    decorator = weave.op(name=name) if name is not None else weave.op()
+    decorator_kwargs = dict(kwargs)
+    if name is not None:
+        decorator_kwargs["name"] = name
+    decorator = weave.op(**decorator_kwargs)
     return decorator(func) if func is not None else decorator

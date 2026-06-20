@@ -10,8 +10,8 @@ class FakeWeave(types.SimpleNamespace):
         self.inits = []
         self.ops = []
 
-    def init(self, project):
-        self.inits.append(project)
+    def init(self, project, **kwargs):
+        self.inits.append((project, kwargs))
         return {"project": project}
 
     def op(self, **kwargs):
@@ -45,7 +45,25 @@ class EvalWeaveOpsTests(unittest.TestCase):
             result = init_weave()
 
         self.assertEqual(result, {"project": "sasha-krigel-massachusetts-institute-of-technology/inference-hack"})
-        self.assertEqual(fake.inits, ["sasha-krigel-massachusetts-institute-of-technology/inference-hack"])
+        self.assertEqual(fake.inits, [("sasha-krigel-massachusetts-institute-of-technology/inference-hack", {})])
+
+    def test_init_weave_passes_global_attributes(self):
+        fake = FakeWeave()
+
+        with patch.dict(sys.modules, {"weave": fake}), patch.dict("os.environ", {"WANDB_API_KEY": "test-key"}):
+            from eval.weave_ops import init_weave
+
+            init_weave(global_attributes={"commit": "abc123", "run_id": "run-1"})
+
+        self.assertEqual(
+            fake.inits,
+            [
+                (
+                    "sasha-krigel-massachusetts-institute-of-technology/inference-hack",
+                    {"global_attributes": {"commit": "abc123", "run_id": "run-1"}},
+                )
+            ],
+        )
 
     def test_init_weave_requires_noninteractive_auth(self):
         fake = FakeWeave()

@@ -1,0 +1,14 @@
+{
+  "artifact_paths": {
+    "matrix": "eval/artifacts/phase04_h100_rag_matrix.json",
+    "quality": "eval/artifacts/phase04_quality_gate.json",
+    "rag_vs_6xh100": "eval/artifacts/phase04_rag_vs_6xh100.json"
+  },
+  "comparison_rows_logged": 32,
+  "eval_name": "phase04-h100-rag-matrix-phase04-h100-rag-matrix-1781946340",
+  "h100_rows_logged": 8,
+  "matrix_run_id": "phase04-h100-rag-matrix-1781946340",
+  "project": "sasha-krigel-massachusetts-institute-of-technology/inference-hack",
+  "rag_rows_logged": 4,
+  "uploaded_at_unix": 1781947055
+}
