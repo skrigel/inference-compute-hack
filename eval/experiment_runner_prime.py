@@ -317,8 +317,13 @@ def list_pods() -> list[PodInfo]:
 def get_available_resource_id(
     gpu_type: str = "H100_80GB",
     gpu_count: int = 1,
-) -> str:
-    """Get an available resource ID from Prime availability list."""
+    preferred_provider: str | None = "lambdalabs",
+) -> tuple[str, str]:
+    """Get an available resource ID from Prime availability list.
+
+    Returns (resource_id, provider) tuple.
+    Prefers lambdalabs for better image compatibility.
+    """
     result = _run_prime(
         ["availability", "list", "--gpu-type", gpu_type, "--gpu-count", str(gpu_count), "--output", "json"],
         check=False,
@@ -329,31 +334,56 @@ def get_available_resource_id(
     try:
         data = json.loads(result.stdout)
         resources = data.get("gpu_resources", [])
-        # Find first available resource
-        for resource in resources:
-            if resource.get("stock_status") == "Available":
-                resource_id = resource.get("id")
-                if resource_id:
-                    print(f"Found available resource: {resource_id} ({resource.get('gpu_type')}, "
-                          f"{resource.get('gpu_count')} GPU(s), {resource.get('price_per_hour')}/hr, "
-                          f"{resource.get('provider')} in {resource.get('location')})")
-                    return resource_id
-        raise RuntimeError(f"No available {gpu_count}x {gpu_type} resources found")
+
+        # Filter available resources
+        available = [r for r in resources if r.get("stock_status") == "Available"]
+        if not available:
+            raise RuntimeError(f"No available {gpu_count}x {gpu_type} resources found")
+
+        # Prefer specified provider for image compatibility
+        if preferred_provider:
+            preferred = [r for r in available if r.get("provider") == preferred_provider]
+            if preferred:
+                available = preferred
+
+        # Select first available (cheapest after filtering)
+        resource = available[0]
+        resource_id = resource.get("id")
+        provider = resource.get("provider", "unknown")
+
+        print(f"Found available resource: {resource_id} ({resource.get('gpu_type')}, "
+              f"{resource.get('gpu_count')} GPU(s), {resource.get('price_per_hour')}/hr, "
+              f"{provider} in {resource.get('location')})")
+        return resource_id, provider
+
     except (json.JSONDecodeError, KeyError) as e:
         raise RuntimeError(f"Failed to parse availability response: {e}")
+
+
+# Provider-specific image mappings
+PROVIDER_IMAGES = {
+    "lambdalabs": "cuda_12_4_pytorch_2_5",
+    "datacrunch": "ubuntu_22_cuda_12",  # Datacrunch has limited image support
+    "default": "ubuntu_22_cuda_12",
+}
 
 
 def create_pod(
     name: str,
     gpu_type: str = DEFAULT_POD_CONFIG["gpu_type"],
     gpu_count: int = DEFAULT_POD_CONFIG["gpu_count"],
-    image: str = DEFAULT_POD_CONFIG["image"],
+    image: str | None = None,  # Auto-select based on provider if None
     disk_size: int = DEFAULT_POD_CONFIG["disk_size"],
     env_vars: dict[str, str] | None = None,
 ) -> PodInfo:
     """Create a new Prime pod for experiments."""
-    # Get available resource ID first
-    resource_id = get_available_resource_id(gpu_type=gpu_type, gpu_count=gpu_count)
+    # Get available resource ID first (prefers lambdalabs for image compatibility)
+    resource_id, provider = get_available_resource_id(gpu_type=gpu_type, gpu_count=gpu_count)
+
+    # Select image based on provider if not specified
+    if image is None:
+        image = PROVIDER_IMAGES.get(provider, PROVIDER_IMAGES["default"])
+        print(f"Auto-selected image '{image}' for provider '{provider}'")
 
     cmd = [
         "pods", "create",
