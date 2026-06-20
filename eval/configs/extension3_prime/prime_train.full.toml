@@ -15,6 +15,12 @@ max_tokens = 256
 temperature = 0.7
 extra_body = { chat_template_kwargs = { enable_thinking = false } }
 
+[eval]
+interval = 25
+num_examples = 72
+rollouts_per_example = 1
+skip_first_step = false
+
 [eval.sampling]
 max_tokens = 256
 temperature = 0.0
@@ -27,11 +33,6 @@ keep_cloud = 10
 [adapters]
 interval = 25
 keep_last = 10
-
-[val]
-interval = 25
-num_examples = 72
-rollouts_per_example = 1
 
 [[env]]
 id = "inference/extension3-agent-loop"

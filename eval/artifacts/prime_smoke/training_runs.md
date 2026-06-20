@@ -20,7 +20,8 @@ Extension 3 query-refinement environment.
 | `mkyr5jlfznstwd5cnhqhkhdf` | `prime_train.example.toml` against env `0.1.0` | Failed | Reached step 0, then `pyarrow.lib.ArrowTypeError: Expected bytes, got a 'dict' object` in Prime sample logging. Cost was about `$0.0016`. |
 | `pp76jxcpojf2t5uvipy5tf8j` | `prime_train.smoke.toml` against env `0.1.1` | Completed | Two-step smoke passed rollout logging, optimizer, distribution logging, and final checkpoint write. Cost was about `$0.0007`. |
 | `plaj70en51ut15joiol4sx5j` | `prime_train.example.toml` against env `0.1.1` | Completed | 50-step pilot completed cleanly. Cost was about `$0.11`. |
-| pending | `prime_train.full.toml` against env `0.2.0` | Planned | Budgeted 35B run. Target spend is `$60-$65`; run with `python -m eval.prime_budget_monitor <run-id> --target-cost 60 --hard-limit 65 --poll-seconds 15`. |
+| `ap08781gs4mj999nhhe1th09` | `prime_train.full.toml` against env `0.2.0` | Stopped | Stopped at step `26` and `$5.29` after confirming training quality was healthy but periodic heldout eval cadence was misconfigured. Step 0 eval reward was `0.9049`; step 25 train reward was `0.9619`; errors and truncation were `0.0%`. |
+| pending | `prime_train.full.toml` against env `0.2.0` | Planned | Corrected budgeted 35B run. The config now uses `[eval] interval = 25` plus `[[eval.env]]`. Because run `ap08781gs4mj999nhhe1th09` already spent `$5.29`, target new-run spend is about `$55` with `python -m eval.prime_budget_monitor <run-id> --target-cost 55 --hard-limit 60 --poll-seconds 15`. |
 
 ## 35B Env 0.2.0 Baseline Smoke
 
