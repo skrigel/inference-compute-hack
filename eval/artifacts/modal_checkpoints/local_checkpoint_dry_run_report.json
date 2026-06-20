@@ -1,0 +1,23 @@
+{
+  "artifacts": {
+    "dry_run_report": "eval/artifacts/modal_checkpoints/local_checkpoint_dry_run_report.json",
+    "dry_run_report_md": "eval/artifacts/modal_checkpoints/local_checkpoint_dry_run_report.md",
+    "policy": "eval/artifacts/modal_checkpoints/modal_checkpoint_policy.example.json",
+    "runbook": "eval/artifacts/modal_checkpoints/MODAL_CHECKPOINT_RUNBOOK.md",
+    "train_config": "eval/artifacts/modal_checkpoints/modal_6h100_checkpoint_train.example.toml"
+  },
+  "checkpoints_written": [
+    "eval/artifacts/modal_checkpoints/dry_run_checkpoints/checkpoint_step_000003.json",
+    "eval/artifacts/modal_checkpoints/dry_run_checkpoints/checkpoint_step_000006.json",
+    "eval/artifacts/modal_checkpoints/dry_run_checkpoints/checkpoint_step_000009.json",
+    "eval/artifacts/modal_checkpoints/dry_run_checkpoints/checkpoint_step_000012.json"
+  ],
+  "generated_ms": 1.645,
+  "latest_checkpoint_path": "eval/artifacts/modal_checkpoints/dry_run_checkpoints/checkpoint_step_000012.json",
+  "latest_step": 12,
+  "paid_modal_gpu_launched": false,
+  "passed": true,
+  "save_every_steps": 3,
+  "schema_version": "extension3.modal_checkpoint_dry_run_report.v1",
+  "total_steps": 12
+}

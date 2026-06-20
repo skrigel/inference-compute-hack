@@ -6,11 +6,13 @@ AI claim without bloating the demo: cheap inference lets an agent run many fast
 query-refinement attempts, verify evidence, and stop when the result crosses a
 quality threshold.
 
-The current implementation is intentionally split in two layers:
+The current implementation is intentionally split in three layers:
 
 1. `eval.agent_loop`: executable dynamic-corpus environment and cheap metrics.
 2. `eval.agent_loop_prime`: cohort manifests, reward contract, training config
    template, metric-to-lift schema, and no-credit readiness smoke.
+3. `eval.agent_loop_modal_checkpoints`: Modal 6-H100 budget cap, checkpoint
+   cadence, resume pointer, and no-credit checkpoint dry run.
 
 ## Thesis
 
@@ -282,3 +284,74 @@ hosted environment:
 
 The repo-side rule is stricter than the external docs: paid training is blocked
 until the no-credit smoke and explicit user approval are both recorded.
+
+## Modal 6-H100 Checkpoint Plan
+
+Since the immediate training path may use Modal with only an `$18` budget, the
+Modal path is budget-capped and checkpoint-heavy. The config assumes 6 H100s and
+uses a GPU-only price constant of `$0.001097` per H100-second. With 6 H100s,
+that is `$0.006582` per wall-clock second, so `$18` buys about `45.6` minutes
+before CPU, memory, build, storage, and pricing drift. The committed plan keeps
+roughly 20% reserve and caps planned training at about `36.45` minutes.
+
+Generate the Modal checkpoint templates:
+
+```bash
+python -m eval.agent_loop_modal_checkpoints \
+  --output-dir eval/configs/extension3_modal \
+  --templates-only
+```
+
+Run the no-credit local checkpoint dry run:
+
+```bash
+python -m eval.agent_loop_modal_checkpoints \
+  --output-dir eval/artifacts/modal_checkpoints \
+  --total-steps 12 \
+  --save-every-steps 3
+```
+
+Generated files:
+
+| file | role |
+|---|---|
+| `eval/configs/extension3_modal/modal_checkpoint_policy.example.json` | budget, GPU request, checkpoint retention, stop conditions |
+| `eval/configs/extension3_modal/modal_6h100_checkpoint_train.example.toml` | paid-run config template with `gpu_request = "H100:6"` |
+| `eval/configs/extension3_modal/MODAL_CHECKPOINT_RUNBOOK.md` | exact dry-run, micro-run, and full budget run procedure |
+| `eval/artifacts/modal_checkpoints/local_checkpoint_dry_run_report.json` | local proof that checkpoint writes and latest pointer work |
+| `eval/artifacts/modal_checkpoints/dry_run_checkpoints/latest.json` | local resume pointer |
+
+Checkpoint policy:
+
+- save every `180` seconds or `25` optimizer steps, whichever comes first;
+- save first checkpoint after `5` optimizer steps;
+- keep last `4` checkpoints plus the best checkpoint;
+- write checkpoint contents first, then update `latest.json`;
+- resume from `latest.json` by default.
+
+Paid Modal stages:
+
+1. Stage 0, no credit: run local checkpoint dry run and Modal CPU smoke only.
+2. Stage 1, paid micro: optional 6-H100 run capped at first checkpoint and less
+   than `$2` GPU estimate.
+3. Stage 2, paid budget: full 6-H100 run only after Stage 1 produces a
+   loadable checkpoint.
+
+Stop immediately if:
+
+- estimated spend reaches 80% of budget;
+- no checkpoint has been written within the first 6 minutes;
+- reward is NaN or constant for two checkpoint windows;
+- selected bytes trend toward selecting the full corpus;
+- latest checkpoint cannot be loaded in a resume dry run.
+
+The future paid launch shape is:
+
+```bash
+modal run inference/modal_app.py::extension3_checkpointed_posttrain \
+  --config eval/configs/extension3_modal/modal_6h100_checkpoint_train.example.toml
+```
+
+That entrypoint is intentionally not implemented yet. Add it only when the
+training code is ready, the no-credit checkpoint dry run passes, the account has
+budget, and the user approves the paid Modal run.

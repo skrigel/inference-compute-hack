@@ -1,0 +1,34 @@
+# Example Modal 6-H100 checkpointed post-training config for Extension 3.
+# Do not launch GPU training until the local dry-run passes and the user approves spend.
+
+[modal]
+gpu_request = "H100:6"
+volume_name = "extension3-agent-loop-checkpoints"
+volume_mount = "/checkpoints"
+timeout_seconds = 2427
+paid_gpu_launch_allowed = false
+
+[budget]
+budget_usd = 18.0
+h100_usd_per_sec = 0.001097
+gpu_count = 6
+max_wall_seconds_at_full_budget = 2734
+planned_training_seconds = 2187
+planned_training_gpu_cost_usd = 14.39
+reserve_usd = 3.61
+
+[checkpoint]
+save_every_seconds = 180
+save_every_optimizer_steps = 25
+save_first_checkpoint_after_steps = 5
+keep_last = 4
+keep_best = true
+resume_from_latest = true
+write_latest_pointer = true
+
+[training]
+base_model = "Qwen/Qwen2.5-1.5B-Instruct"
+method = "LoRA-GRPO-pilot"
+cohort_manifest = "eval/configs/extension3_prime/cohort_manifest.example.json"
+reward_contract = "eval/configs/extension3_prime/reward_contract.example.json"
+launch_command = "modal run inference/modal_app.py::extension3_checkpointed_posttrain --config eval/configs/extension3_modal/modal_6h100_checkpoint_train.example.toml"
