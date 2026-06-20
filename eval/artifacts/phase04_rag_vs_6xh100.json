@@ -1,0 +1,564 @@
+{
+  "caveats": [
+    "RAG backend is the repo's pure-Python hashing-vectorizer fallback, not tuned FAISS or a neural embedding model.",
+    "RAG numbers are retrieve-only: no LLM answer generation, no cross-encoder rerank, and no semantic continuity across refine turns.",
+    "The 6xH100 reference is the vLLM OpenAI-server semantic scoring benchmark with max_tokens=1 and MFU metrics enabled.",
+    "Fresh-file total models the structural RAG requirement to rebuild embeddings/index before the new document is retrievable."
+  ],
+  "commit": "2ae036f",
+  "query": "GPU queue saturation and throughput metrics",
+  "rag_backend": "numpy-fallback",
+  "rag_rows": [
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 0.1543759717606008,
+      "index_build_ms": 0.0004169996827840805,
+      "index_embed_ms": 0.10804197518154979,
+      "index_total_ms": 0.10845897486433387,
+      "n_docs": 7,
+      "rag_fresh_file_total_vs_vllm_p50": 0.003373215827477121,
+      "rag_retrieve_latency_vs_vllm_p50": 0.001003316376987078,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 13.799942392089898,
+      "retrieve_ms_max": 0.050291011575609446,
+      "retrieve_ms_mean": 0.04719657590612769,
+      "retrieve_ms_min": 0.04545896081253886,
+      "retrieve_ms_p50": 0.04591699689626694,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 0.03912497777491808,
+          "query_embed_ms": 0.011166033800691366,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.050291011575609446,
+          "wall_ms": 0.052332994528114796
+        },
+        {
+          "ann_ms": 0.036792014725506306,
+          "query_embed_ms": 0.01029099803417921,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.047083012759685516,
+          "wall_ms": 0.048874993808567524
+        },
+        {
+          "ann_ms": 0.040041981264948845,
+          "query_embed_ms": 0.009834009688347578,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.04987599095329642,
+          "wall_ms": 0.05124998278915882
+        },
+        {
+          "ann_ms": 0.03608304541558027,
+          "query_embed_ms": 0.009790994226932526,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.0458740396425128,
+          "wall_ms": 0.04700000863522291
+        },
+        {
+          "ann_ms": 0.03616698086261749,
+          "query_embed_ms": 0.009750016033649445,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.04591699689626694,
+          "wall_ms": 0.04712503869086504
+        },
+        {
+          "ann_ms": 0.036167039070278406,
+          "query_embed_ms": 0.00970897963270545,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.045876018702983856,
+          "wall_ms": 0.04700000863522291
+        },
+        {
+          "ann_ms": 0.035959004890173674,
+          "query_embed_ms": 0.009499955922365189,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.04545896081253886,
+          "wall_ms": 0.04666595486924052
+        }
+      ],
+      "single_process_retrieve_qps_p50": 21778.42776301645,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-0",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "2103.00020:copy-0",
+          "score": 0.2357022603955159
+        },
+        {
+          "doc_id": "repo:aiohttp#client.py:copy-0",
+          "score": 0.20412414523193154
+        },
+        {
+          "doc_id": "repo:urllib3#connectionpool.py:copy-0",
+          "score": 0.1873171623163388
+        },
+        {
+          "doc_id": "repo:app#db_session.py:copy-0",
+          "score": 0.09622504486493764
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 1.9181670504622161,
+      "index_build_ms": 0.001292035449296236,
+      "index_embed_ms": 1.3704579905606806,
+      "index_total_ms": 1.3717500260099769,
+      "n_docs": 100,
+      "rag_fresh_file_total_vs_vllm_p50": 0.04191320307539984,
+      "rag_retrieve_latency_vs_vllm_p50": 0.011939568925555135,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 1.1596489194703705,
+      "retrieve_ms_max": 0.5622919416055083,
+      "retrieve_ms_mean": 0.5458691074246806,
+      "retrieve_ms_min": 0.525125942658633,
+      "retrieve_ms_p50": 0.5464170244522393,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 0.515041989274323,
+          "query_embed_ms": 0.010083953384310007,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.525125942658633,
+          "wall_ms": 0.5272079724818468
+        },
+        {
+          "ann_ms": 0.5329999839887023,
+          "query_embed_ms": 0.009916955605149269,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5429169395938516,
+          "wall_ms": 0.5450000171549618
+        },
+        {
+          "ann_ms": 0.5333329900167882,
+          "query_embed_ms": 0.010082963854074478,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5434159538708627,
+          "wall_ms": 0.5451670149341226
+        },
+        {
+          "ann_ms": 0.5353750311769545,
+          "query_embed_ms": 0.011041993275284767,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5464170244522393,
+          "wall_ms": 0.5482910200953484
+        },
+        {
+          "ann_ms": 0.542583002243191,
+          "query_embed_ms": 0.010582967661321163,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5531659699045122,
+          "wall_ms": 0.5550420028157532
+        },
+        {
+          "ann_ms": 0.5373749881982803,
+          "query_embed_ms": 0.010374991688877344,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5477499798871577,
+          "wall_ms": 0.5496250232681632
+        },
+        {
+          "ann_ms": 0.5517919780686498,
+          "query_embed_ms": 0.010499963536858559,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.5622919416055083,
+          "wall_ms": 0.5641669849865139
+        }
+      ],
+      "single_process_retrieve_qps_p50": 1830.1040327256624,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-9",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-8",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-7",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-6",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-5",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 19.42812599008903,
+      "index_build_ms": 0.012542004697024822,
+      "index_embed_ms": 13.92929197754711,
+      "index_total_ms": 13.941833982244134,
+      "n_docs": 1000,
+      "rag_fresh_file_total_vs_vllm_p50": 0.4245172441059481,
+      "rag_retrieve_latency_vs_vllm_p50": 0.11987906423496128,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 0.11549729964795714,
+      "retrieve_ms_max": 5.829416972119361,
+      "retrieve_ms_mean": 5.501696266167398,
+      "retrieve_ms_min": 5.351124971639365,
+      "retrieve_ms_p50": 5.486292007844895,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 5.475041980389506,
+          "query_embed_ms": 0.35437499172985554,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.829416972119361,
+          "wall_ms": 5.839790974278003
+        },
+        {
+          "ann_ms": 5.473666999023408,
+          "query_embed_ms": 0.012625008821487427,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.486292007844895,
+          "wall_ms": 5.495958961546421
+        },
+        {
+          "ann_ms": 5.484374996740371,
+          "query_embed_ms": 0.011916039511561394,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.496291036251932,
+          "wall_ms": 5.508917034603655
+        },
+        {
+          "ann_ms": 5.334749992471188,
+          "query_embed_ms": 0.01637497916817665,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.351124971639365,
+          "wall_ms": 5.35975000821054
+        },
+        {
+          "ann_ms": 5.428124975878745,
+          "query_embed_ms": 0.011499971151351929,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.439624947030097,
+          "wall_ms": 5.449790973216295
+        },
+        {
+          "ann_ms": 5.382290983106941,
+          "query_embed_ms": 0.012666976545006037,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.394957959651947,
+          "wall_ms": 5.403415998443961
+        },
+        {
+          "ann_ms": 5.502832995261997,
+          "query_embed_ms": 0.01133297337219119,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 5.514165968634188,
+          "wall_ms": 5.523290950804949
+        }
+      ],
+      "single_process_retrieve_qps_p50": 182.27247083642132,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-99",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-98",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-97",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-96",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-95",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 97.17462497064844,
+      "index_build_ms": 0.05383399548009038,
+      "index_embed_ms": 69.64133295696229,
+      "index_total_ms": 69.69516695244238,
+      "n_docs": 5000,
+      "rag_fresh_file_total_vs_vllm_p50": 2.123329033928078,
+      "rag_retrieve_latency_vs_vllm_p50": 0.6004441083697377,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 0.023059112431054452,
+      "retrieve_ms_max": 30.817583960015327,
+      "retrieve_ms_mean": 27.876524013533658,
+      "retrieve_ms_min": 27.11070899385959,
+      "retrieve_ms_p50": 27.47945801820606,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 30.806041962932795,
+          "query_embed_ms": 0.011541997082531452,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 30.817583960015327,
+          "wall_ms": 30.873708019498736
+        },
+        {
+          "ann_ms": 27.709292015060782,
+          "query_embed_ms": 0.021041021682322025,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.730333036743104,
+          "wall_ms": 27.7858329936862
+        },
+        {
+          "ann_ms": 27.148084016516805,
+          "query_embed_ms": 0.021249987185001373,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.169334003701806,
+          "wall_ms": 27.22524997079745
+        },
+        {
+          "ann_ms": 27.09554199827835,
+          "query_embed_ms": 0.015166995581239462,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.11070899385959,
+          "wall_ms": 27.173083974048495
+        },
+        {
+          "ann_ms": 27.542291034478694,
+          "query_embed_ms": 0.01587503356859088,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.558166068047285,
+          "wall_ms": 27.611125027760863
+        },
+        {
+          "ann_ms": 27.4601670098491,
+          "query_embed_ms": 0.019291008356958628,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.47945801820606,
+          "wall_ms": 27.53237501019612
+        },
+        {
+          "ann_ms": 27.25408400874585,
+          "query_embed_ms": 0.016000005416572094,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 27.27008401416242,
+          "wall_ms": 27.325332979671657
+        }
+      ],
+      "single_process_retrieve_qps_p50": 36.39081962014922,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-99",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-98",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-97",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-96",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-95",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 195.96833392279223,
+      "index_build_ms": 0.11850002920255065,
+      "index_embed_ms": 140.72379196295515,
+      "index_total_ms": 140.8422919921577,
+      "n_docs": 10000,
+      "rag_fresh_file_total_vs_vllm_p50": 4.282036110501706,
+      "rag_retrieve_latency_vs_vllm_p50": 1.204540026701498,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 0.01149460200287158,
+      "retrieve_ms_max": 58.250209025572985,
+      "retrieve_ms_mean": 55.5199584341608,
+      "retrieve_ms_min": 54.77312603034079,
+      "retrieve_ms_p50": 55.12604193063453,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 58.23925003642216,
+          "query_embed_ms": 0.010958989150822163,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 58.250209025572985,
+          "wall_ms": 58.372374973259866
+        },
+        {
+          "ann_ms": 54.97175001073629,
+          "query_embed_ms": 0.02524995943531394,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 54.9969999701716,
+          "wall_ms": 55.1024999585934
+        },
+        {
+          "ann_ms": 54.7555839875713,
+          "query_embed_ms": 0.017542042769491673,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 54.77312603034079,
+          "wall_ms": 54.89658401347697
+        },
+        {
+          "ann_ms": 55.29916600789875,
+          "query_embed_ms": 0.02058298559859395,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 55.31974899349734,
+          "wall_ms": 55.437374976463616
+        },
+        {
+          "ann_ms": 55.112708010710776,
+          "query_embed_ms": 0.01912500010803342,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 55.13183301081881,
+          "wall_ms": 55.240374989807606
+        },
+        {
+          "ann_ms": 55.02412503119558,
+          "query_embed_ms": 0.017625046893954277,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 55.041750078089535,
+          "wall_ms": 55.157999973744154
+        },
+        {
+          "ann_ms": 55.105249979533255,
+          "query_embed_ms": 0.020791951101273298,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 55.12604193063453,
+          "wall_ms": 55.23562501184642
+        }
+      ],
+      "single_process_retrieve_qps_p50": 18.14024669607709,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-999",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-998",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-997",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-996",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-995",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 515.596418059431,
+      "index_build_ms": 0.27008302276954055,
+      "index_embed_ms": 377.0148340263404,
+      "index_total_ms": 377.28491704910994,
+      "n_docs": 25000,
+      "rag_fresh_file_total_vs_vllm_p50": 11.266118542629696,
+      "rag_retrieve_latency_vs_vllm_p50": 3.022196647634026,
+      "rag_single_process_qps_vs_6xh100_vllm_qps": 0.004581339276615688,
+      "retrieve_ms_max": 142.51320797484368,
+      "retrieve_ms_mean": 138.94725571818915,
+      "retrieve_ms_min": 137.56637496408075,
+      "retrieve_ms_p50": 138.31150101032108,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 142.50241598347202,
+          "query_embed_ms": 0.010791991371661425,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 142.51320797484368,
+          "wall_ms": 142.8112080320716
+        },
+        {
+          "ann_ms": 138.5245830169879,
+          "query_embed_ms": 0.02158299321308732,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 138.54616601020098,
+          "wall_ms": 138.8289580354467
+        },
+        {
+          "ann_ms": 137.7852910081856,
+          "query_embed_ms": 0.022041029296815395,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 137.8073320374824,
+          "wall_ms": 138.11312499456108
+        },
+        {
+          "ann_ms": 137.54137500654906,
+          "query_embed_ms": 0.024999957531690598,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 137.56637496408075,
+          "wall_ms": 137.85916700726375
+        },
+        {
+          "ann_ms": 138.28929199371487,
+          "query_embed_ms": 0.022209016606211662,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 138.31150101032108,
+          "wall_ms": 138.61141703091562
+        },
+        {
+          "ann_ms": 139.55320895183831,
+          "query_embed_ms": 0.023625034373253584,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 139.57683398621157,
+          "wall_ms": 139.89445799961686
+        },
+        {
+          "ann_ms": 138.28329101670533,
+          "query_embed_ms": 0.026083027478307486,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 138.30937404418364,
+          "wall_ms": 138.61662498675287
+        }
+      ],
+      "single_process_retrieve_qps_p50": 7.23005673928286,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-999",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-998",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-997",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-996",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-995",
+          "score": 0.2886751345948129
+        }
+      ]
+    }
+  ],
+  "run_id": "rag-vs-6xh100-1781943643",
+  "runs_per_size": 7,
+  "six_h100_reference": {
+    "artifact": "/private/tmp/inference-compute-hack-modal-prompt/eval/artifacts/phase04_modal_openai_server_benchmark.json",
+    "derived_mfu_bf16_peak_mean": 0.06059334956039208,
+    "estimated_tflops_per_gpu_mean": 59.95711939000796,
+    "gpu_memory_utilization": 0.92,
+    "latency_ms_p50_mean": 45.7652221666649,
+    "latency_ms_p95_max": 182.2964013499984,
+    "model": "Qwen/Qwen2.5-3B-Instruct-AWQ",
+    "replicas": 6,
+    "requests_per_s": 1578.1535273292016,
+    "run_id": "modal-openai-server-1781943051",
+    "total_tokens_per_s": 91286.3180964485,
+    "vllm_version": "0.22.1"
+  },
+  "top_k": 5
+}
