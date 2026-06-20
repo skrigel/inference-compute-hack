@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import subprocess
 import time
 import uuid
@@ -11,6 +12,7 @@ from data.schema import Chunk, ChunkMeta, chunk_id_of
 from inference.config import make_scorer
 from inference.scorer import ScoreRequest
 from eval.trace import TurnTrace
+from eval.weave_ops import DEFAULT_WEAVE_PROJECT, init_weave, weave_op
 
 
 def _git_commit() -> str:
@@ -102,13 +104,33 @@ async def run_smoke() -> dict:
     return payload
 
 
+@weave_op(name="eval.run_smoke")
+async def run_smoke_traced() -> dict:
+    return await run_smoke()
+
+
+def run_smoke_with_weave(project: str = DEFAULT_WEAVE_PROJECT) -> dict:
+    init_weave(project)
+    return asyncio.run(run_smoke_traced())
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Phase 0 evaluation harness")
     parser.add_argument("--smoke", action="store_true", help="emit one required trace row as JSON")
+    parser.add_argument("--weave", action="store_true", help="log the smoke eval as a W&B Weave trace")
+    parser.add_argument(
+        "--weave-project",
+        default=os.environ.get("WEAVE_PROJECT", DEFAULT_WEAVE_PROJECT),
+        help="W&B team/project for Weave traces",
+    )
     args = parser.parse_args()
     if not args.smoke:
         parser.error("Phase 0 only supports --smoke")
-    print(json.dumps(asyncio.run(run_smoke()), sort_keys=True))
+    try:
+        payload = run_smoke_with_weave(args.weave_project) if args.weave else asyncio.run(run_smoke())
+    except RuntimeError as exc:
+        parser.exit(2, f"eval.bench: {exc}\n")
+    print(json.dumps(payload, sort_keys=True))
 
 
 if __name__ == "__main__":

@@ -175,6 +175,9 @@ python -m eval.bench --backend vllm --tag freeze      # ladders + RAG comparison
 * **Optimization ladders** (config flags): refine latency B0→B3 (cold full-corpus → warm+suffix-only →
   candidate scoping → persistent cache, → ~100–300 ms/turn); throughput (batching → ×6 replicas →
   FP8 compute); capacity (4-bit weights/KV); scale (10k→20k→100k, marking the KV crossover).
+* **Weave tracking:** `python -m eval.bench --smoke --weave` logs the smoke trace to
+  `sasha-krigel-massachusetts-institute-of-technology/inference-hack` after `pip install -r
+  eval/requirements.txt` and `wandb login`. Plain `--smoke` stays dependency-free for CI/local checks.
 
 Charts from the mock are stamped **PROJECTED (mock)**; the frozen run uses the real box.
 
