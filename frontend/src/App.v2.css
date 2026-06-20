@@ -2064,3 +2064,218 @@ body {
   background: var(--fill);
   color: var(--label-secondary);
 }
+
+/* ============================================
+   Compute Panel (Infinite-Compute 3 Axes)
+   ============================================ */
+
+.compute-panel {
+  background: var(--bg-primary);
+  border-radius: var(--r2);
+  padding: var(--s3);
+  margin: var(--s2) 0 var(--s3);
+  border: 1px solid var(--separator-opaque);
+}
+
+.compute-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+}
+
+.compute-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--label-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.compute-sub {
+  font-size: 12px;
+  color: var(--label-tertiary);
+  font-family: var(--font-mono);
+}
+
+.compute-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s3);
+}
+
+.axis-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  background: var(--fill-tertiary);
+  border-radius: var(--r1);
+  padding: var(--s3);
+}
+
+.axis-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.axis-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.axis-tag.axis-memory {
+  background: rgba(0, 122, 255, 0.12);
+  color: var(--system-blue);
+}
+
+.axis-tag.axis-movement {
+  background: rgba(52, 199, 89, 0.15);
+  color: var(--system-green);
+}
+
+.axis-tag.axis-truth {
+  background: rgba(175, 82, 222, 0.14);
+  color: var(--system-purple);
+}
+
+.axis-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--label);
+}
+
+.axis-range {
+  width: 100%;
+  accent-color: var(--system-blue);
+}
+
+.axis-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  font-size: 12px;
+  color: var(--label-secondary);
+}
+
+.axis-control-row {
+  display: flex;
+  gap: var(--s2);
+}
+
+.axis-control-row label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  font-size: 12px;
+  color: var(--label-secondary);
+}
+
+.axis-control-row input {
+  width: 100%;
+  padding: 4px var(--s2);
+  border: 1px solid var(--separator-opaque);
+  background: var(--bg-primary);
+  color: var(--label);
+  font-size: 13px;
+  font-family: var(--font-mono);
+  border-radius: var(--r1);
+  outline: none;
+}
+
+.axis-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.axis-btn {
+  padding: 6px 10px;
+  border: none;
+  background: var(--system-blue);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--r1);
+  transition: filter 0.15s ease;
+}
+
+.axis-btn:hover {
+  filter: brightness(1.1);
+}
+
+.axis-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.axis-btn.ghost {
+  background: var(--fill);
+  color: var(--label-secondary);
+}
+
+.axis-readout {
+  font-size: 12px;
+  color: var(--label-secondary);
+  line-height: 1.4;
+}
+
+.axis-readout strong {
+  color: var(--label);
+  font-family: var(--font-mono);
+}
+
+.axis-hint {
+  color: var(--label-tertiary);
+  font-style: italic;
+}
+
+.beam-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  margin-top: var(--s1);
+}
+
+.beam-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 4px var(--s2);
+  background: var(--bg-primary);
+  border-radius: var(--r1);
+  border-left: 3px solid transparent;
+}
+
+.beam-row.chosen {
+  border-left-color: var(--system-purple);
+  background: rgba(175, 82, 222, 0.08);
+}
+
+.beam-text {
+  font-size: 12px;
+  color: var(--label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.beam-metric {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--label-tertiary);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .compute-grid {
+    grid-template-columns: 1fr;
+  }
+}

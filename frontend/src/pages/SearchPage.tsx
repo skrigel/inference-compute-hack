@@ -101,6 +101,8 @@ export function SearchPage() {
         onFreshFiles={d.ingestFreshFiles}
       />
 
+      <ComputePanel d={d} />
+
       <TabbedSection
         activeTab="results"
         hasRun={d.hasRun}
@@ -114,6 +116,7 @@ export function SearchPage() {
         docsPerSec={d.docsPerSec}
         elapsedMs={d.elapsedMs}
         latHistory={d.latHistory}
+        selectedIds={d.selection?.selectedIds ?? []}
         onClickRefine={d.runClickRefine}
       />
     </main>
@@ -315,6 +318,156 @@ function FilterSection({ chips, refining, onRefine, onRemoveChip, onFreshFiles }
   );
 }
 
+interface ComputePanelProps {
+  d: ReturnType<typeof useDashboard>;
+}
+
+// The Compute panel hosts the three infinite-compute axes as explicit dials:
+// Memory (corpus in scope), Movement (what to move), Truth (predicate beam).
+function ComputePanel({ d }: ComputePanelProps) {
+  return (
+    <section className="compute-panel">
+      <div className="compute-header">
+        <span className="compute-title">Compute</span>
+        <span className="compute-sub">one budget · three axes</span>
+      </div>
+      <div className="compute-grid">
+        <div className="axis-card">
+          <div className="axis-head">
+            <span className="axis-tag axis-memory">Memory</span>
+            <span className="axis-name">Corpus in scope</span>
+          </div>
+          <input
+            className="axis-range"
+            type="range"
+            min={5}
+            max={100}
+            step={5}
+            value={Math.round(d.computeBudget * 100)}
+            onChange={(event) => d.setComputeBudget(Number(event.target.value) / 100)}
+            onPointerUp={() => d.rescan()}
+            onKeyUp={() => d.rescan()}
+            aria-label="Compute budget"
+          />
+          <div className="axis-readout">
+            <strong>{Math.round(d.computeBudget * 100)}%</strong> budget · scored{" "}
+            <strong>{d.corpusScope.scored}</strong> of {d.corpusScope.total} chunks
+          </div>
+        </div>
+
+        <div className="axis-card">
+          <div className="axis-head">
+            <span className="axis-tag axis-movement">Movement</span>
+            <span className="axis-name">What to move</span>
+          </div>
+          <label className="axis-control">
+            <span>Precision target {d.precisionTarget.toFixed(2)}</span>
+            <input
+              className="axis-range"
+              type="range"
+              min={50}
+              max={99}
+              step={1}
+              value={Math.round(d.precisionTarget * 100)}
+              onChange={(event) => d.setPrecisionTarget(Number(event.target.value) / 100)}
+            />
+          </label>
+          <div className="axis-control-row">
+            <label>
+              Move K
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={d.movementBudget}
+                onChange={(event) => d.setMovementBudget(Number(event.target.value))}
+              />
+            </label>
+            <label>
+              Beam B
+              <input
+                type="number"
+                min={1}
+                max={16}
+                value={d.selectionBeamWidth}
+                onChange={(event) => d.setSelectionBeamWidth(Number(event.target.value))}
+              />
+            </label>
+          </div>
+          <div className="axis-buttons">
+            <button className="axis-btn" onClick={() => d.autoThreshold()} disabled={!d.hasRun}>
+              Auto-threshold
+            </button>
+            <button className="axis-btn" onClick={() => d.smartSelect()} disabled={!d.hasRun}>
+              Smart select
+            </button>
+            {d.selection && (
+              <button className="axis-btn ghost" onClick={() => d.clearSelection()}>
+                Clear
+              </button>
+            )}
+          </div>
+          {d.selection && (
+            <div className="axis-readout">
+              {d.selection.mode === "threshold" ? (
+                <>
+                  threshold <strong>{d.selection.threshold.toFixed(2)}</strong> ·{" "}
+                  <strong>{d.selection.selectedIds.length}</strong> selected
+                </>
+              ) : (
+                <>
+                  <strong>{d.selection.selectedIds.length}</strong> moved · {d.selection.coveredFacets.length}{" "}
+                  facets · obj <strong>{d.selection.objective.toFixed(2)}</strong> (greedy floor{" "}
+                  {d.selection.greedyObjective.toFixed(2)})
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="axis-card">
+          <div className="axis-head">
+            <span className="axis-tag axis-truth">Truth</span>
+            <span className="axis-name">Predicate beam</span>
+          </div>
+          <label className="axis-control">
+            <span>
+              Beam width {d.beamWidth}
+              {d.beamWidth === 1 ? " · single clause" : " · search"}
+            </span>
+            <input
+              className="axis-range"
+              type="range"
+              min={1}
+              max={8}
+              step={1}
+              value={d.beamWidth}
+              onChange={(event) => d.setBeamWidth(Number(event.target.value))}
+            />
+          </label>
+          <div className="axis-readout axis-hint">
+            {d.beamWidth === 1
+              ? "Refine tries one clause (human / agent drives)."
+              : `Refine explores ${d.beamWidth} candidates; the objective keeps the best.`}
+          </div>
+          {d.beamCandidates && d.beamCandidates.length > 0 && (
+            <div className="beam-candidates">
+              {d.beamCandidates.map((candidate, index) => (
+                <div className={`beam-row${candidate.chosen ? " chosen" : ""}`} key={index}>
+                  <span className="beam-text">{candidate.text}</span>
+                  <span className="beam-metric">
+                    obj {candidate.objective.toFixed(2)} · cov {Math.round(candidate.coverage * 100)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 interface TabbedSectionProps {
   activeTab: string;
   hasRun: boolean;
@@ -328,6 +481,7 @@ interface TabbedSectionProps {
   docsPerSec: number;
   elapsedMs: number;
   latHistory: number[];
+  selectedIds: string[];
   onClickRefine: (chunkId: string, sign: "+" | "-") => Promise<void>;
 }
 
@@ -343,6 +497,7 @@ function TabbedSection({
   docsPerSec,
   elapsedMs,
   latHistory,
+  selectedIds,
   onClickRefine,
 }: TabbedSectionProps) {
   const [tab, setTab] = useState<"results" | "analytics" | "facets">("results");
@@ -369,7 +524,13 @@ function TabbedSection({
 
       <div className="tab-panel">
         {tab === "results" && (
-          <ResultList results={results} threshold={threshold} hasRun={hasRun} onClickRefine={onClickRefine} />
+          <ResultList
+            results={results}
+            threshold={threshold}
+            hasRun={hasRun}
+            selectedIds={selectedIds}
+            onClickRefine={onClickRefine}
+          />
         )}
         {tab === "analytics" && (
           <AnalyticsPanel
@@ -391,13 +552,16 @@ function ResultList({
   results,
   threshold,
   hasRun,
+  selectedIds,
   onClickRefine,
 }: {
   results: CachedScore[];
   threshold: number;
   hasRun: boolean;
+  selectedIds: string[];
   onClickRefine: (chunkId: string, sign: "+" | "-") => Promise<void>;
 }) {
+  const selected = new Set(selectedIds);
   if (!hasRun) {
     return (
       <div className="panel-empty">
@@ -420,8 +584,12 @@ function ResultList({
     <div className="results-list">
       {results.map((result) => {
         const matched = result.score >= threshold;
+        const isSelected = selected.has(result.chunk_id);
         return (
-          <article className={`result-row${matched ? " matched" : ""}`} key={result.chunk_id}>
+          <article
+            className={`result-row${matched ? " matched" : ""}${isSelected ? " selected" : ""}`}
+            key={result.chunk_id}
+          >
             <div className="result-score">
               <div className="score-value">{result.score.toFixed(2)}</div>
               <div className="score-bar">

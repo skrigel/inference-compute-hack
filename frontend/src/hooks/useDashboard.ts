@@ -9,7 +9,17 @@ import {
   recutHistogram,
   type CachedScore,
 } from "../lib/scoreCache";
-import type { Chip, Facets, FreshDocument, HistogramBin, QueryEvent, RefineEvent } from "../lib/types";
+import { selectFromCache } from "../lib/computeLab";
+import type {
+  BeamCandidate,
+  Chip,
+  Facets,
+  FreshDocument,
+  HistogramBin,
+  QueryEvent,
+  RefineEvent,
+  Selection,
+} from "../lib/types";
 
 export type LatencyKind = "cold" | "warm" | "cached";
 export type Tab = "rel" | "foot" | "perf";
@@ -59,6 +69,7 @@ export function useDashboard(seedQuery: string) {
   const refineAbortRef = useRef<AbortController | null>(null);
   const chipSnapshotsRef = useRef(new Map<string, CachedScore[]>());
   const thresholdRef = useRef(0.5);
+  const computeBudgetRef = useRef(1);
   const seededRef = useRef(false);
 
   const [predicate, setPredicate] = useState(seedQuery);
@@ -76,6 +87,17 @@ export function useDashboard(seedQuery: string) {
   const [view, setView] = useState<DashboardView>(EMPTY_VIEW);
   const [chips, setChips] = useState<Chip[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>("rel");
+  // Axis 1 (Memory): compute budget + the resulting corpus scope.
+  const [computeBudget, setComputeBudgetState] = useState(1);
+  const [corpusScope, setCorpusScope] = useState<{ total: number; scored: number }>({ total: 0, scored: 0 });
+  // Axis 3 (Truth): beam width over predicate combinations + explored candidates.
+  const [beamWidth, setBeamWidth] = useState(1);
+  const [beamCandidates, setBeamCandidates] = useState<BeamCandidate[] | null>(null);
+  // Axis 2 (Movement): selection controls + the resulting selected set.
+  const [precisionTarget, setPrecisionTarget] = useState(0.85);
+  const [movementBudget, setMovementBudget] = useState(5);
+  const [selectionBeamWidth, setSelectionBeamWidth] = useState(4);
+  const [selection, setSelection] = useState<Selection | null>(null);
 
   const pushLatency = useCallback((ms: number) => {
     setLatHistory((prev) => [...prev, ms].slice(-16));
@@ -94,6 +116,8 @@ export function useDashboard(seedQuery: string) {
       setStreaming(true);
       setScanned(0);
       setEtaMs(0);
+      setSelection(null);
+      setBeamCandidates(null);
       setView(EMPTY_VIEW);
 
       const startedAt = performance.now();
@@ -109,6 +133,9 @@ export function useDashboard(seedQuery: string) {
         if (event.type === "aggregate") {
           setScanned(event.scanned);
           setEtaMs(event.eta_ms);
+          if (event.corpus_total !== undefined && event.corpus_scored !== undefined) {
+            setCorpusScope({ total: event.corpus_total, scored: event.corpus_scored });
+          }
           setView(viewFromCache(cacheRef.current, thresholdRef.current));
           return;
         }
@@ -116,6 +143,9 @@ export function useDashboard(seedQuery: string) {
           const ms = event.elapsed_ms || Math.round(performance.now() - startedAt);
           setElapsedMs(ms);
           setScanned(event.scanned);
+          if (event.corpus_total !== undefined && event.corpus_scored !== undefined) {
+            setCorpusScope({ total: event.corpus_total, scored: event.corpus_scored });
+          }
           setDocsPerSec(ms ? Math.round((event.scanned / ms) * 1000) : 0);
           setView(viewFromCache(cacheRef.current, thresholdRef.current));
           setLatencyMs(ms);
@@ -126,7 +156,11 @@ export function useDashboard(seedQuery: string) {
 
       try {
         await api.query(
-          { predicate: nextPredicate, threshold: thresholdRef.current },
+          {
+            predicate: nextPredicate,
+            threshold: thresholdRef.current,
+            compute_budget: computeBudgetRef.current,
+          },
           onEvent,
           controller.signal,
         );
@@ -154,6 +188,10 @@ export function useDashboard(seedQuery: string) {
 
   const applyRefineEvent = useCallback(
     (event: RefineEvent, snapshot: CachedScore[]) => {
+      if (event.type === "beam") {
+        setBeamCandidates(event.candidates);
+        return;
+      }
       if (event.type === "chip") {
         chipSnapshotsRef.current.set(event.chip.clause_id, snapshot);
         setChips((prev) => [...prev, event.chip]);
@@ -191,6 +229,7 @@ export function useDashboard(seedQuery: string) {
       const controller = new AbortController();
       refineAbortRef.current = controller;
       const snapshot = cacheRef.current.all();
+      setBeamCandidates(null);
       setRefining(true);
       try {
         await api.refine(request, (event) => {
@@ -208,9 +247,9 @@ export function useDashboard(seedQuery: string) {
     async (utterance: string) => {
       const trimmed = utterance.trim();
       if (!trimmed) return;
-      await runRefineRequest({ utterance: trimmed });
+      await runRefineRequest({ utterance: trimmed, beam_width: beamWidth });
     },
-    [runRefineRequest],
+    [runRefineRequest, beamWidth],
   );
 
   const runClickRefine = useCallback(
@@ -275,6 +314,44 @@ export function useDashboard(seedQuery: string) {
     [],
   );
 
+  // Axis 1 (Memory): set the compute budget (corpus fraction scored per query).
+  const setComputeBudget = useCallback((next: number) => {
+    const clamped = Math.max(0.05, Math.min(1, next));
+    computeBudgetRef.current = clamped;
+    setComputeBudgetState(clamped);
+  }, []);
+
+  // Re-run the current query (used after committing a new compute budget).
+  const rescan = useCallback(() => {
+    void runQuery(predicate);
+  }, [runQuery, predicate]);
+
+  // Axis 2 (Movement) — Mode A: auto-threshold to the precision target. Pure
+  // recut over the client cache (zero inference), then mark the selected set.
+  const autoThreshold = useCallback(() => {
+    const result = selectFromCache(cacheRef.current.all(), {
+      mode: "threshold",
+      precisionTarget,
+      movementBudget,
+      beamWidth: selectionBeamWidth,
+    });
+    setThreshold(result.threshold);
+    setSelection(result);
+  }, [precisionTarget, movementBudget, selectionBeamWidth, setThreshold]);
+
+  // Axis 2 (Movement) — Mode B: max-coverage beam selection over the survivors.
+  const smartSelect = useCallback(() => {
+    const result = selectFromCache(cacheRef.current.all(), {
+      mode: "smart",
+      precisionTarget,
+      movementBudget,
+      beamWidth: selectionBeamWidth,
+    });
+    setSelection(result);
+  }, [precisionTarget, movementBudget, selectionBeamWidth]);
+
+  const clearSelection = useCallback(() => setSelection(null), []);
+
   useEffect(() => {
     // Guard against React StrictMode's double mount-invoke firing the seed query twice.
     if (seededRef.current) return;
@@ -309,6 +386,26 @@ export function useDashboard(seedQuery: string) {
     removeChip,
     ingestFreshFiles,
     ingestCorpus,
+    // Axis 1 (Memory)
+    computeBudget,
+    setComputeBudget,
+    corpusScope,
+    rescan,
+    // Axis 3 (Truth)
+    beamWidth,
+    setBeamWidth,
+    beamCandidates,
+    // Axis 2 (Movement)
+    precisionTarget,
+    setPrecisionTarget,
+    movementBudget,
+    setMovementBudget,
+    selectionBeamWidth,
+    setSelectionBeamWidth,
+    selection,
+    autoThreshold,
+    smartSelect,
+    clearSelection,
     mode: api.mode,
   };
 }

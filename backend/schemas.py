@@ -40,6 +40,10 @@ class FreshDocument(BaseModel):
 class QueryRequest(BaseModel):
     predicate: str
     threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    # Axis 1 (Memory): fraction of the corpus scored this query. 1.0 = whole
+    # corpus; lower budgets score a prefix of the corpus. The corpus in scope
+    # grows linearly with this compute budget.
+    compute_budget: float = Field(default=1.0, gt=0.0, le=1.0)
 
 
 class ClickRequest(BaseModel):
@@ -56,6 +60,10 @@ class RefineRequest(BaseModel):
     utterance: str | None = None
     click: ClickRequest | None = None
     brush: BrushRequest | None = None
+    # Axis 3 (Truth): beam_width = 1 tries one clause (human/agent driven);
+    # beam_width > 1 explores N candidate clauses and the objective function
+    # selects the best (Mode 3).
+    beam_width: int = Field(default=1, ge=1, le=16)
 
 
 class FacetBucket(BaseModel):
@@ -119,6 +127,10 @@ class AggregateEvent(BaseModel):
     facets: dict[str, list[FacetBucket]]
     threshold: float
     eta_ms: int
+    # Axis 1 (Memory): how much of the corpus is in scope for this compute budget.
+    corpus_total: int = 0
+    corpus_scored: int = 0
+    compute_budget: float = 1.0
 
 
 class DoneEvent(BaseModel):
@@ -128,6 +140,10 @@ class DoneEvent(BaseModel):
     elapsed_ms: int
     warm: bool
     summary: str
+    # Axis 1 (Memory): corpus scope for this compute budget.
+    corpus_total: int = 0
+    corpus_scored: int = 0
+    compute_budget: float = 1.0
 
 
 class Chip(BaseModel):
@@ -155,6 +171,24 @@ class DiffEvent(BaseModel):
     refine_ms: int
 
 
+class BeamCandidate(BaseModel):
+    text: str
+    objective: float
+    coverage: float
+    selected: int
+    chosen: bool
+
+
+class BeamEvent(BaseModel):
+    # Axis 3 (Truth): the explored predicate vocabulary and the objective-selected
+    # winner for a beam_width > 1 refine.
+    type: Literal["beam"] = "beam"
+    beam_width: int
+    candidates: list[BeamCandidate]
+    chosen_index: int
+    refine_ms: int
+
+
 class IngestResponse(BaseModel):
     corpus_id: str
     n_chunks: int
@@ -174,3 +208,26 @@ class ResultsResponse(BaseModel):
 class ClauseDeleteResponse(BaseModel):
     removed: bool
     refine_ms: int
+
+
+class SelectRequest(BaseModel):
+    # Axis 2 (Movement). "threshold" = Mode A auto-threshold to a precision
+    # target; "smart" = Mode B max-coverage beam search over output subsets.
+    mode: Literal["threshold", "smart"] = "threshold"
+    precision_target: float = Field(default=0.85, ge=0.0, le=1.0)
+    movement_budget: int = Field(default=5, ge=1, le=100)
+    beam_width: int = Field(default=4, ge=1, le=64)
+
+
+class SelectResponse(BaseModel):
+    mode: Literal["threshold", "smart"]
+    threshold: float
+    selected_ids: list[str]
+    selected_count: int
+    covered_facets: list[str] = Field(default_factory=list)
+    objective: float = 0.0
+    greedy_objective: float = 0.0
+    movement_budget: int = 0
+    beam_width: int = 1
+    candidate_pool: int = 0
+    refine_ms: int = 0

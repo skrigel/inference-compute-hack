@@ -1,6 +1,8 @@
 import {
   HIST_BINS,
   type AggregateEvent,
+  type BeamCandidate,
+  type BeamEvent,
   type DoneEvent,
   type Facets,
   type FacetBucket,
@@ -15,6 +17,7 @@ import {
   type ResultEvent,
 } from "./types";
 import { classifyRefine } from "./classify";
+import { facetTokens } from "./computeLab";
 
 // Stagger between streamed results so the dashboard visibly fills on mock —
 // ~24 results x 28ms ≈ a ~700ms "cold" scan feel, matching the demo fallback.
@@ -148,7 +151,16 @@ export async function* queryMock(
   signal?: AbortSignal,
 ): AsyncGenerator<QueryEvent> {
   const startedAt = Date.now();
-  const results = mockResults();
+  const allItems = mockItems();
+  // Axis 1 (Memory): score only the budgeted prefix of the corpus.
+  const budget = Math.min(1, Math.max(0, request.compute_budget ?? 1));
+  const inScope =
+    budget >= 1 ? allItems.length : Math.min(allItems.length, Math.max(1, Math.ceil(budget * allItems.length)));
+  const scopedItems = allItems.slice(0, inScope);
+  const results = [...scopedItems]
+    .sort((a, b) => b.score - a.score)
+    .map((item, index) => toResult(item, index));
+  const corpus = { total: allItems.length, scored: results.length, budget };
   // Stream EVERY scored chunk best-first (like the backend) so the client cache
   // is complete and threshold drag is a pure recut.
   for (const result of results) {
@@ -158,7 +170,7 @@ export async function* queryMock(
   }
 
   const matched = results.filter((result) => result.score >= request.threshold);
-  yield makeAggregate(matched, request.threshold);
+  yield makeAggregate(matched, request.threshold, results, corpus);
 
   yield {
     type: "done",
@@ -167,6 +179,9 @@ export async function* queryMock(
     elapsed_ms: Date.now() - startedAt,
     warm: false,
     summary: `${results.length} scanned · ${matched.length} matched`,
+    corpus_total: corpus.total,
+    corpus_scored: corpus.scored,
+    compute_budget: corpus.budget,
   } satisfies DoneEvent;
 }
 
@@ -176,7 +191,16 @@ export async function* refineMock(
 ): AsyncGenerator<RefineEvent> {
   const startedAt = Date.now();
   const results = mockResults();
-  const { operation, text, confidence } = refineIntent(request);
+  // Axis 3 (Truth): beam_width > 1 explores candidate clauses and the objective
+  // function selects the winner before the usual chip/diff/aggregate/done.
+  let effectiveRequest = request;
+  let beamEvent: BeamEvent | null = null;
+  if (request.utterance && (request.beam_width ?? 1) > 1) {
+    const beam = mockBeam(request.utterance, request.beam_width as number, results);
+    beamEvent = beam.event;
+    effectiveRequest = { ...request, utterance: beam.winnerText };
+  }
+  const { operation, text, confidence } = refineIntent(effectiveRequest);
   const clauseId = `m-c${clauseSeq++}`;
   const chip = {
     clause_id: clauseId,
@@ -187,11 +211,16 @@ export async function* refineMock(
     confidence,
   };
   const refineMs = request.click ? 4 : 180;
-  const diff = makeRefineDiff(request, results);
+  const diff = makeRefineDiff(effectiveRequest, results);
   const nextResults = applyMockDiff(results, diff);
   const matched = nextResults.filter((result) => result.score >= 0.5);
 
   if (signal?.aborted) return;
+  if (beamEvent) {
+    yield beamEvent;
+    await sleep(60);
+    if (signal?.aborted) return;
+  }
   yield {
     type: "chip",
     operation,
@@ -211,6 +240,60 @@ export async function* refineMock(
     warm: true,
     summary: `${diff.rescored.length} rescored · ${matched.length} matched`,
   } satisfies DoneEvent;
+}
+
+// Axis 3 (Truth): a deterministic mock of the candidate-clause beam search.
+// Candidate 0 is the raw utterance; the rest are facet-narrowed variants drawn
+// from the survivors. Narrowing trades coverage for precision (objective).
+function mockBeam(
+  utterance: string,
+  beamWidth: number,
+  results: ResultEvent[],
+): { event: BeamEvent; winnerText: string } {
+  const survivors = results.filter((result) => result.score >= 0.5);
+  const base = utterance.trim();
+  const counts = new Map<string, number>();
+  for (const result of survivors) {
+    for (const token of facetTokens(result.meta)) counts.set(token, (counts.get(token) ?? 0) + 1);
+  }
+  const variants = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([token]) => {
+      const [name, value] = token.split(":");
+      return `${base} (${name} ${value})`;
+    });
+  const texts = [base, ...variants].slice(0, Math.max(1, beamWidth));
+  const round = (value: number) => Math.round(value * 1000) / 1000;
+  const baseObjective = survivors.length
+    ? survivors.reduce((sum, result) => sum + result.score, 0) / survivors.length
+    : 0;
+  const candidates: BeamCandidate[] = texts.map((candidateText, index) => {
+    if (index === 0) {
+      return { text: candidateText, objective: round(baseObjective), coverage: 1, selected: survivors.length, chosen: false };
+    }
+    const coverage = Math.max(0.2, 1 - 0.15 * index);
+    const objective = Math.min(0.99, baseObjective + 0.05 * index);
+    return {
+      text: candidateText,
+      objective: round(objective),
+      coverage: round(coverage),
+      selected: Math.round(coverage * survivors.length),
+      chosen: false,
+    };
+  });
+  let chosenIndex = 0;
+  let best = -1;
+  candidates.forEach((candidate, index) => {
+    if (candidate.coverage >= 0.2 && candidate.objective > best) {
+      best = candidate.objective;
+      chosenIndex = index;
+    }
+  });
+  candidates[chosenIndex].chosen = true;
+  return {
+    event: { type: "beam", beam_width: beamWidth, candidates, chosen_index: chosenIndex, refine_ms: 120 },
+    winnerText: texts[chosenIndex],
+  };
 }
 
 export async function deleteClauseMock(_clauseId: string): Promise<{ removed: boolean; refine_ms: number }> {
@@ -267,13 +350,17 @@ function applyMockDiff(results: ResultEvent[], diff: Omit<DiffEvent, "refine_ms"
     .map((result) => ({ ...result, score: rescored.get(result.chunk_id) ?? result.score }));
 }
 
-function makeAggregate(matched: ResultEvent[], threshold: number): AggregateEvent {
-  const results = mockResults();
+function makeAggregate(
+  matched: ResultEvent[],
+  threshold: number,
+  scored: ResultEvent[] = mockResults(),
+  corpus?: { total: number; scored: number; budget: number },
+): AggregateEvent {
   return {
     type: "aggregate",
-    scanned: results.length,
+    scanned: scored.length,
     matched: matched.length,
-    histogram: makeHistogram(results),
+    histogram: makeHistogram(scored),
     facets: {
       type: makeFacet("type", matched),
       category: makeFacet("category", matched),
@@ -281,6 +368,9 @@ function makeAggregate(matched: ResultEvent[], threshold: number): AggregateEven
     },
     threshold,
     eta_ms: 0,
+    corpus_total: corpus?.total ?? scored.length,
+    corpus_scored: corpus?.scored ?? scored.length,
+    compute_budget: corpus?.budget ?? 1,
   };
 }
 

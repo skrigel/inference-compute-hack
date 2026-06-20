@@ -537,6 +537,93 @@ over a tuned FAISS/neural embedding production RAG stack.
 - rollback: set `VLLM_PRIORITY_RESERVED=0` and `VLLM_ROUTING_MODE=round_robin`
   (production scoring correctness is unaffected either way).
 
+### OPT-MODAL-001-CODEX-RAG-VALIDATION: Post-Merge Modal Optimization Validation
+
+- status: rejected
+- owner: codex
+- date: 2026-06-20
+- commit: `7a090a9`
+- artifacts:
+  - `eval/artifacts/experiment_results/OPT-MODAL-001-CODEX-RAG-VALIDATION/config.json`
+  - `eval/artifacts/experiment_results/OPT-MODAL-001-CODEX-RAG-VALIDATION/aggregated.json`
+  - `eval/artifacts/experiment_results/OPT-MODAL-001-CODEX-RAG-VALIDATION/scaling_analysis.json`
+  - `eval/artifacts/experiment_results/OPT-MODAL-001-CODEX-RAG-VALIDATION/candidate_h100_rag_matrix.json`
+  - `eval/artifacts/experiment_summaries/OPT-MODAL-001-CODEX-RAG-VALIDATION_summary.md`
+- Weave run/eval: not uploaded in this pass; local artifact is frozen and ready
+  for `python -m eval.upload_weave_results` if we want this rejected run in Weave.
+- hypothesis: after the merged vLLM scheduling/replication work, the current Modal
+  path should preserve or improve the Phase 04 baseline, with the clearest wins
+  expected on 6-H100 static and concurrent workloads where data-parallel replicas
+  and prefix caching can amortize prefill work.
+- change: ran the standard benchmark on current `main` with Modal vLLM `0.22.1`,
+  compact prompts, prefix caching, MFU metrics, `--gpu-memory-utilization 0.92`,
+  `--max-num-batched-tokens 8192`, 1-H100 and 6-H100 workloads, and the RAG size
+  ladder `7`, `100`, `1_000`, `10_000`, `25_000`, `100_000`.
+- expected mechanism: six replicas should increase aggregate request capacity;
+  prefix caching should reduce repeated static prompt prefill; compact prompts and
+  larger batching limits should reduce per-request prefill overhead; MFU/GPU
+  utilization should expose whether the run is saturating the chips.
+
+#### Quality Gate
+
+- precision: not rerun
+- recall: not rerun
+- F1: not rerun; Phase 04 gate remains the last recorded gate
+- threshold: unchanged
+- verdict: not rerun
+
+#### Performance Delta
+
+| workload | H100s | baseline req/s | candidate req/s | delta | verdict |
+|---|---:|---:|---:|---:|---|
+| single_user_static | 1 | 78.544 | 68.831 | -12.366% | regression |
+| single_user_static | 6 | 441.056 | 499.236 | 13.191% | improved |
+| multi_user_static | 1 | 208.341 | 226.626 | 8.776% | improved |
+| multi_user_static | 6 | 1351.971 | 1247.423 | -7.733% | regression |
+| single_user_dynamic | 1 | 72.296 | 66.572 | -7.919% | regression |
+| single_user_dynamic | 6 | 419.784 | 448.919 | 6.940% | improved |
+| multi_user_dynamic | 1 | 301.459 | 260.994 | -13.423% | regression |
+| multi_user_dynamic | 6 | 1762.192 | 1520.485 | -13.716% | regression |
+
+#### Utilization Snapshot
+
+| workload | H100s | baseline GPU util mean | candidate GPU util mean | delta | verdict |
+|---|---:|---:|---:|---:|---|
+| single_user_static | 6 | 12.750% | 15.833% | 24.183% | improved |
+| single_user_dynamic | 6 | 15.639% | 16.083% | 2.842% | neutral |
+| multi_user_static | 6 | 11.417% | 8.500% | -25.547% | regression |
+| multi_user_dynamic | 6 | 19.417% | 22.167% | 14.163% | improved |
+
+#### RAG Scaling
+
+| transition | retrieve latency factor | fresh-file latency factor |
+|---|---:|---:|
+| 7 -> 100 docs | 4.295x | 10.405x |
+| 100 -> 1,000 docs | 8.427x | 8.083x |
+| 1,000 -> 10,000 docs | 10.115x | 9.594x |
+| 10,000 -> 25,000 docs | 2.555x | 2.495x |
+| 25,000 -> 100,000 docs | 3.999x | 4.036x |
+
+#### Summary
+
+- caveats:
+  - Baseline and candidate are both n=1, so variance and p-values are not useful.
+  - Warmup was not excluded; several 6-H100 workers spent roughly 83-99 seconds in
+    vLLM initialization, CUDA graph capture, and KV-cache setup.
+  - vLLM logged Triton JIT compilation for `_compute_slot_mapping_kernel` during
+    measured inference, inflating latency-tail risk.
+  - Modal worker startup variance and `resource_tracker` leaked-semaphore warnings
+    appeared in logs; no request errors were observed.
+  - Quality, precision, recall, and F1 were not rerun.
+- regression threshold: 5.0%.
+- decision: reject as a global replacement. Keep the 6-H100 single-user static and
+  dynamic wins as promising signals, but fix multi-user regressions before accepting.
+- next action: run at least 3 repetitions with prewarmed workers, warmup excluded,
+  and measured-shape warmup; then tune multi-user dynamic scheduling and utilization.
+- rollback: this is an artifact-only validation entry. If current runtime knobs are
+  suspected in production, compare against the frozen Phase 04 baseline config and
+  disable scheduling/routing knobs before re-testing.
+
 ## Bottlenecks To Target Next
 
 | bottleneck | evidence | next optimization |

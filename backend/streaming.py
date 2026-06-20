@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 import time
 from collections.abc import AsyncIterator, Iterable, Iterator
@@ -33,6 +34,7 @@ async def query_stream(
     cache: ScoreCache,
     batch_size: int = BATCH_SIZE,
     tier: int = 1,
+    compute_budget: float = 1.0,
 ) -> AsyncIterator[StreamEvent]:
     """Score the corpus in batches and stream results best-first with running aggregates.
 
@@ -41,16 +43,27 @@ async def query_stream(
     its threshold re-cut is a pure client-side computation with zero inference.
     A running ``aggregate`` is emitted after each batch (histogram + facets +
     matched + ETA), then a terminal ``done``.
+
+    Axis 1 (Memory): ``compute_budget`` (0 < b <= 1) scores only the first
+    ``ceil(b * N)`` chunks — the corpus in scope grows linearly with compute.
     """
     started = time.perf_counter()
-    by_id = {chunk.chunk_id: chunk for chunk in chunks}
-    total = len(chunks)
+    corpus_total = len(chunks)
+    budget = min(1.0, max(0.0, compute_budget))
+    in_scope = (
+        corpus_total
+        if budget >= 1.0
+        else min(corpus_total, max(1, math.ceil(budget * corpus_total)))
+    )
+    scoped_chunks = chunks[:in_scope]
+    by_id = {chunk.chunk_id: chunk for chunk in scoped_chunks}
+    total = len(scoped_chunks)
     scanned = 0
     rank = 0
     ema_batch_ms: float | None = None
     seen_scores: dict[str, ScoreResult] = {}
 
-    for batch in _chunked(chunks, max(1, batch_size)):
+    for batch in _chunked(scoped_chunks, max(1, batch_size)):
         batch_start = time.perf_counter()
         candidate_ids = {chunk.chunk_id for chunk in batch}
         missing = cache.missing(clause_id, candidate_ids)
@@ -98,6 +111,9 @@ async def query_stream(
             facets=facet_summary(scored_chunks, seen_scores, threshold),
             threshold=threshold,
             eta_ms=eta_ms,
+            corpus_total=corpus_total,
+            corpus_scored=total,
+            compute_budget=budget,
         )
 
     if total == 0:
@@ -110,6 +126,9 @@ async def query_stream(
             facets=facet_summary([], {}, threshold),
             threshold=threshold,
             eta_ms=0,
+            corpus_total=corpus_total,
+            corpus_scored=0,
+            compute_budget=budget,
         )
 
     elapsed_ms = int((time.perf_counter() - started) * 1000.0)
@@ -120,4 +139,7 @@ async def query_stream(
         elapsed_ms=elapsed_ms,
         warm=False,
         summary=f"{total:,} scanned · {matched:,} matched",
+        corpus_total=corpus_total,
+        corpus_scored=total,
+        compute_budget=budget,
     )
