@@ -23,6 +23,7 @@ export function SearchPage() {
   const [loading, setLoading] = useState(true);
   const [previewResult, setPreviewResult] = useState<CachedScore | null>(null);
   const [pageMode, setPageMode] = useState<PageMode>("browse");
+  const [ingested, setIngested] = useState(false);
   const d = useDashboard();
 
   useEffect(() => {
@@ -31,24 +32,29 @@ export function SearchPage() {
       return;
     }
 
-    db.corpora.get(corpusId).then(async (c) => {
+    db.corpora.get(corpusId).then((c) => {
       if (!c) {
         navigate("/library");
         return;
       }
       setCorpus(c);
-
-      // Ingest the corpus (warm the mock/live data)
-      const limit = corpusId === "browsecomp" ? 1000 : undefined;
-      await d.ingestCorpus(corpusId as "demo" | "browsecomp", limit);
-
       setLoading(false);
 
       // Update lastUsedAt
       db.corpora.put({ ...c, lastUsedAt: Date.now() });
       db.preferences.set("lastCorpusId", corpusId);
     });
-  }, [corpusId, navigate, d]);
+  }, [corpusId, navigate]);
+
+  // Ingest corpus once when entering page
+  useEffect(() => {
+    if (!corpusId || ingested || loading) return;
+
+    const limit = corpusId === "browsecomp" ? 1000 : undefined;
+    d.ingestCorpus(corpusId as "demo" | "browsecomp", limit).then(() => {
+      setIngested(true);
+    });
+  }, [corpusId, ingested, loading, d.ingestCorpus]);
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
