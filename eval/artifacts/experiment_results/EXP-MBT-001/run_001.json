@@ -1,0 +1,21 @@
+{
+  "exp_id": "EXP-MBT-001",
+  "num_requests": 128,
+  "concurrency": 32,
+  "max_num_batched_tokens": 12288,
+  "dataset_mode": "dynamic",
+  "elapsed_s": 0.9642647570003646,
+  "requests_per_s": 132.74362572182196,
+  "latency_ms_p50": 182.93576500013842,
+  "latency_ms_p95": 503.857690200084,
+  "latency_ms_p99": 648.9625311101782,
+  "gpu_utilization_pct_mean": 51.5,
+  "gpu_memory_used_mb_max": 74047.0,
+  "gpu_power_w_mean": 121.215,
+  "gpu_sample_count": 4,
+  "vllm_version": "0.6.6.post1",
+  "model": "Qwen/Qwen2.5-3B-Instruct-AWQ",
+  "gpu": "H100_80GB",
+  "provider": "lambdalabs",
+  "timestamp": "2026-06-20T19:21:44Z"
+}

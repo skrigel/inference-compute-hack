@@ -1,0 +1,23 @@
+{
+  "exp_id": "EXP-FP8-001",
+  "num_requests": 128,
+  "concurrency": 32,
+  "max_num_batched_tokens": 12288,
+  "kv_cache_dtype": "fp8",
+  "dataset_mode": "dynamic",
+  "elapsed_s": 1.040806165000049,
+  "requests_per_s": 122.98159283097056,
+  "latency_ms_p50": 219.62754849982957,
+  "latency_ms_p95": 501.35374905005364,
+  "latency_ms_p99": 557.4988693900424,
+  "gpu_utilization_pct_mean": 36.0,
+  "gpu_memory_used_mb_max": 74103.0,
+  "gpu_power_w_mean": 113.4975,
+  "gpu_sample_count": 4,
+  "vllm_version": "0.6.6.post1",
+  "model": "Qwen/Qwen2.5-3B-Instruct-AWQ",
+  "gpu": "H100_80GB",
+  "provider": "lambdalabs",
+  "timestamp": "2026-06-20T19:29:46Z",
+  "notes": "FP8 KV cache with AWQ-quantized model shows lower throughput than baseline, possibly due to conversion overhead"
+}

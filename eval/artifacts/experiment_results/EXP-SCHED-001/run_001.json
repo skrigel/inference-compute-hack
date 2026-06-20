@@ -1,0 +1,21 @@
+{
+  "exp_id": "EXP-SCHED-001",
+  "num_requests": 128,
+  "batch_size": 32,
+  "accumulate_ms": 15,
+  "elapsed_s": 1.0316348679998555,
+  "requests_per_s": 124.07490670431463,
+  "latency_ms_p50": 164.6299845001522,
+  "latency_ms_p95": 231.2419158498414,
+  "latency_ms_p99": 240.24242846010566,
+  "gpu_utilization_pct_mean": 38.0,
+  "gpu_memory_used_mb_max": 74033.0,
+  "gpu_power_w_mean": 114.975,
+  "gpu_sample_count": 4,
+  "vllm_version": "0.6.6.post1",
+  "model": "Qwen/Qwen2.5-3B-Instruct-AWQ",
+  "gpu": "H100_80GB",
+  "provider": "lambdalabs",
+  "timestamp": "2026-06-20T19:51:56Z",
+  "notes": "Time-window scheduling with 15ms batch accumulation - lower throughput but much more consistent latencies"
+}

@@ -1,0 +1,21 @@
+{
+  "exp_id": "EXP-LENBIN-001",
+  "num_requests": 128,
+  "concurrency": 32,
+  "length_binned": true,
+  "elapsed_s": 0.9963046190005116,
+  "requests_per_s": 128.47476319883876,
+  "latency_ms_p50": 198.82845900019674,
+  "latency_ms_p95": 384.106453949971,
+  "latency_ms_p99": 583.6316491500748,
+  "gpu_utilization_pct_mean": 36.25,
+  "gpu_memory_used_mb_max": 74371.0,
+  "gpu_power_w_mean": 148.1325,
+  "gpu_sample_count": 4,
+  "vllm_version": "0.6.6.post1",
+  "model": "Qwen/Qwen2.5-3B-Instruct-AWQ",
+  "gpu": "H100_80GB",
+  "provider": "lambdalabs",
+  "timestamp": "2026-06-20T19:59:28Z",
+  "notes": "Length-binned requests - groups similar-length prompts, shows improved tail latencies"
+}
