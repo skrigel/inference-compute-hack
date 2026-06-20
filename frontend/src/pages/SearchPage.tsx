@@ -35,7 +35,8 @@ export function SearchPage() {
       const limit = newCorpus === "browsecomp" ? 1000 : undefined;
       await d.ingestCorpus(newCorpus, limit);
       setActiveCorpus(newCorpus);
-      await d.runQuery(d.predicate);
+      // Do NOT auto-run the query on corpus switch — the corpus is ingested/warmed
+      // here, but scanning only happens when the user presses Scan (onSubmit).
     } finally {
       setSwitchingCorpus(false);
     }

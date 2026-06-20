@@ -74,7 +74,7 @@ BENCHMARK_PROMPT_VARIANT = os.environ.get("BENCHMARK_PROMPT_VARIANT", "compact")
 
 # vLLM engine configuration per PLAN.md and REFINEMENTS.md
 VLLM_ENGINE_KWARGS: dict[str, Any] = {
-    "max_model_len": 4096,           # PLAN §5: context window
+    "max_model_len": _env_int("MAX_MODEL_LEN", 32768),  # Qwen2.5-3B native max; raised from 4096 to fit long web docs (browsecomp)
     "max_num_seqs": 256,             # concurrent sequences
     "max_num_batched_tokens": 8192,  # prefill throughput lever
     "quantization": "awq_marlin",    # AWQ 4-bit weights via Marlin kernels
