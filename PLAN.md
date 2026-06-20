@@ -97,11 +97,11 @@ This single hour is the highest-leverage time in the whole 24.
 
 ```mermaid
 flowchart LR
-  subgraph Frontend["frontend/  (React+Vite+Tailwind) — Owner C"]
-    UI[Dashboard: Histogram+threshold · FacetBars · ResultFeed · RefineBox · ChipRail · LatencyReadout]
+  subgraph Frontend["frontend/  (React+Vite+TypeScript) — Owner C"]
+    UI[Dashboard: Histogram+threshold · FacetBars · ResultFeed · LatencyReadout · Phase2 RefineBox/ChipRail]
   end
   subgraph Backend["backend/  (FastAPI async) — Owner B"]
-    API[/ingest /query /refine /results/]
+    API[/ingest /query /results now; /refine Phase2/]
     CL[clause.py · candidate-set scoping]
     CA[cache.py · (chunk_id,clause_id)→score]
     AG[aggregate.py · histogram + facets]
@@ -115,7 +115,7 @@ flowchart LR
   Data[(data/ corpus.jsonl + labels — Owner D)]
   Eval[eval/ bench + baseline/ RAG — Owner A/D]
 
-  UI <-->|two-channel SSE| API
+  UI <-->|single multiplexed SSE| API
   API --> CL --> CA
   API --> AG
   API --> CF
@@ -127,10 +127,10 @@ flowchart LR
   Eval --> SC
 ```
 
-**Stack:** vLLM (`enable_prefix_caching=True, max_tokens=1, logprobs=20`, continuous batching) ·
-FastAPI + async, single multiplexed SSE stream · React 18 + Vite 5 + Tailwind 3, virtualized feed
-(`react-window`) · raw chunks + score cache **in memory, no DB** · standard embeddings+FAISS RAG in
-`baseline/`, **eval only**.
+**Stack:** vLLM target (`enable_prefix_caching=True, max_tokens=1, logprobs=20`, continuous batching) ·
+FastAPI + async, single multiplexed SSE stream · React 19 + Vite 8 + TypeScript + plain CSS, capped
+best-first feed today · raw chunks + score cache **in memory, no DB** · standard embeddings+FAISS RAG
+in `baseline/`, **eval only**.
 
 ```
 grep-for-meaning/
@@ -143,7 +143,7 @@ grep-for-meaning/
     config.py        # SCORER_BACKEND swap point, make_scorer()
     serve.sh         # 6 single-GPU AWQ replicas (+ reserved Tier-2)
   backend/       # FastAPI                                               [OWNER B]
-    main.py          # /ingest /query /refine /results — single multiplexed SSE
+    main.py          # /ingest /query /results now; /refine next — single multiplexed SSE
     schemas.py       # pydantic wire models (import inference + data types)
     state.py         # in-memory SessionState (chunks, clause tree, caches)
     chunker.py       # raw → chunks (imports data/schema.chunk_id_of)
@@ -277,8 +277,9 @@ the "context window" claims that contradicted each other across the drafts.
 ### Owner B — `backend/`
 * Freeze `schemas.py` (import inference + data types) at H1.
 * `state.py` + `cache.py` + `/ingest` (chunk count + facets, kick warm) — H3–8.
-* `main.py` `/query` single multiplexed SSE + `streaming.py` (batch 256, best-first reorder window,
-  EMA ETA, `asyncio.Queue(maxsize=64)` backpressure: coalesce aggregates, never drop results) — H3–8.
+* `main.py` `/query` single multiplexed SSE + `streaming.py` (batch-size knob, 64 default for visible
+  progress, best-first reorder window, EMA ETA; add queue/coalescing backpressure when scaling beyond
+  demo corpus size) — H3–8.
 * `aggregate.py`: 20-bin histogram + `FacetBucket[]` with **both** relevant and total — H3–8.
 * `clause.py`: **build the four ops the demo needs** — `require`/`exclude` over survivors, chip
   removal recompute, one `refocus`. **Skip `include`-over-complement and rewrite-parent algebra unless
@@ -289,14 +290,14 @@ the "context window" claims that contradicted each other across the drafts.
   `DELETE /clause` (zero inference), fresh-file ingest path — H8–14.
 
 ### Owner C — `frontend/`
-* Scaffold Vite+React+TS+Tailwind; port the demo palette/fonts into Tailwind tokens; freeze
-  `lib/types.ts` against `CONTRACTS.md`; stub mock+live adapters with identical signatures — H0–3.
-* `mockAdapter.ts`: faithful TS port of the demo scorer + fake two-channel SSE timing
+* Scaffold Vite+React+TS; port the demo palette/fonts into plain CSS tokens; freeze `lib/types.ts`
+  against `CONTRACTS.md`; stub mock+live adapters with identical signatures — H0–3.
+* `mockAdapter.ts`: fixture-backed contract stream + fake single-stream SSE timing
   (cold ~820 ms, warm ~180 ms, cached ~6 ms) so the UI is fully demoable with **no backend** — H0–3.
-* `scoreCache.ts` + Zustand store + `streamPost()` (fetch + ReadableStream; **not** EventSource,
+* `scoreCache.ts` + hook-local state + `streamPost()` (fetch + ReadableStream; **not** EventSource,
   because /query and /refine are POSTs); `liveAdapter` auto-falls-back to mock on network error — H3–8.
 * Histogram with **client-side, zero-inference threshold recut** (unit test spies the adapter and fails
-  if a network call fires on drag), FacetBars, Counters, ResultFeed (`react-window`, memoized cards) —
+  if a network call fires on drag), FacetBars, Counters, capped ResultFeed —
   H3–8. **Demo-able by H8.**
 * RefineBox + ChipRail (optimistic removable chips), keep/drop → `/refine` click, LatencyReadout
   (cold/warm/cached tag + sparkline), Header drag-in fresh-file → `/ingest` → auto re-run — H8–14.
@@ -327,7 +328,7 @@ the real-vLLM swap is additive and never on the demo critical path.
 | Window | Goal | Milestone |
 |---|---|---|
 | **H0–3** | **Freeze `CONTRACTS.md`** (M0). Scaffold repo + `make` boot target. One `MockScorer` behind the frozen interface. `score.py`/`prompt.py` frozen. Stand up Qwen-3B-AWQ on the box + verify `logprobs=20` **and** the prefix-cache-hit assumption (30-min check). In parallel: RAG baseline + eval harness skeleton + BrowseComp slice ready. Frontend shell demoable on mock. | **M0**: contracts signed |
-| **H3–8** | Backend `/ingest` + `/query` two-channel SSE against mock (**M1**). Frontend `streamPost` consuming it (**M2**): histogram + draggable threshold (client-side zero-inference recut) + facet bars + virtualized feed + ETA. RAG index-build/retrieve timed. **Score-validation F1 gate on the box the moment vLLM serves logprobs** — GO/NO-GO; if F1<0.7 swap to Llama-3.1-8B-AWQ. | **M1, M2** |
+| **H3–8** | Backend `/ingest` + `/query` single multiplexed SSE against mock (**M1**). Frontend `streamPost` consuming it (**M2**): histogram + draggable threshold (client-side zero-inference recut) + facet bars + capped best-first feed + ETA. RAG index-build/retrieve timed. **Score-validation F1 gate on the box the moment vLLM serves logprobs** — GO/NO-GO; if F1<0.7 swap to Llama-3.1-8B-AWQ. | **M1, M2** |
 | **H8–14** | Refine loop end-to-end (**M3**): NL→chip→scoped re-score→diff, click-NOT, chip removal, `refine_ms` in LatencyReadout. Fresh-file drag-in → query instantly (background warm on drop). RAG side-by-side in eval. **Record canned SSE fixtures from the H8 build.** | **M3** |
 | **— H14: HARD CUT LINE —** | **Go/no-go:** `ingest → query → refine-in-place → threshold drag` works end-to-end (mock-backed if needed). If anything is shaky, **stop adding and polish exactly this loop.** Re-record canned fixtures for all beats. You are never left with nothing on stage. | **cut-line green** |
 | **H14–19** | Real `VLLMScorer` swap (**M4**), measure actual warm refine p50 (confirm 100–300 ms) + first-query warm-vs-cold + scoped-vs-full ratios; freeze eval-slide numbers. **Record the canned fixtures from a REAL vLLM run** so the fallback streams genuine latencies. Stretch: scale sweep / Tier-2 cascade — only if cut-line is solid. | **M4** |
@@ -526,7 +527,7 @@ latencies as measured.
 * **M1 (H~5):** `curl POST /query` against mock streams valid `result`+`aggregate`+`done` frames that
   validate against `schemas.py`.
 * **M2 (H~8):** frontend on mock SSE: query → histogram + facets + threshold drag (zero network on
-  drag, proven by test) + virtualized feed. **Demo-able.**
+  drag, proven by test) + capped best-first feed. **Demo-able.**
 * **M3 (H~14):** refine loop live on mock: NL→chip→scoped re-score→diff, click-NOT, chip removal,
   fresh-file ingest. **Cut-line green.**
 * **M4 (H~19):** `SCORER_BACKEND=vllm` on the box: F1 gate passed, warm refine p50 measured, canned

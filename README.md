@@ -55,27 +55,26 @@ cached per clause.
 
 ```mermaid
 flowchart LR
-  UI["frontend/ · React+Vite+Tailwind<br/>histogram+threshold · facets · feed · refine+chips"]
-  API["backend/ · FastAPI async<br/>/ingest /query /refine · clause engine · score cache · aggregates"]
-  SC["inference/ · ScorerClient<br/>MockScorer (GPU-free) | VLLMScorer (8×H100)"]
+  UI["frontend/ · React+Vite<br/>histogram+threshold · facets · feed"]
+  API["backend/ · FastAPI async<br/>/ingest /query /results · score cache · aggregates"]
+  SC["inference/ · ScorerClient<br/>MockScorer (GPU-free) | VLLMScorer (planned 8×H100)"]
   D[("data/ · corpus.jsonl + labels")]
   E["eval/ + baseline/ · bench, RAG comparison"]
-  UI <-->|two-channel SSE| API
+  UI <-->|single multiplexed SSE| API
   API -->|SCORER_BACKEND swap| SC
   D --> API
   D --> E
   E --> SC
 ```
 
-* **Frontend:** React 18 + Vite 5 + Tailwind 3; virtualized results feed (`react-window`); consumes a
+* **Frontend:** React 19 + Vite 8 + TypeScript + plain CSS; capped best-first results feed; consumes a
   single multiplexed SSE stream; the draggable histogram threshold re-cuts **cached** scores
   client-side with zero inference.
-* **Backend:** FastAPI async; `/ingest /query /refine /results`; clause engine with candidate-set
-  scoping; in-memory raw chunks + score cache (**no DB** — aligned with the recompute-over-store
-  thesis).
-* **Inference:** one `ScorerClient` interface, two implementations — a deterministic GPU-free
-  `MockScorer` for local dev, and a `VLLMScorer` (6 data-parallel AWQ replicas) for the H100 box.
-  Swap with one env var.
+* **Backend:** FastAPI async; Phase 1 implements `/ingest`, `/query`, and `/results`; in-memory raw
+  chunks + score cache (**no DB** — aligned with the recompute-over-store thesis). `/refine` and the
+  clause engine are the next phase.
+* **Inference:** one `ScorerClient` interface with a deterministic GPU-free `MockScorer` for local dev.
+  The real `VLLMScorer`/H100 swap is planned after the Phase 1 mock-backed loop is stable.
 * **Eval:** `baseline/rag.py` is a standard embeddings+FAISS pipeline used **only** to time index-build
   and retrieve cost; `eval/bench.py` validates the score first, then sweeps the optimization ladders.
 * **Performance:** `performance/` contains the imported closed-form compute models, benchmarking
@@ -111,7 +110,7 @@ Development happens on a Mac with **no NVIDIA GPU** (vLLM can't install locally)
 runs against a deterministic `MockScorer`. The 8×H100 box is the deploy/run target; switching to it is
 one env var.
 
-> Standardize local dev on a pinned **Python 3.11/3.12** venv (matches the box) and **Node 18**.
+> Standardize local dev on a pinned **Python 3.11/3.12** venv (matches the box) and **Node 20.19+**.
 
 ```bash
 # 1) backend + mock scorer (no GPU)
@@ -138,7 +137,10 @@ python -m data.build --target mvp     # ~18k mixed arXiv abstracts + code, deter
 
 ---
 
-## Running for real (8× H100)
+## Running for real (8× H100 target)
+
+Phase 1 is mock-backed locally; `VLLMScorer` and `inference/serve.sh` are planned for the real-box
+phase. These are the target commands once that scorer exists:
 
 ```bash
 # on the box (Python 3.11/3.12 + CUDA)

@@ -56,6 +56,11 @@ describe("scoreCache recut", () => {
     expect(ranked.map((entry: CachedScore) => entry.chunk_id)).toEqual(["a", "b"]);
   });
 
+  it("ranked slice filters out scores below the active threshold", () => {
+    const ranked = rankedSlice(sampleCache().all(), 10, 0.5);
+    expect(ranked.map((entry: CachedScore) => entry.chunk_id)).toEqual(["a", "b"]);
+  });
+
   it("re-cutting the threshold performs ZERO network calls (the headline invariant)", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch" as never);
     const all = sampleCache().all();

@@ -266,7 +266,7 @@ function ResultFeed({
     return <div className="empty">No scan yet. Type a query and hit scan.</div>;
   }
   if (!results.length) {
-    return <div className="empty">No results — nothing scored yet.</div>;
+    return <div className="empty">No results above the current threshold yet.</div>;
   }
   return (
     <div className="feed">

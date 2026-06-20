@@ -87,6 +87,9 @@ export function matchedCount(scores: CachedScore[], threshold: number): number {
   return scores.reduce((total, entry) => total + (entry.score >= threshold ? 1 : 0), 0);
 }
 
-export function rankedSlice(scores: CachedScore[], limit: number): CachedScore[] {
-  return [...scores].sort((a, b) => b.score - a.score).slice(0, limit);
+export function rankedSlice(scores: CachedScore[], limit: number, threshold = 0): CachedScore[] {
+  return scores
+    .filter((entry) => entry.score >= threshold)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
 }

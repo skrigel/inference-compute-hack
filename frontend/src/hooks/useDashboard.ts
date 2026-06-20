@@ -30,7 +30,7 @@ function viewFromCache(cache: ScoreCache, threshold: number): DashboardView {
     histogram: recutHistogram(all),
     facets: recutFacets(all, threshold),
     matched: matchedCount(all, threshold),
-    results: rankedSlice(all, FEED_LIMIT),
+    results: rankedSlice(all, FEED_LIMIT, threshold),
   };
 }
 
