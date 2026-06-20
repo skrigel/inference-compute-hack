@@ -346,8 +346,12 @@ export function useDashboard() {
       movementBudget,
       beamWidth: selectionBeamWidth,
     });
+    // Drop the slider to the survivor-pool boundary so the picked rows (which can
+    // be lower-scoring, chosen for facet coverage) are actually visible and the
+    // highlight lands inside the same pool the beam searched over.
+    setThreshold(result.threshold);
     setSelection(result);
-  }, [precisionTarget, movementBudget, selectionBeamWidth]);
+  }, [precisionTarget, movementBudget, selectionBeamWidth, setThreshold]);
 
   const clearSelection = useCallback(() => setSelection(null), []);
 

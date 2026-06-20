@@ -578,9 +578,23 @@ function ResultList({
     );
   }
 
+  const ordered = selectedIds.length
+    ? [...results].sort(
+        (a, b) => Number(selected.has(b.chunk_id)) - Number(selected.has(a.chunk_id)),
+      )
+    : results;
+
   return (
     <div className="results-list">
-      {results.map((result) => {
+      {selectedIds.length > 0 && (
+        <div className="selection-banner">
+          <span className="selection-badge">✓ {selectedIds.length} selected</span>
+          <span className="selection-banner-text">
+            Picked rows are shown first and highlighted — use “Clear” in the Compute panel to dismiss.
+          </span>
+        </div>
+      )}
+      {ordered.map((result) => {
         const matched = result.score >= threshold;
         const isSelected = selected.has(result.chunk_id);
         return (
@@ -599,6 +613,7 @@ function ResultList({
                 <span className={`type-badge type-${result.meta.type ?? "code"}`}>
                   {result.meta.type ?? "code"}
                 </span>
+                {isSelected && <span className="picked-badge">✓ picked</span>}
                 <span className="result-title">{result.meta.title}</span>
               </div>
               <div className="result-meta">
