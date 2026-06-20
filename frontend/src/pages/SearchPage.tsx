@@ -324,11 +324,40 @@ interface ComputePanelProps {
 // Memory (corpus in scope), Movement (what to move), Truth (predicate beam).
 function ComputePanel({ d }: ComputePanelProps) {
   return (
-    <section className="compute-panel">
+    <section className={`compute-panel${d.agentRunning ? " agent-active" : ""}`}>
       <div className="compute-header">
         <span className="compute-title">Compute</span>
         <span className="compute-sub">one budget · three axes</span>
+        <button
+          className={`agent-btn${d.agentRunning ? " running" : ""}`}
+          onClick={() => void d.runAgent()}
+          disabled={d.agentRunning}
+        >
+          {d.agentRunning ? "Agent running…" : "▶ Run agent"}
+        </button>
       </div>
+      {(d.agentRunning || d.agentLog.length > 0) && (
+        <div className="agent-trace">
+          <div className="agent-trace-head">
+            <span className={`agent-dot${d.agentRunning ? " live" : ""}`} />
+            <span className="agent-trace-title">
+              {d.agentRunning ? "Agent driving the three axes…" : "Agent run complete"}
+            </span>
+          </div>
+          <ol className="agent-log">
+            {d.agentLog.map((line, index) => (
+              <li
+                className={`agent-log-line${
+                  d.agentRunning && index === d.agentLog.length - 1 ? " current" : " done"
+                }`}
+                key={index}
+              >
+                {line}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
       <div className="compute-grid">
         <div className="axis-card">
           <div className="axis-head">

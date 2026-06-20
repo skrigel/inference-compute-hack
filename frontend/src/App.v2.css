@@ -2144,6 +2144,117 @@ body {
   font-family: var(--font-mono);
 }
 
+/* Agent mode — visible auto-pilot driving the three axes */
+.agent-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  background: var(--system-purple);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--r1);
+  transition: filter 0.15s ease;
+}
+
+.agent-btn:hover {
+  filter: brightness(1.08);
+}
+
+.agent-btn:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.compute-panel.agent-active {
+  border-color: var(--system-purple);
+  animation: agentGlow 1.6s ease-in-out infinite;
+}
+
+@keyframes agentGlow {
+  0%, 100% { box-shadow: 0 0 0 1px var(--system-purple), 0 0 14px rgba(175, 82, 222, 0.22); }
+  50% { box-shadow: 0 0 0 1px var(--system-purple), 0 0 26px rgba(175, 82, 222, 0.48); }
+}
+
+.agent-trace {
+  margin-bottom: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: rgba(175, 82, 222, 0.08);
+  border: 1px solid rgba(175, 82, 222, 0.25);
+  border-radius: var(--r1);
+}
+
+.agent-trace-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+}
+
+.agent-trace-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--system-purple);
+}
+
+.agent-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--label-quaternary);
+  flex-shrink: 0;
+}
+
+.agent-dot.live {
+  background: var(--system-purple);
+  animation: agentPulse 1s ease-in-out infinite;
+}
+
+@keyframes agentPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(175, 82, 222, 0.5); }
+  50% { transform: scale(1.25); box-shadow: 0 0 0 5px rgba(175, 82, 222, 0); }
+}
+
+.agent-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.agent-log-line {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--label-secondary);
+  padding-left: 16px;
+  position: relative;
+}
+
+.agent-log-line.done::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--system-green);
+}
+
+.agent-log-line.current {
+  color: var(--label);
+  font-weight: 600;
+}
+
+.agent-log-line.current::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  color: var(--system-purple);
+}
+
 .compute-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

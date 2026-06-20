@@ -63,6 +63,32 @@ const EMPTY_VIEW: DashboardView = {
   results: [],
 };
 
+// Pacing between agent steps so each axis move is visible, not instant.
+const AGENT_PAUSE_MS = 950;
+
+// The agent's Axis-3 move: refine on the facet most common among the current
+// survivors (e.g. "only python"). Returns null when there is nothing to narrow.
+function dominantRefine(entries: CachedScore[], threshold: number): string | null {
+  const counts = new Map<string, number>();
+  for (const entry of entries) {
+    if (entry.score < threshold) continue;
+    const category = entry.meta.category;
+    if (category) {
+      const key = `only ${category}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [key, count] of counts) {
+    if (count > bestCount) {
+      best = key;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
 export function useDashboard() {
   const cacheRef = useRef(new ScoreCache());
   const abortRef = useRef<AbortController | null>(null);
@@ -70,6 +96,7 @@ export function useDashboard() {
   const chipSnapshotsRef = useRef(new Map<string, CachedScore[]>());
   const thresholdRef = useRef(0.5);
   const computeBudgetRef = useRef(1);
+  const agentRunningRef = useRef(false);
 
   const [predicate, setPredicate] = useState("");
   const [threshold, setThresholdState] = useState(0.5);
@@ -97,6 +124,11 @@ export function useDashboard() {
   const [movementBudget, setMovementBudget] = useState(5);
   const [selectionBeamWidth, setSelectionBeamWidth] = useState(4);
   const [selection, setSelection] = useState<Selection | null>(null);
+  // Agent mode (Axis 3, Mode 2 made visible): an auto-pilot that drives the
+  // three axes in sequence with narrated steps.
+  const [agentRunning, setAgentRunning] = useState(false);
+  const [agentStep, setAgentStep] = useState<string | null>(null);
+  const [agentLog, setAgentLog] = useState<string[]>([]);
 
   const pushLatency = useCallback((ms: number) => {
     setLatHistory((prev) => [...prev, ms].slice(-16));
@@ -243,10 +275,10 @@ export function useDashboard() {
   );
 
   const runRefine = useCallback(
-    async (utterance: string) => {
+    async (utterance: string, beamWidthOverride?: number) => {
       const trimmed = utterance.trim();
       if (!trimmed) return;
-      await runRefineRequest({ utterance: trimmed, beam_width: beamWidth });
+      await runRefineRequest({ utterance: trimmed, beam_width: beamWidthOverride ?? beamWidth });
     },
     [runRefineRequest, beamWidth],
   );
@@ -355,6 +387,51 @@ export function useDashboard() {
 
   const clearSelection = useCallback(() => setSelection(null), []);
 
+  // Agent mode: drive Memory -> Movement -> Truth autonomously, narrating each
+  // move. Pure orchestration over the existing axis callbacks, so it behaves
+  // identically in mock and live and is itself zero new machinery.
+  const runAgent = useCallback(async () => {
+    if (agentRunningRef.current) return;
+    agentRunningRef.current = true;
+    setAgentRunning(true);
+    setAgentLog([]);
+    setAgentStep(null);
+    const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+    const step = (line: string) => {
+      setAgentStep(line);
+      setAgentLog((prev) => [...prev, line]);
+    };
+    try {
+      const query = (predicate || "retry a network call without backoff").trim();
+      setPredicate(query);
+      step(`Scanning the corpus for “${query}”`);
+      await runQuery(query);
+      await pause(AGENT_PAUSE_MS);
+
+      step(`Auto-thresholding to ${Math.round(precisionTarget * 100)}% precision`);
+      autoThreshold();
+      await pause(AGENT_PAUSE_MS);
+
+      step(`Smart-selecting ${movementBudget} diverse results`);
+      smartSelect();
+      await pause(AGENT_PAUSE_MS);
+
+      const refineText = dominantRefine(cacheRef.current.all(), thresholdRef.current);
+      if (refineText) {
+        setBeamWidth(4);
+        step(`Beam-refining → “${refineText}”`);
+        await runRefine(refineText, 4);
+        await pause(AGENT_PAUSE_MS);
+      }
+      step("Done — three axes driven autonomously.");
+      await pause(700);
+    } finally {
+      agentRunningRef.current = false;
+      setAgentRunning(false);
+      setAgentStep(null);
+    }
+  }, [predicate, precisionTarget, movementBudget, runQuery, autoThreshold, smartSelect, runRefine, setBeamWidth]);
+
   return {
     predicate,
     setPredicate,
@@ -400,6 +477,11 @@ export function useDashboard() {
     autoThreshold,
     smartSelect,
     clearSelection,
+    // Agent mode
+    agentRunning,
+    agentStep,
+    agentLog,
+    runAgent,
     mode: api.mode,
   };
 }
