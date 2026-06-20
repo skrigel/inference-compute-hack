@@ -12,6 +12,7 @@ import { useDashboard, type ComparisonLane as ComparisonLaneData, type LatencyKi
 import { db } from "../lib/storage";
 import type { CachedScore } from "../lib/scoreCache";
 import type { Chip, FacetBucket, Facets, HistogramBin, Corpus } from "../lib/types";
+import { DocumentPreview } from "../components/DocumentPreview";
 
 export function SearchPage() {
   const { corpusId } = useParams<{ corpusId: string }>();
@@ -20,6 +21,7 @@ export function SearchPage() {
   const [loading, setLoading] = useState(true);
   const [activeCorpus, setActiveCorpus] = useState<"demo" | "browsecomp">("demo");
   const [switchingCorpus, setSwitchingCorpus] = useState(false);
+  const [previewResult, setPreviewResult] = useState<CachedScore | null>(null);
   const d = useDashboard();
 
   const handleCorpusChange = async (newCorpus: "demo" | "browsecomp") => {
@@ -118,7 +120,12 @@ export function SearchPage() {
         latHistory={d.latHistory}
         selectedIds={d.selection?.mode === "smart" ? d.selection.selectedIds : []}
         onClickRefine={d.runClickRefine}
+        onResultClick={(result) => setPreviewResult(result)}
       />
+
+      {previewResult && (
+        <DocumentPreview result={previewResult} onClose={() => setPreviewResult(null)} />
+      )}
     </main>
   );
 }
@@ -614,6 +621,7 @@ interface TabbedSectionProps {
   latHistory: number[];
   selectedIds: string[];
   onClickRefine: (chunkId: string, sign: "+" | "-") => Promise<void>;
+  onResultClick: (result: CachedScore) => void;
 }
 
 function TabbedSection({
@@ -630,6 +638,7 @@ function TabbedSection({
   latHistory,
   selectedIds,
   onClickRefine,
+  onResultClick,
 }: TabbedSectionProps) {
   const [tab, setTab] = useState<"results" | "analytics" | "facets">("results");
 
@@ -661,6 +670,7 @@ function TabbedSection({
             hasRun={hasRun}
             selectedIds={selectedIds}
             onClickRefine={onClickRefine}
+            onResultClick={onResultClick}
           />
         )}
         {tab === "analytics" && (
@@ -685,12 +695,14 @@ function ResultList({
   hasRun,
   selectedIds,
   onClickRefine,
+  onResultClick,
 }: {
   results: CachedScore[];
   threshold: number;
   hasRun: boolean;
   selectedIds: string[];
   onClickRefine: (chunkId: string, sign: "+" | "-") => Promise<void>;
+  onResultClick: (result: CachedScore) => void;
 }) {
   const selected = new Set(selectedIds);
   if (!hasRun) {
@@ -734,6 +746,7 @@ function ResultList({
           <article
             className={`result-row${matched ? " matched" : ""}${isSelected ? " selected" : ""}`}
             key={result.chunk_id}
+            onClick={() => onResultClick(result)}
           >
             <div className="result-score">
               <div className="score-value">{result.score.toFixed(2)}</div>
@@ -758,14 +771,14 @@ function ResultList({
               <button
                 className="action-btn positive"
                 title="Keep"
-                onClick={() => void onClickRefine(result.chunk_id, "+")}
+                onClick={(e) => { e.stopPropagation(); void onClickRefine(result.chunk_id, "+"); }}
               >
                 +
               </button>
               <button
                 className="action-btn negative"
                 title="Drop"
-                onClick={() => void onClickRefine(result.chunk_id, "-")}
+                onClick={(e) => { e.stopPropagation(); void onClickRefine(result.chunk_id, "-"); }}
               >
                 −
               </button>
