@@ -1946,3 +1946,35 @@ body {
 .file-remove:hover {
   color: var(--system-red);
 }
+
+/* ============================================
+   Search Page
+   ============================================ */
+
+.search-page {
+  flex: 1;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 var(--s4) var(--s4);
+  display: flex;
+  flex-direction: column;
+}
+
+.query-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-bottom: var(--s2);
+}
+
+.corpus-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--label);
+}
+
+.corpus-docs {
+  font-size: 13px;
+  color: var(--label-tertiary);
+}
