@@ -1,0 +1,399 @@
+{
+  "rag_rows": [
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 0.07658288814127445,
+      "index_build_ms": 0.00045797787606716156,
+      "index_embed_ms": 0.06579200271517038,
+      "index_total_ms": 0.06624998059123755,
+      "n_docs": 7,
+      "retrieve_ms_max": 0.025500194169580936,
+      "retrieve_ms_mean": 0.014555058442056179,
+      "retrieve_ms_min": 0.007832073606550694,
+      "retrieve_ms_p50": 0.010332907550036907,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 0.022167107090353966,
+          "query_embed_ms": 0.0033330870792269707,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.025500194169580936,
+          "wall_ms": 0.026832916773855686
+        },
+        {
+          "ann_ms": 0.006707967258989811,
+          "query_embed_ms": 0.0036249402910470963,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.010332907550036907,
+          "wall_ms": 0.011541997082531452
+        },
+        {
+          "ann_ms": 0.004541012458503246,
+          "query_embed_ms": 0.003291061148047447,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.007832073606550694,
+          "wall_ms": 0.008541974239051342
+        }
+      ],
+      "single_process_retrieve_qps_p50": 96778.18127739159,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-0",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "2103.00020:copy-0",
+          "score": 0.2357022603955159
+        },
+        {
+          "doc_id": "repo:aiohttp#client.py:copy-0",
+          "score": 0.20412414523193154
+        },
+        {
+          "doc_id": "repo:urllib3#connectionpool.py:copy-0",
+          "score": 0.1873171623163388
+        },
+        {
+          "doc_id": "repo:app#db_session.py:copy-0",
+          "score": 0.09622504486493764
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 0.7968739373609424,
+      "index_build_ms": 0.0015409896150231361,
+      "index_embed_ms": 0.7509579882025719,
+      "index_total_ms": 0.752498977817595,
+      "n_docs": 100,
+      "retrieve_ms_max": 0.04945788532495499,
+      "retrieve_ms_mean": 0.04555564373731613,
+      "retrieve_ms_min": 0.04283408634364605,
+      "retrieve_ms_p50": 0.04437495954334736,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 0.04620791878551245,
+          "query_embed_ms": 0.003249966539442539,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.04945788532495499,
+          "wall_ms": 0.05079095717519522
+        },
+        {
+          "ann_ms": 0.04087504930794239,
+          "query_embed_ms": 0.0034999102354049683,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.04437495954334736,
+          "wall_ms": 0.04516600165516138
+        },
+        {
+          "ann_ms": 0.03962509799748659,
+          "query_embed_ms": 0.003208988346159458,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.04283408634364605,
+          "wall_ms": 0.043500098399817944
+        }
+      ],
+      "single_process_retrieve_qps_p50": 22535.231812958777,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-0",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-1",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-2",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-3",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-4",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 6.440832978114486,
+      "index_build_ms": 0.008707982487976551,
+      "index_embed_ms": 6.058166967704892,
+      "index_total_ms": 6.066874950192869,
+      "n_docs": 1000,
+      "retrieve_ms_max": 0.3776239464059472,
+      "retrieve_ms_mean": 0.37404099324097234,
+      "retrieve_ms_min": 0.37054100539535284,
+      "retrieve_ms_p50": 0.37395802792161703,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 0.3708329750224948,
+          "query_embed_ms": 0.003125052899122238,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.37395802792161703,
+          "wall_ms": 0.3749580355361104
+        },
+        {
+          "ann_ms": 0.37429097574204206,
+          "query_embed_ms": 0.0033329706639051437,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.3776239464059472,
+          "wall_ms": 0.378292053937912
+        },
+        {
+          "ann_ms": 0.3673749743029475,
+          "query_embed_ms": 0.003166031092405319,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 0.37054100539535284,
+          "wall_ms": 0.3711250610649586
+        }
+      ],
+      "single_process_retrieve_qps_p50": 2674.096891455433,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-0",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-1",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-2",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-3",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-4",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 61.79299997165799,
+      "index_build_ms": 0.08483300916850567,
+      "index_embed_ms": 57.925499975681305,
+      "index_total_ms": 58.01033298484981,
+      "n_docs": 10000,
+      "retrieve_ms_max": 3.8305422058328986,
+      "retrieve_ms_mean": 3.7658200599253178,
+      "retrieve_ms_min": 3.684250987134874,
+      "retrieve_ms_p50": 3.782666986808181,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 3.779291990213096,
+          "query_embed_ms": 0.003374996595084667,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 3.782666986808181,
+          "wall_ms": 3.7856249837204814
+        },
+        {
+          "ann_ms": 3.826750093139708,
+          "query_embed_ms": 0.0037921126931905746,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 3.8305422058328986,
+          "wall_ms": 3.8321668980643153
+        },
+        {
+          "ann_ms": 3.680167021229863,
+          "query_embed_ms": 0.0040839659050107,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 3.684250987134874,
+          "wall_ms": 3.6850000033155084
+        }
+      ],
+      "single_process_retrieve_qps_p50": 264.3637421658948,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-0",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-1",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-2",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-3",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-4",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 154.1456248378381,
+      "index_build_ms": 0.22099993657320738,
+      "index_embed_ms": 144.2602080060169,
+      "index_total_ms": 144.48120794259012,
+      "n_docs": 25000,
+      "retrieve_ms_max": 9.870498906821012,
+      "retrieve_ms_mean": 9.665638596440354,
+      "retrieve_ms_min": 9.461999987252057,
+      "retrieve_ms_p50": 9.664416895247996,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 9.867040906101465,
+          "query_embed_ms": 0.0034580007195472717,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 9.870498906821012,
+          "wall_ms": 9.871916030533612
+        },
+        {
+          "ann_ms": 9.659666917286813,
+          "query_embed_ms": 0.004749977961182594,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 9.664416895247996,
+          "wall_ms": 9.666041936725378
+        },
+        {
+          "ann_ms": 9.457667008973658,
+          "query_embed_ms": 0.004332978278398514,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 9.461999987252057,
+          "wall_ms": 9.463915950618684
+        }
+      ],
+      "single_process_retrieve_qps_p50": 103.47235749853684,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-0",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-1",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-2",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-3",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-4",
+          "score": 0.2886751345948129
+        }
+      ]
+    },
+    {
+      "backend": "numpy-fallback",
+      "fresh_file_total_ms": 622.1323348581791,
+      "index_build_ms": 0.7515419274568558,
+      "index_embed_ms": 582.7321669785306,
+      "index_total_ms": 583.4837089059874,
+      "n_docs": 100000,
+      "retrieve_ms_max": 39.68108398839831,
+      "retrieve_ms_mean": 38.94501435570419,
+      "retrieve_ms_min": 38.5053331265226,
+      "retrieve_ms_p50": 38.64862595219165,
+      "retrieve_runs_ms": [
+        {
+          "ann_ms": 39.67645904049277,
+          "query_embed_ms": 0.004624947905540466,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 39.68108398839831,
+          "wall_ms": 39.68358400743455
+        },
+        {
+          "ann_ms": 38.64016698207706,
+          "query_embed_ms": 0.008458970114588737,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 38.64862595219165,
+          "wall_ms": 38.65100000984967
+        },
+        {
+          "ann_ms": 38.49845810327679,
+          "query_embed_ms": 0.006875023245811462,
+          "rerank_ms": 0.0,
+          "retrieve_ms_total": 38.5053331265226,
+          "wall_ms": 38.508167024701834
+        }
+      ],
+      "single_process_retrieve_qps_p50": 25.87414106874071,
+      "top_hits": [
+        {
+          "doc_id": "repo:requests#adapters.py:copy-0",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-1",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-2",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-3",
+          "score": 0.2886751345948129
+        },
+        {
+          "doc_id": "repo:requests#adapters.py:copy-4",
+          "score": 0.2886751345948129
+        }
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "doc_factor": 14.285714285714286,
+      "fresh_file_latency_factor": 10.40537849514017,
+      "fresh_file_scaling_exponent": 0.8808175217646426,
+      "from_docs": 7,
+      "retrieve_latency_factor": 4.294527878862988,
+      "retrieve_scaling_exponent": 0.5480252422564544,
+      "to_docs": 100
+    },
+    {
+      "doc_factor": 10.0,
+      "fresh_file_latency_factor": 8.082624711563536,
+      "fresh_file_scaling_exponent": 0.90755241431991,
+      "from_docs": 100,
+      "retrieve_latency_factor": 8.42723084753055,
+      "retrieve_scaling_exponent": 0.9256848907333338,
+      "to_docs": 1000
+    },
+    {
+      "doc_factor": 10.0,
+      "fresh_file_latency_factor": 9.593945407624513,
+      "fresh_file_scaling_exponent": 0.9819972428733759,
+      "from_docs": 1000,
+      "retrieve_latency_factor": 10.115218030834844,
+      "retrieve_scaling_exponent": 1.0049752483097838,
+      "to_docs": 10000
+    },
+    {
+      "doc_factor": 2.5,
+      "fresh_file_latency_factor": 2.494548329236946,
+      "fresh_file_scaling_exponent": 0.9976175144540249,
+      "from_docs": 10000,
+      "retrieve_latency_factor": 2.5549214162790586,
+      "retrieve_scaling_exponent": 1.0237159819636308,
+      "to_docs": 25000
+    },
+    {
+      "doc_factor": 4.0,
+      "fresh_file_latency_factor": 4.036003847093714,
+      "fresh_file_scaling_exponent": 1.0064637748064238,
+      "from_docs": 25000,
+      "retrieve_latency_factor": 3.999064441352403,
+      "retrieve_scaling_exponent": 0.9998312645388221,
+      "to_docs": 100000
+    }
+  ]
+}

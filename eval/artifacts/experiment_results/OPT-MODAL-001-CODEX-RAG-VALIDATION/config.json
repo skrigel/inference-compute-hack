@@ -1,0 +1,32 @@
+{
+  "agent": "codex",
+  "baseline_artifacts": [
+    "eval/artifacts/phase04_h100_rag_matrix.json"
+  ],
+  "baseline_label": "baseline",
+  "candidate_artifacts": [
+    "eval/artifacts/experiment_results/OPT-MODAL-001-CODEX-RAG-VALIDATION/candidate_h100_rag_matrix.json"
+  ],
+  "candidate_label": "candidate",
+  "command": "/private/tmp/inference-compute-hack-modal-prompt/eval/standard_benchmark.py --opt-id OPT-MODAL-001-CODEX-RAG-VALIDATION --name post-merge Modal optimization validation with RAG ladder --agent codex --run-modal --gpu-counts 1,6 --single-requests 32 --multi-requests 96 --single-concurrency 1 --multi-concurrency 32 --dataset-sizes 7 100 1000 10000 25000 100000 --rag-runs 3 --gpu-memory-utilization 0.92 --max-num-batched-tokens 8192 --prompt-variant compact --notes Post-merge validation of perf/vllm scheduling and H100 replication optimization on current main, including standardized RAG scaling ladder.",
+  "commit": "7a090a9",
+  "dataset_sizes": [
+    7,
+    100,
+    1000,
+    10000,
+    25000,
+    100000
+  ],
+  "generated_at_unix": 1781972349,
+  "min_improvement_pct": 5.0,
+  "name": "post-merge Modal optimization validation with RAG ladder",
+  "notes": "Post-merge validation of perf/vllm scheduling and H100 replication optimization on current main, including standardized RAG scaling ladder.",
+  "opt_id": "OPT-MODAL-001-CODEX-RAG-VALIDATION",
+  "query": "GPU queue saturation and throughput metrics",
+  "rag_runs": 3,
+  "regression_tolerance_pct": 5.0,
+  "skip_rag": false,
+  "top_k": 5,
+  "warmup_excluded": false
+}
