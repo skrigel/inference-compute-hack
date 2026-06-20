@@ -486,6 +486,57 @@ over a tuned FAISS/neural embedding production RAG stack.
 - caveat: validate on a larger gold set before treating this threshold as universal.
 - decision: keep for Phase 04 demo/eval reporting.
 
+### OPT-SCHED-001: Client-Side Priority Lane + Sticky Routing + Refine Microbatching
+
+- status: rejected
+- owner: agent
+- date: 2026-06-20
+- commit: `e722980`
+- artifacts:
+  - `inference/vllm_scorer.py` (priority-lane semaphores, `chunk_sticky` routing, env knobs)
+  - `backend/main.py` (`REFINE_BATCH_SIZE`, refine scored with `tier=0`)
+  - `backend/streaming.py` (`QUERY_BATCH_SIZE`, query scored with `tier=1`)
+  - `tests/test_phase4_vllm_scorer.py` (sticky-routing + health-settings tests)
+- Weave run/eval: not uploaded (client-side scheduler change; not a frozen H100 matrix artifact)
+- hypothesis: reserving a priority concurrency lane for interactive refine traffic
+  (`tier=0`) and pinning each chunk to a stable replica (`chunk_sticky`) would lower
+  interactive/refine TTFT under bulk query contention, and microbatching refine/query
+  fan-out would smooth tail latency.
+- change:
+  - `VLLMScorer`: added `_global_semaphore` + `_bulk_semaphore` keyed by `tier`
+    (`VLLM_PRIORITY_RESERVED`, default 16), and `_route_replica` with
+    `VLLM_ROUTING_MODE` (`round_robin` | `chunk_sticky`, default `chunk_sticky`).
+  - Refine path scores at `tier=0` (priority); query path at `tier=1` (bulk).
+  - Added `REFINE_BATCH_SIZE` / `QUERY_BATCH_SIZE` microbatch knobs.
+- expected mechanism: bulk traffic capped below total concurrency leaves headroom for
+  priority requests; sticky routing improves per-replica prefix-cache reuse.
+- expected metric move: lower interactive p50/p95 under contention.
+- measured result: 6-round paired A/B on the live single-replica Modal vLLM endpoint
+  (optimized = reserved=16 + chunk_sticky vs baseline = reserved=0 + round_robin),
+  alternating order, 0 request errors:
+  | metric | mean delta (opt − base) | rounds regressed |
+  |---|---:|---:|
+  | interactive probe mean | +71.01 ms | 6/6 |
+  | interactive probe p50 | +16.31 ms | 5/6 |
+  | interactive probe p95 | +327.60 ms | 6/6 |
+  | bulk mean | +261.78 ms | 5/6 |
+  | bulk p50 | +433.60 ms | 6/6 |
+  | bulk p95 | +184.45 ms | 5/6 |
+- caveats:
+  - **Not a valid test of the design.** `chunk_sticky` routing is inert with a single
+    replica URL, so only the priority semaphore was actually exercised; under one
+    endpoint it added queuing overhead rather than relieving contention.
+  - Endpoint jitter on the Modal OpenAI-compat shim dominated some earlier single-shot
+    runs (direction flipped run-to-run); the 6-round paired run above is the stable read.
+  - No quality-gate impact (scheduling-only change; scores unchanged).
+- decision: **reject on current evidence.** Do not enable `VLLM_PRIORITY_RESERVED>0`
+  or `chunk_sticky` against a single endpoint.
+- next action: re-test as designed against a true multi-replica deployment (>= 6
+  distinct vLLM endpoints in `VLLM_REPLICAS`) with the optimizations on vs off, where
+  sticky routing and the priority lane can actually take effect.
+- rollback: set `VLLM_PRIORITY_RESERVED=0` and `VLLM_ROUTING_MODE=round_robin`
+  (production scoring correctness is unaffected either way).
+
 ## Bottlenecks To Target Next
 
 | bottleneck | evidence | next optimization |

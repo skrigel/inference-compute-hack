@@ -1,0 +1,32 @@
+{
+  "agent": "agent",
+  "baseline_artifacts": [
+    "eval\\artifacts\\phase04_h100_rag_matrix.json"
+  ],
+  "baseline_label": "baseline",
+  "candidate_artifacts": [
+    "eval\\artifacts\\experiment_results\\OPT-MODAL-001-REPLICATE\\candidate_h100_rag_matrix.json"
+  ],
+  "candidate_label": "candidate",
+  "command": "C:\\Users\\Mukun\\Projects\\inference-compute-hack\\eval\\standard_benchmark.py --opt-id OPT-MODAL-001-REPLICATE --name modal-throughput-baseline --run-modal --skip-rag",
+  "commit": "e722980",
+  "dataset_sizes": [
+    7,
+    100,
+    1000,
+    10000,
+    25000,
+    100000
+  ],
+  "generated_at_unix": 1781969762,
+  "min_improvement_pct": 5.0,
+  "name": "modal-throughput-baseline",
+  "notes": "",
+  "opt_id": "OPT-MODAL-001-REPLICATE",
+  "query": "GPU queue saturation and throughput metrics",
+  "rag_runs": 3,
+  "regression_tolerance_pct": 5.0,
+  "skip_rag": true,
+  "top_k": 5,
+  "warmup_excluded": false
+}
