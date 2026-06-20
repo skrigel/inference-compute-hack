@@ -25,6 +25,12 @@ export interface HistogramBin {
   count: number;
 }
 
+export interface Facets {
+  type: FacetBucket[];
+  category: FacetBucket[];
+  year: FacetBucket[];
+}
+
 export interface QueryRequest {
   predicate: string;
   threshold: number;
@@ -44,11 +50,7 @@ export interface AggregateEvent {
   scanned: number;
   matched: number;
   histogram: HistogramBin[];
-  facets: {
-    type: FacetBucket[];
-    category: FacetBucket[];
-    year: FacetBucket[];
-  };
+  facets: Facets;
   threshold: number;
   eta_ms: number;
 }

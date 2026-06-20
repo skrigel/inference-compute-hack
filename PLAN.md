@@ -186,7 +186,15 @@ demo polish (floating).
 
 ## 5. The technical spine (latency-first, with the review corrections folded in)
 
-Ordered by leverage. The originals are from the spec; the **⚠ corrections** are what the reviews caught.
+Ordered by leverage. The originals are from the spec; the **⚠ corrections** are what the reviews +
+the [`performance/`](performance/) analysis caught.
+
+**Organizing insight (from `performance/`):** the workload is almost pure **prefill** with a one-token
+decode, so it lives on the **compute roofline** (high arithmetic intensity, tensor-core-saturating) —
+*not* the memory-bandwidth wall that generation/decode serving sits on. This is *why* data-parallel
+replicas + FP8 + large batches are the right levers, and *why* recompute-over-store is viable (we are
+compute-bound with bandwidth headroom). `theory.py` predicts the cold scan at ≈36 s @ 40 % MFU — inside
+the spec's 30–60 s window — so the math closes with the spec's own target.
 
 1. **Score = single-token logprob.** Per chunk: `[prompt] → constrained Yes/No token`;
    `score = P(Yes)/(P(Yes)+P(No))`, continuous 0–1. Threshold re-cuts cached scores with **no
@@ -217,6 +225,13 @@ Ordered by leverage. The originals are from the spec; the **⚠ corrections** ar
    ~evenly across 6 replicas (statistical balance) for throughput. A small skewed candidate set loses
    perfect balance, but it's small so latency is fine. Measure the KV crossover in Phase 0; past it,
    #3 carries the refine path.
+   **⚠ KV-fit correction (`performance/theory.py`, verified locally):** the spec's "10–20k warm in
+   640 GB" is only half-true. FP16 warm-KV (128 KiB/token × ~350 prefix tokens) crosses the 640 GB
+   node budget at **~14k chunks** — so at the top of the 10–20k range **quantized KV is required, not
+   optional**. fp8 KV (vLLM `--kv-cache-dtype fp8`) fits 20k at ~459 GB (crossover ~28k); 4-bit KV
+   pushes it to ~56k. Own this on our own slide (figure `5_kv_capacity`) instead of letting a judge
+   catch the bare 640 GB claim. The predicted ~14k crossover is then *confirmed* against the real OOM
+   point in the scaling sweep — and the gap (PagedAttention + shared-prefix dedup) is itself a finding.
 
 5. **FP8 compute + 4-bit capacity + DATA-parallel replicas (not tensor-parallel).** FP8 is the prefill
    throughput lever because the scan is compute-bound. AWQ/4-bit weights are the capacity lever: they
@@ -237,8 +252,8 @@ selection — stand up whatever serves `logprobs=20` fastest, validate the score
 **⚠ Chunk size vs context window (review fix).** `max-model-len = 4096`. Keep prefixes ≤ ~512 tokens:
 papers chunk at abstract level (~2000 chars), **code chunks capped at ~2500 chars (~600 tokens), NOT
 40k**. Oversized code files are split or dropped, never truncated silently. This reconciles the
-"~500–700 token prefix", "KV fits in 640 GB", and "context window" claims that contradicted each other
-across the drafts.
+"~500–700 token prefix", the warm-KV budget (now corrected: quantized KV above ~14k chunks, #4), and
+the "context window" claims that contradicted each other across the drafts.
 
 ---
 
@@ -252,7 +267,7 @@ across the drafts.
 * `warm.py`: prefill-only passes, `estimate_kv_bytes()`, `WarmReport.crossover_flag`.
 * `serve.sh`: 6× `CUDA_VISIBLE_DEVICES=$i vllm … --quantization awq_marlin --enable-prefix-caching
   --max-model-len 4096 --max-num-seqs 256`; Tier-2 commented/stretch.
-* `eval/` + `performance/`: `validate_score` gate (hard STOP if F1 < 0.8 unless `--force`), ladder
+* `eval/` + `performance/`: `validate_score` gate (hard STOP if F1 < 0.7 unless `--force`), ladder
   sweeps via config flags, cache counters, counterfactual replay, measured-vs-predicted overlays
   against `performance/theory.py`, the iteration-cost anchor chart, artifacts (`results.jsonl`,
   `metrics.json`, charts).
@@ -312,7 +327,7 @@ the real-vLLM swap is additive and never on the demo critical path.
 | Window | Goal | Milestone |
 |---|---|---|
 | **H0–3** | **Freeze `CONTRACTS.md`** (M0). Scaffold repo + `make` boot target. One `MockScorer` behind the frozen interface. `score.py`/`prompt.py` frozen. Stand up Qwen-3B-AWQ on the box + verify `logprobs=20` **and** the prefix-cache-hit assumption (30-min check). In parallel: RAG baseline + eval harness skeleton + BrowseComp slice ready. Frontend shell demoable on mock. | **M0**: contracts signed |
-| **H3–8** | Backend `/ingest` + `/query` two-channel SSE against mock (**M1**). Frontend `streamPost` consuming it (**M2**): histogram + draggable threshold (client-side zero-inference recut) + facet bars + virtualized feed + ETA. RAG index-build/retrieve timed. **Score-validation F1 gate on the box the moment vLLM serves logprobs** — GO/NO-GO; if F1<0.8 swap to Llama-3.1-8B-AWQ. | **M1, M2** |
+| **H3–8** | Backend `/ingest` + `/query` two-channel SSE against mock (**M1**). Frontend `streamPost` consuming it (**M2**): histogram + draggable threshold (client-side zero-inference recut) + facet bars + virtualized feed + ETA. RAG index-build/retrieve timed. **Score-validation F1 gate on the box the moment vLLM serves logprobs** — GO/NO-GO; if F1<0.7 swap to Llama-3.1-8B-AWQ. | **M1, M2** |
 | **H8–14** | Refine loop end-to-end (**M3**): NL→chip→scoped re-score→diff, click-NOT, chip removal, `refine_ms` in LatencyReadout. Fresh-file drag-in → query instantly (background warm on drop). RAG side-by-side in eval. **Record canned SSE fixtures from the H8 build.** | **M3** |
 | **— H14: HARD CUT LINE —** | **Go/no-go:** `ingest → query → refine-in-place → threshold drag` works end-to-end (mock-backed if needed). If anything is shaky, **stop adding and polish exactly this loop.** Re-record canned fixtures for all beats. You are never left with nothing on stage. | **cut-line green** |
 | **H14–19** | Real `VLLMScorer` swap (**M4**), measure actual warm refine p50 (confirm 100–300 ms) + first-query warm-vs-cold + scoped-vs-full ratios; freeze eval-slide numbers. **Record the canned fixtures from a REAL vLLM run** so the fallback streams genuine latencies. Stretch: scale sweep / Tier-2 cascade — only if cut-line is solid. | **M4** |
@@ -354,7 +369,10 @@ keep it off the critical path). Every beat has a canned twin via `scripts/replay
 > **Optional closers (drop if over time / risky live):**
 > 6. **Word-sense recovery** — *"I meant retrieval in the IR sense, not RAG."* (canned fixture is the
 >    primary path; live only if rehearsed-clean). ← most differentiated beat.
-> 7. **Eval slide** — the iteration-cost chart.
+> 7. **Performance close (eval slide)** — lead with the **one** area-under-loop chart (scoped
+>    saturates at ~2.2N while RAG climbs and step-jumps on every re-index); keep the roofline / MFU
+>    waterfall as backup-if-asked, not a second spoken chart. This is the single number-heavy moment.
+>    See [`performance/`](performance/) and [`DEMO.md`](DEMO.md).
 >
 > **Landing line:** *"RAG exists because inference is expensive. As inference gets cheap, retrieval
 > collapses into a single semantic filter — and the engineer's full-time job of tuning recall/precision
@@ -370,7 +388,7 @@ biggest risk into a credibility asset.
 ## 9. Eval — the slide that makes them believe it
 
 **Validate the score FIRST.** *Don't optimize the speed of being wrong.* `eval/bench.py` hard-STOPs the
-speed sweeps if gold F1 < 0.8 (unless `--force`). The **real** GO/NO-GO runs on the box against the
+speed sweeps if gold F1 < 0.7 (unless `--force`). The **real** GO/NO-GO runs on the box against the
 real model — a green gate on the mock proves nothing (the mock is constructed to land ~0.8). Add a
 **histogram-shape check**: require a visibly bimodal distribution on the actual scripted predicates, or
 the threshold-drag beat is a slider over noise. Gold = arXiv topic gold (automatic, no token — the
@@ -385,7 +403,28 @@ else (F1, throughput, scaling) is a backup row, not a spoken beat.
 **Performance metrics are predicted-then-measured.** The imported [`performance/`](performance/)
 layer supplies the roofline, FLOP/MFU accounting, scoped-loop model, compute-vs-churn model, and KV
 capacity model. `eval/bench.py` should log deterministic work counters first (`chunks_scored`,
-`chunks_served_from_cache`, `rho`) and overlay latency/energy afterward. See [`METRICS.md`](METRICS.md).
+`chunks_served_from_cache`, `rho` — the per-turn trace schema is frozen in [`CONTRACTS.md`](CONTRACTS.md)
+§6) and overlay latency/energy afterward. The winning move is **counterfactual replay**: instrument
+*one* real scoped session, then compute all four area-under-loop curves (scoped/full/suffix/RAG)
+analytically from that single trace — a fair head-to-head by construction. **Metric additions** (each
+derived, not assumed; full hierarchy in [`METRICS.md`](METRICS.md)): MFU (achieved ÷ theoretical peak,
+target 40–55 % prefill), arithmetic intensity (scan ≫ ridge ⇒ compute-bound), suffix-only speedup vs
+the predicted **12–24×** band, cumulative compute @ turn k, break-even churn **D\*** (recompute beats
+RAG above it; for streaming/logs D→∞ so we always win), and **energy/query in joules** (the most honest
+cost unit). Count inference *before* timing it — wall-clock is an overlay, never the x-axis for the
+compute curves.
+
+**Quality is a curve, not a vibe.** Report ROC/PR + AUC and an ECE/reliability diagram vs gold; set the
+threshold-handle default from a target-precision operating point — the on-histogram drag becomes
+*"sliding along the ROC curve."* Miscalibrated logprobs (high ECE) are the **measured** justification
+for the Tier-2 cascade on the uncertain band, not a guess.
+
+**Verify the `performance/theory.py` constants on the box before any number reaches a slide**
+([`performance/docs/04_constants_to_verify.md`](performance/docs/04_constants_to_verify.md)): GQA
+`n_kv_heads` (it sizes the whole KV figure — easy to get wrong), real peak TFLOP/s by precision
+(microbench, don't trust datasheet), HBM bw/size, and real prefix/suffix token counts. Every figure
+regenerates from them. And **capture the perishable naive cold floor first**, before warm-state
+optimizations make it impossible to isolate.
 
 **Optimization ladders** (config flags so the harness sweeps the curve, apples-to-apples on the same
 session):
@@ -431,7 +470,7 @@ latencies as measured.
 | Risk | Trigger | Mitigation / fallback | Owner | By |
 |---|---|---|---|---|
 | **Contract drift** (4 scorer sigs, 3 chunk schemas…) | first integration breaks on field names | reconcile ONE `CONTRACTS.md` in hour zero; delete duplicate defs; contract test | Delivery | H1 |
-| **Score poorly calibrated / F1<0.8** | gate fails on box | hard-STOP speed work; swap to Llama-3.1-8B-AWQ; relative ranking + tuned threshold; Tier-2 cleans band | A/D | H3–8 |
+| **Score poorly calibrated / F1<0.7** | gate fails on box | hard-STOP speed work; swap to Llama-3.1-8B-AWQ; relative ranking + tuned threshold; Tier-2 cleans band | A/D | H3–8 |
 | **Histogram is mush** (no bimodal separation) | threshold-drag beat meaningless | histogram-shape check in the gate on real scorer for scripted predicates; tune default threshold | A/C | H3–8 |
 | **H100 box unreachable / vLLM won't come up** | no GPU at demo | `SCORER_BACKEND=mock` runs the whole demo; timebox bring-up to ~90 min; drop `guided_choice`; fall back model | A | M4 |
 | **Prefix-cache doesn't hit** | suffix-only re-prefill goes cold | candidate-set scoping (#3) carries refine; pitch headline shifts to scoped-vs-full ratio | A | H0–3 |
@@ -442,6 +481,13 @@ latencies as measured.
 | **Python 3.14 dep drift** | local install breaks | standardize local dev on pinned **3.11/3.12** venv; numpy fallback for faiss; never install vllm locally | All | H0 |
 | **Demo overruns 90 s** | loses the room | per-beat time budget; beats 1–5 by ~60 s; 6–8 droppable; timed rehearsal ×3 | Delivery | H22 |
 | **Scope creep into stretch** | polish window eaten | scope gate at H19–22 only opens if M4 green + cut-line solid | Delivery | H19 |
+| **Warm-KV exceeds HBM at ~14k** (FP16) | warm path OOMs above the demo corpus | quantized KV (`--kv-cache-dtype fp8`) required above ~14k; mark crossover (fig 5); #3 scoping carries past it | A | H14–19 |
+| **Quantization overclaim** ("4-bit → 4× scan speed") | judge catches it in the compute-bound regime | split levers in slides: 4-bit = *capacity*, FP8 = *throughput*; never claim a 4-bit scan speedup | A/Delivery | H4 |
+| **Cold floor contaminated** by warm-cache leakage | MFU / ladder numbers invalid | capture the naive cold floor FIRST; explicit cache reset or fresh corpus id | A | H0–3 |
+| **MFU measured on padded tokens** | reported MFU misleads | log real-token vs padded-token MFU; report which denominator; power-draw sanity check (50 % MFU ⇏ 300 W) | A | H14–19 |
+| **Replay provenance unclear** | canned fallback "looks fake" | label every fixture by backend/model/corpus/commit/run-time; record the demo fixtures from a **real** vLLM run | Delivery | H19 |
+
+> Full live register (these + triggers/phases) is maintained in [`RISKS.md`](RISKS.md).
 
 **Degradation ladder — "never nothing on stage":**
 * **L0** real vLLM on 8×H100, live SSE, live classifier, live fresh-ingest — full demo.
@@ -467,6 +513,9 @@ latencies as measured.
 6. Cornell arXiv snapshot revision to pin; code-repo allowlist + SHAs + licenses (prefer MIT/Apache/BSD).
 7. Will the box be reachable from the venue network? Default stage posture = local-mock; live-vLLM is
    "and it runs for real on 8 H100s." Decide by M4.
+8. Measure the `performance/theory.py` constants on the real node before freezing any slide number —
+   especially the GQA `n_kv_heads` (sizes the KV figure) and real peak TFLOP/s by precision. Which
+   KV-cache dtype do we ship for the demo corpus (fp8 vs 4-bit), given the ~14k FP16 crossover?
 
 ---
 

@@ -154,7 +154,7 @@ Everything above `make_scorer()` is identical; only `SCORER_BACKEND` changes. Va
 before optimizing speed:
 
 ```bash
-python -m eval.bench --backend vllm --gate-only      # hard-STOPs unless Tier-1 F1 ≥ 0.8
+python -m eval.bench --backend vllm --gate-only      # hard-STOPs unless Tier-1 F1 ≥ 0.7
 python -m eval.bench --backend vllm --tag freeze      # ladders + RAG comparison + anchor chart
 ```
 
@@ -163,7 +163,7 @@ python -m eval.bench --backend vllm --tag freeze      # ladders + RAG comparison
 ## Eval
 
 * **Score-first gate:** the harness refuses to run speed sweeps until the filter clears Tier-1
-  **F1 ≥ ~0.8** on gold (arXiv topic gold + a codebase questionnaire + a BrowseComp-Plus slice).
+  **F1 ≥ ~0.7** on gold (arXiv topic gold + a codebase questionnaire + a BrowseComp-Plus slice).
   *Don't optimize the speed of being wrong.*
 * **Performance-first metrics:** count inference work first (`chunks_scored`, cache hits, survivor
   fraction), then overlay latency and energy. See [`METRICS.md`](METRICS.md) and

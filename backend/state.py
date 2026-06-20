@@ -13,8 +13,7 @@ class BackendState:
     corpus_id: str | None = None
     chunks: list[Chunk] = field(default_factory=list)
     warm_state: PrefixState | None = None
-    last_scores: dict[str, ScoreResult] = field(default_factory=dict)
-    query_count: int = 0
+    current_clause: str | None = None
 
     @property
     def warmed(self) -> bool:
@@ -23,8 +22,7 @@ class BackendState:
     def load_demo(self) -> list[Chunk]:
         self.corpus_id = "demo"
         self.chunks = demo_chunks()
-        self.last_scores.clear()
-        self.query_count = 0
+        self.current_clause = None
         return self.chunks
 
     def chunks_by_id(self) -> dict[str, Chunk]:

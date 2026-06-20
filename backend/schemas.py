@@ -106,3 +106,12 @@ class IngestResponse(BaseModel):
     n_chunks: int
     facets: dict[str, list[FacetBucket]]
     warm_eta_s: float
+
+
+class ResultsResponse(BaseModel):
+    """Ranked slice computed from the score cache — zero inference."""
+
+    items: list[ResultEvent]
+    threshold: float
+    top_k: int | None = None
+    total_matched: int

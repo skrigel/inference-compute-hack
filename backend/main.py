@@ -1,22 +1,36 @@
 from __future__ import annotations
 
+import itertools
 import json
-import time
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 
 from inference.config import make_scorer
-from inference.scorer import ScoreRequest, ScoreResult
 
-from backend.schemas import AggregateEvent, DoneEvent, IngestRequest, IngestResponse, QueryRequest, ResultEvent
-from backend.state import BackendState, facet_summary, histogram
+from backend.cache import ScoreCache
+from backend.schemas import (
+    AggregateEvent,
+    DoneEvent,
+    IngestRequest,
+    IngestResponse,
+    QueryRequest,
+    ResultEvent,
+    ResultsResponse,
+)
+from backend.state import BackendState, facet_summary
+from backend.streaming import query_stream
 
-
-app = FastAPI(title="Inference Compute Hack Backend", version="0.0.0")
+app = FastAPI(title="Inference Compute Hack Backend", version="0.1.0")
 state = BackendState()
+cache = ScoreCache()
 scorer = make_scorer()
+
+# Each query mints a fresh clause id (q1, q2, …) so concurrent queries never
+# evict each other's cached column. `itertools.count` is atomic under the GIL,
+# avoiding the read-modify-write race a shared counter would have.
+_clause_seq = itertools.count(1)
 
 
 @app.get("/healthz")
@@ -32,9 +46,12 @@ async def healthz() -> dict:
 @app.post("/ingest")
 async def ingest(request: IngestRequest) -> IngestResponse:
     if request.corpus_id != "demo":
-        raise HTTPException(status_code=404, detail="Phase 0 only supports corpus_id='demo'")
+        raise HTTPException(status_code=404, detail="Phase 0/1 only support corpus_id='demo'")
 
     chunks = state.load_demo()
+    if state.current_clause is not None:
+        cache.evict_clause(state.current_clause)
+    state.current_clause = None
     state.warm_state = await scorer.warm(request.corpus_id, chunks)
     return IngestResponse(
         corpus_id=request.corpus_id,
@@ -49,45 +66,55 @@ async def query(request: QueryRequest) -> StreamingResponse:
     if not state.chunks:
         state.load_demo()
 
+    clause_id = f"q{next(_clause_seq)}"
+    previous = state.current_clause
+    state.current_clause = clause_id
+    if previous is not None:
+        # Evicting the *previous* (distinct) clause is race-free: it can't touch
+        # this request's fresh column.
+        cache.evict_clause(previous)
+
     async def frames() -> AsyncIterator[str]:
-        started = time.perf_counter()
-        items = [
-            ScoreRequest(chunk_id=chunk.chunk_id, chunk_text=chunk.text, predicate=request.predicate)
-            for chunk in state.chunks
-        ]
-        scores = await scorer.score_batch(items)
-        state.query_count += 1
-        state.last_scores = {score.chunk_id: score for score in scores}
-        chunks_by_id = state.chunks_by_id()
-        ranked = sorted(scores, key=lambda score: score.score, reverse=True)
-        matched_scores = [score for score in ranked if score.score >= request.threshold]
-
-        for rank, score in enumerate(matched_scores[:10]):
-            yield sse(ResultEvent.from_score(score, chunks_by_id[score.chunk_id], rank))
-
-        yield sse(
-            AggregateEvent(
-                scanned=len(scores),
-                matched=len(matched_scores),
-                histogram=histogram(scores),
-                facets=facet_summary(state.chunks, state.last_scores, request.threshold),
-                threshold=request.threshold,
-                eta_ms=0,
-            )
-        )
-
-        elapsed_ms = int((time.perf_counter() - started) * 1000)
-        yield sse(
-            DoneEvent(
-                scanned=len(scores),
-                matched=len(matched_scores),
-                elapsed_ms=elapsed_ms,
-                warm=state.warmed,
-                summary=f"{len(scores):,} scanned · {len(matched_scores):,} matched",
-            )
-        )
+        async for event in query_stream(
+            scorer,
+            state.chunks,
+            request.predicate,
+            clause_id=clause_id,
+            threshold=request.threshold,
+            cache=cache,
+        ):
+            yield sse(event)
 
     return StreamingResponse(frames(), media_type="text/event-stream")
+
+
+@app.get("/results")
+async def results(threshold: float = 0.5, top_k: int | None = None) -> ResultsResponse:
+    """Pure cache read — the threshold/top-k slice the client mirrors locally.
+
+    Does NOT call the scorer; it re-cuts cached scores. Server-side proof of the
+    "drag = zero inference" claim and eval parity.
+    """
+    chunks_by_id = state.chunks_by_id()
+    clause = state.current_clause
+    scored = cache.scores_for_clause(clause) if clause else {}
+    ranked = sorted(
+        (result for result in scored.values() if result.chunk_id in chunks_by_id),
+        key=lambda r: r.score,
+        reverse=True,
+    )
+    matched = [r for r in ranked if r.score >= threshold]
+    sliced = matched[:top_k] if top_k is not None else matched
+    items = [
+        ResultEvent.from_score(result, chunks_by_id[result.chunk_id], rank)
+        for rank, result in enumerate(sliced)
+    ]
+    return ResultsResponse(
+        items=items,
+        threshold=threshold,
+        top_k=top_k,
+        total_matched=len(matched),
+    )
 
 
 def sse(event: ResultEvent | AggregateEvent | DoneEvent) -> str:
