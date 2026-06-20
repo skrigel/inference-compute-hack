@@ -27,6 +27,7 @@ def make_scorer() -> ScorerClient:
         return ModalScorerAsync()
 
     if backend == "vllm":
-        raise NotImplementedError("VLLMScorer is introduced after the Phase 0 mock contract is stable")
+        from inference.vllm_scorer import VLLMScorer
+        return VLLMScorer.from_env()
 
     raise ValueError(f"Unknown SCORER_BACKEND={backend!r}; expected 'mock', 'modal', or 'vllm'")

@@ -110,6 +110,7 @@ class ModalScorer(ScorerClient):
         result = self._scorer.health.remote()
         return {
             "ready": result.get("ready", False),
+            "backend": "modal",
             "scorer": "modal",
             "replicas": [result],  # Modal handles replica management internally
             "warmed_corpora": [],  # Would need to track this at backend level
@@ -196,6 +197,7 @@ class ModalScorerAsync(ScorerClient):
         result = await self._scorer.health.remote.aio()
         return {
             "ready": result.get("ready", False),
+            "backend": "modal",
             "scorer": "modal",
             "replicas": [result],
             "warmed_corpora": [],

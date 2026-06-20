@@ -34,18 +34,44 @@ N_REPLICAS = 6  # PLAN §5 #5: "6 fully independent single-GPU replicas"
 # TIER2_MODEL = "Qwen/Qwen2.5-32B-Instruct-AWQ"
 # TIER2_TP = 2
 
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a float, got {raw!r}") from exc
+
+
+def _env_flag(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
+GPU_MEMORY_UTILIZATION = _env_float("GPU_MEMORY_UTILIZATION", 0.92)
+ENABLE_MFU_METRICS = _env_flag("ENABLE_MFU_METRICS", True)
+KV_CACHE_DTYPE = os.environ.get("KV_CACHE_DTYPE", "auto")
+
 # vLLM engine configuration per PLAN.md and REFINEMENTS.md
 VLLM_ENGINE_KWARGS: dict[str, Any] = {
     "max_model_len": 4096,           # PLAN §5: context window
     "max_num_seqs": 256,             # concurrent sequences
     "max_num_batched_tokens": 8192,  # prefill throughput lever
     "quantization": "awq_marlin",    # AWQ 4-bit weights via Marlin kernels
-    "kv_cache_dtype": "fp8",         # PLAN §5 #4: 2× capacity vs FP16, fits ~28k chunks
+    "kv_cache_dtype": KV_CACHE_DTYPE,  # fp8 is sweepable but may fail on some vLLM/Torch stacks
     "enable_prefix_caching": True,   # PLAN §5 #2: suffix-only re-prefill
-    "gpu_memory_utilization": 0.92,  # aggressive but safe
+    "gpu_memory_utilization": GPU_MEMORY_UTILIZATION,  # parameterized for Phase 04 sweep
     "enforce_eager": False,          # allow CUDA graphs
     "disable_log_stats": False,      # we want stats for metrics
 }
+if ENABLE_MFU_METRICS:
+    # vLLM exposes this as `--enable-mfu-metrics` in newer versions. Some older
+    # Python APIs do not accept the kwarg, so start_engine retries without it.
+    VLLM_ENGINE_KWARGS["enable_mfu_metrics"] = True
 
 # Sampling for single-token Yes/No scoring (PLAN §5 #1)
 DEFAULT_SAMPLING_KWARGS: dict[str, Any] = {
@@ -71,13 +97,13 @@ vllm_image = (
     .entrypoint([])
     .pip_install(
         "vllm==0.8.5",
+        "transformers>=4.51.1,<5",
         "huggingface-hub>=0.24.0",
         "fastapi>=0.115.0",
         "uvicorn>=0.30.0",
     )
     .env({
-        "HF_HUB_ENABLE_HF_TRANSFER": "1",  # faster model downloads
-        "VLLM_ATTENTION_BACKEND": "FLASHINFER",  # best for throughput
+        "HF_XET_HIGH_PERFORMANCE": "1",  # faster model downloads on current huggingface-hub
     })
 )
 
@@ -94,14 +120,14 @@ vllm_cache_vol = modal.Volume.from_name("grep-vllm-cache", create_if_missing=Tru
     image=vllm_image,
     gpu="H100",  # Single H100 per replica (data-parallel, not tensor-parallel)
     timeout=10 * MINUTES,
-    container_idle_timeout=15 * MINUTES,  # keep warm for refinement loops
+    scaledown_window=15 * MINUTES,  # keep warm for refinement loops
     volumes={
         "/root/.cache/huggingface": hf_cache_vol,
         "/root/.cache/vllm": vllm_cache_vol,
     },
     # Scale to N_REPLICAS for data parallelism
-    allow_concurrent_inputs=256,  # high concurrency for batching
 )
+@modal.concurrent(max_inputs=256, target_inputs=128)  # high concurrency for batching
 class Scorer:
     """
     vLLM-backed scorer for single-token Yes/No relevance scoring.
@@ -120,11 +146,25 @@ class Scorer:
         import vllm
 
         print(f"[Scorer] Starting vLLM engine with {self.model_name}")
-        self.engine = vllm.LLM(
-            model=self.model_name,
-            revision=MODEL_REVISION,
-            **VLLM_ENGINE_KWARGS,
-        )
+        self._mfu_metrics_active = bool(VLLM_ENGINE_KWARGS.get("enable_mfu_metrics"))
+        try:
+            self.engine = vllm.LLM(
+                model=self.model_name,
+                revision=MODEL_REVISION,
+                **VLLM_ENGINE_KWARGS,
+            )
+        except TypeError:
+            if "enable_mfu_metrics" not in VLLM_ENGINE_KWARGS:
+                raise
+            fallback_kwargs = dict(VLLM_ENGINE_KWARGS)
+            fallback_kwargs.pop("enable_mfu_metrics", None)
+            print("[Scorer] vLLM Python API rejected enable_mfu_metrics; retrying without MFU metrics")
+            self._mfu_metrics_active = False
+            self.engine = vllm.LLM(
+                model=self.model_name,
+                revision=MODEL_REVISION,
+                **fallback_kwargs,
+            )
 
         # Build Yes/No token ID sets for logprob aggregation (PLAN §5 #1)
         tokenizer = self.engine.get_tokenizer()
@@ -297,11 +337,14 @@ Predicate:"""
         """Return health and cache info for the replica."""
         return {
             "ready": True,
+            "backend": "modal",
             "model_id": self.model_name,
             "engine_config": {
                 "max_model_len": VLLM_ENGINE_KWARGS["max_model_len"],
                 "kv_cache_dtype": VLLM_ENGINE_KWARGS["kv_cache_dtype"],
                 "prefix_caching": VLLM_ENGINE_KWARGS["enable_prefix_caching"],
+                "gpu_memory_utilization": VLLM_ENGINE_KWARGS["gpu_memory_utilization"],
+                "enable_mfu_metrics": bool(getattr(self, "_mfu_metrics_active", False)),
             },
         }
 

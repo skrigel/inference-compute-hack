@@ -45,7 +45,7 @@
   },
   "failures": [],
   "fresh_vs_rag": {
-    "note": "Toy-corpus magnitudes (pure-python fallback). The point is structural: ours writes 0 derived bytes and answers now; RAG must re-embed + rebuild before the new doc is findable. Re-index cost scales with corpus size; ours stays 0.",
+    "note": "Toy-corpus magnitudes (pure-python fallback). The point is structural: ours writes 0 derived bytes and answers now; RAG must re-embed + rebuild before the new doc is findable. The mock fixture intentionally freezes toy timing at 0.0ms so preflight does not dirty the worktree; real Phase 04 timing lives in phase04_* artifacts.",
     "ours": {
       "derived_bytes_written": 0,
       "queryable": "immediately",
@@ -54,7 +54,7 @@
     "rag": {
       "backend": "numpy-fallback",
       "n_docs": 8,
-      "reindex_ms_toy_corpus": 0.149,
+      "reindex_ms_toy_corpus": 0.0,
       "reindex_required": true
     }
   },

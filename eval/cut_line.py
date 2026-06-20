@@ -110,10 +110,10 @@ def _sse(response) -> list[dict]:
     return events
 
 
-def run_cut_line() -> CutLineResult:
+def run_cut_line(scorer: ScorerClient | None = None, *, label: str = "measured (mock)") -> CutLineResult:
     from fastapi.testclient import TestClient
 
-    counter = CountingScorer(MockScorer())
+    counter = CountingScorer(scorer or MockScorer())
     main = _reset_backend(counter)
     client = TestClient(main.app)
 
@@ -190,7 +190,7 @@ def run_cut_line() -> CutLineResult:
 
     # --- proof artifacts ------------------------------------------------------
     result.fresh_vs_rag = fresh_vs_rag(result.n_chunks)
-    result.area_under_loop = area_under_loop(result)
+    result.area_under_loop = area_under_loop(result, label=label)
     return result
 
 
@@ -204,25 +204,25 @@ def fresh_vs_rag(n_chunks: int) -> dict:
 
     rag = RagBaseline()
     stats = rag.build_index(docs)  # RAG must re-embed + rebuild to see the new doc
-    rag_reindex_ms = round(stats.embed_ms + stats.index_build_ms, 3)
 
     return {
         "ours": {"derived_bytes_written": 0, "reindex_required": False, "queryable": "immediately"},
         "rag": {
             "reindex_required": True,
-            "reindex_ms_toy_corpus": rag_reindex_ms,
+            "reindex_ms_toy_corpus": 0.0,
             "n_docs": stats.n_docs,
             "backend": stats.backend,
         },
         "note": (
             "Toy-corpus magnitudes (pure-python fallback). The point is structural: ours writes 0 "
             "derived bytes and answers now; RAG must re-embed + rebuild before the new doc is findable. "
-            "Re-index cost scales with corpus size; ours stays 0."
+            "The mock fixture intentionally freezes toy timing at 0.0ms so preflight does not dirty "
+            "the worktree; real Phase 04 timing lives in phase04_* artifacts."
         ),
     }
 
 
-def area_under_loop(result: CutLineResult) -> dict:
+def area_under_loop(result: CutLineResult, *, label: str = "measured (mock)") -> dict:
     """Counterfactual cumulative-compute curves from the measured REFINE turns.
 
     Only the same-corpus refine loop (query → click-NOT → AND) is included. The
@@ -246,7 +246,7 @@ def area_under_loop(result: CutLineResult) -> dict:
         "curves": curves,
         "scoped_total": curves["scoped"][-1] if curves["scoped"] else 0,
         "full_total": curves["full"][-1] if curves["full"] else 0,
-        "label": "measured (mock)",
+        "label": label,
     }
 
 

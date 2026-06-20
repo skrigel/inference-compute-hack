@@ -2,6 +2,7 @@ import json
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
 
 REQUIRED_TRACE_FIELDS = {
@@ -53,6 +54,12 @@ class EvalTraceTests(unittest.TestCase):
         self.assertGreaterEqual(trace["chunks_served_from_cache"], 0)
         self.assertGreaterEqual(trace["cache_hit_rate"], 0.0)
         self.assertLessEqual(trace["cache_hit_rate"], 1.0)
+
+    def test_eval_bench_backend_label_follows_environment(self):
+        from eval.bench import _active_backend
+
+        with patch.dict("os.environ", {"SCORER_BACKEND": "modal"}):
+            self.assertEqual(_active_backend(), "modal")
 
 
 if __name__ == "__main__":

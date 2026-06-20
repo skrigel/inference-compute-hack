@@ -59,6 +59,7 @@ class CutLineTests(unittest.TestCase):
         self.assertGreaterEqual(self._step("fresh-file").matched, 1)
         self.assertEqual(self.result.fresh_vs_rag["ours"]["derived_bytes_written"], 0)
         self.assertTrue(self.result.fresh_vs_rag["rag"]["reindex_required"])
+        self.assertEqual(self.result.fresh_vs_rag["rag"]["reindex_ms_toy_corpus"], 0.0)
 
     def test_area_under_loop_scoped_beats_full(self):
         aul = self.result.area_under_loop
