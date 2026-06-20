@@ -488,37 +488,78 @@ class GoldLabel:
 
 ## 8. Weave Integration
 
-### 8.1 What Gets Logged
+### 8.1 Project
 
 ```python
 import weave
 
-@weave.op()
+weave.init("sasha-krigel-massachusetts-institute-of-technology/inference-hack")
+```
+
+The code path is now folded into the eval harness:
+
+- `eval/weave_ops.py` owns the default project string and optional `@weave.op()` wrapper.
+- `eval/bench.py --smoke --weave` initializes that project and runs the existing smoke eval through
+  the traced op.
+- `eval/bench.py --smoke` remains dependency-free and must keep working without Weave installed.
+- `WEAVE_PROJECT=team/project` or `--weave-project team/project` can override the destination for
+  dry runs, but the freeze run uses the project above.
+
+Eval box setup:
+
+```bash
+python -m pip install -r eval/requirements.txt
+wandb login
+python -m eval.bench --smoke --weave
+```
+
+Local/no-auth validation:
+
+```bash
+python -m eval.bench --smoke
+python -m unittest tests.test_eval_weave_ops
+```
+
+`--weave` should fail fast with an install/auth message when Weave is unavailable; it should never
+silently skip logging on a freeze run.
+
+### 8.2 What Gets Logged
+
+The current traced smoke op logs the full `TurnTrace.to_dict()` payload. As session/task runners land,
+they should wrap the same trace rows in nested ops:
+
+```python
+from eval.weave_ops import weave_op
+
+@weave_op(name="eval.score_chunk")
 def score_chunk(chunk: str, predicate: str) -> float:
-    """Every model call is tracked"""
+    """Every model call is tracked."""
     ...
 
-@weave.op()
+@weave_op(name="eval.run_session")
 def run_session(session: ScriptedSession) -> SessionMetrics:
-    """Session-level tracking with nested calls"""
+    """Session-level tracking with nested calls."""
     ...
 
-@weave.op()
+@weave_op(name="eval.run_task")
 def run_task(task: CompletionTask) -> TaskCompletionMetrics:
-    """Task-level tracking"""
+    """Task-level tracking."""
     ...
 ```
 
-### 8.2 Tracked Attributes
+### 8.3 Tracked Attributes
 
 Per run:
 - `commit`: git SHA
 - `corpus_id`: which corpus version
 - `model_id`: which model (e.g., "llama-3-8b-awq")
-- `regime`: optimization config (B0/B1/B2/B3)
+- `regime`: optimization config (B0/B1/B2/B3) once ladder sweeps land
 - `scorer_backend`: "mock" | "vllm"
+- `chunks_scored`, `chunks_served_from_cache`, `cache_hit_rate`, `rho`
+- `elapsed_ms`, `model_ms`, `queue_ms`, `ttft_ms`
+- `quality_slice`: null for smoke, populated for gate/task runs
 
-### 8.3 Comparison Views
+### 8.4 Comparison Views
 
 Weave provides:
 - Side-by-side run comparison
