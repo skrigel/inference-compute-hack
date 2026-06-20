@@ -34,6 +34,8 @@ export interface Facets {
 export interface QueryRequest {
   predicate: string;
   threshold: number;
+  // Axis 1 (Memory): fraction of the corpus scored this query (0 < b <= 1).
+  compute_budget?: number;
 }
 
 export interface FreshDocument {
@@ -57,6 +59,9 @@ export interface RefineRequest {
     lo: number;
     hi: number;
   };
+  // Axis 3 (Truth): 1 = single clause; >1 = explore N candidates and
+  // objective-select the best.
+  beam_width?: number;
 }
 
 export interface ResultEvent {
@@ -76,6 +81,10 @@ export interface AggregateEvent {
   facets: Facets;
   threshold: number;
   eta_ms: number;
+  // Axis 1 (Memory): corpus scope for the active compute budget.
+  corpus_total?: number;
+  corpus_scored?: number;
+  compute_budget?: number;
 }
 
 export interface Chip {
@@ -113,11 +122,46 @@ export interface DoneEvent {
   elapsed_ms: number;
   warm: boolean;
   summary: string;
+  // Axis 1 (Memory): corpus scope for the active compute budget.
+  corpus_total?: number;
+  corpus_scored?: number;
+  compute_budget?: number;
+}
+
+export interface BeamCandidate {
+  text: string;
+  objective: number;
+  coverage: number;
+  selected: number;
+  chosen: boolean;
+}
+
+export interface BeamEvent {
+  type: "beam";
+  beam_width: number;
+  candidates: BeamCandidate[];
+  chosen_index: number;
+  refine_ms: number;
+}
+
+// Axis 2 (Movement): client-side selection over the complete score cache.
+export type SelectMode = "threshold" | "smart";
+
+export interface Selection {
+  mode: SelectMode;
+  threshold: number;
+  selectedIds: string[];
+  coveredFacets: string[];
+  objective: number;
+  greedyObjective: number;
+  movementBudget: number;
+  beamWidth: number;
+  candidatePool: number;
 }
 
 export type QueryEvent = ResultEvent | AggregateEvent | DoneEvent;
-export type RefineEvent = ChipEvent | DiffEvent | AggregateEvent | DoneEvent;
-export type StreamEvent = ResultEvent | AggregateEvent | DiffEvent | ChipEvent | DoneEvent;
+export type RefineEvent = BeamEvent | ChipEvent | DiffEvent | AggregateEvent | DoneEvent;
+export type StreamEvent = ResultEvent | AggregateEvent | DiffEvent | ChipEvent | DoneEvent | BeamEvent;
 
 // Corpus management types
 export interface Corpus {
