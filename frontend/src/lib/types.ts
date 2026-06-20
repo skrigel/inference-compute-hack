@@ -118,3 +118,28 @@ export interface DoneEvent {
 export type QueryEvent = ResultEvent | AggregateEvent | DoneEvent;
 export type RefineEvent = ChipEvent | DiffEvent | AggregateEvent | DoneEvent;
 export type StreamEvent = ResultEvent | AggregateEvent | DiffEvent | ChipEvent | DoneEvent;
+
+// Corpus management types
+export interface Corpus {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  createdAt: number;
+  lastUsedAt: number;
+  isFavorite: boolean;
+  isDemo: boolean;
+  documentCount: number;
+  source: "files" | "demo";
+}
+
+export interface SavedQuery {
+  id: string;
+  corpusId: string;
+  predicate: string;
+  threshold: number;
+  chips: Chip[];
+  name: string;
+  notes: string;
+  savedAt: number;
+}

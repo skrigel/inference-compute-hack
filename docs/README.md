@@ -11,6 +11,8 @@ This directory breaks the build into phase-level operating docs. The top-level
 - [`../SCHEDULE.md`](../SCHEDULE.md) - phase index and milestone table.
 - [`../RISKS.md`](../RISKS.md) - risk register and mitigations.
 - [`../DEMO.md`](../DEMO.md) - demo beats, runbook, and fallback ladder.
+- [`optimization-results-ledger.md`](optimization-results-ledger.md) - consolidated
+  performance baseline, Weave logging contract, and optimization changelog format.
 
 ## Phase docs
 
