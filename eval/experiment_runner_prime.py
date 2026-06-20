@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -404,41 +405,29 @@ def create_pod(
     if result.returncode != 0:
         raise RuntimeError(f"Failed to create pod: {result.stderr}\nstdout: {result.stdout}")
 
-    # Parse pod ID from output
+    # Resolve the pod by name from the authoritative list. Prime's plain text
+    # create output can include phrases like "Successfully created", which are
+    # not stable enough to parse as IDs.
     output = result.stdout + result.stderr
     pod_id = None
-
-    # Try to parse JSON response first
-    try:
-        data = json.loads(result.stdout)
-        pod_id = data.get("id") or data.get("pod_id") or data.get("pod", {}).get("id")
-    except (json.JSONDecodeError, AttributeError):
-        pass
-
-    if not pod_id:
-        # Look for pod ID in text output
-        for line in output.splitlines():
-            line_lower = line.lower()
-            if "pod" in line_lower and ("created" in line_lower or "id" in line_lower):
-                parts = line.split()
-                for part in parts:
-                    # Pod IDs are typically 6+ alphanumeric chars
-                    clean_part = part.strip("'\"()[]{}:,")
-                    if len(clean_part) >= 6 and clean_part.replace("-", "").replace("_", "").isalnum():
-                        pod_id = clean_part
-                        break
-            if pod_id:
-                break
-
-    if not pod_id:
-        # List pods to find the one we just created
-        print("Looking up pod ID from list...")
+    print("Looking up pod ID from list...")
+    for _ in range(12):
         time.sleep(3)
         pods = list_pods()
         for pod in pods:
             if pod.name == name:
                 pod_id = pod.pod_id
                 break
+        if pod_id:
+            break
+
+    if not pod_id:
+        # Try JSON response as a fallback for future CLI versions.
+        try:
+            data = json.loads(result.stdout)
+            pod_id = data.get("id") or data.get("pod_id") or data.get("pod", {}).get("id")
+        except (json.JSONDecodeError, AttributeError):
+            pass
 
     if not pod_id:
         raise RuntimeError(f"Could not determine pod ID from output: {output}")
@@ -454,14 +443,16 @@ def wait_for_pod_ready(pod_id: str, timeout: int = 600) -> PodInfo:
         result = _run_prime(["pods", "status", pod_id], check=False)
         if result.returncode == 0:
             output = result.stdout.lower()
-            if "running" in output or "ready" in output:
+            has_ready_status = "running" in output or "ready" in output or "active" in output
+            has_ssh = re.search(r"root@[0-9.]+\s+-p\s+\d+", result.stdout) is not None
+            if has_ready_status and has_ssh:
                 # Get pod info
                 pods = list_pods()
                 for pod in pods:
                     if pod.pod_id == pod_id:
                         return pod
                 # Return basic info if not in list
-                return PodInfo(pod_id=pod_id, name="", status="running")
+                return PodInfo(pod_id=pod_id, name="", status="active")
         time.sleep(10)
         print(f"Waiting for pod {pod_id}... ({int(time.time() - start)}s)")
 
@@ -478,9 +469,46 @@ def terminate_pod(pod_id: str) -> None:
 
 def run_on_pod(pod_id: str, command: str, timeout: int = 1800) -> str:
     """Run a command on a Prime pod via SSH."""
-    # Use prime pods ssh to run the command
-    cmd = ["prime", "--plain", "pods", "ssh", pod_id, "--", "bash", "-c", command]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    status = _run_prime(["pods", "status", pod_id], check=False)
+    if status.returncode != 0:
+        raise RuntimeError(f"Could not read pod status for SSH details: {status.stderr}")
+    match = re.search(r"root@([0-9.]+)\s+-p\s+(\d+)", status.stdout)
+    if not match:
+        raise RuntimeError(f"Could not parse SSH details from pod status:\n{status.stdout}")
+    config = _run_prime(["config", "view"], check=False)
+    key_match = re.search(r"SSH Key Path\s+(\S+)", config.stdout)
+    key_path = key_match.group(1) if key_match else None
+    host = f"root@{match.group(1)}"
+    port = match.group(2)
+    cmd = [
+        "ssh",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "UserKnownHostsFile=/dev/null",
+        "-o",
+        "IdentitiesOnly=yes",
+        "-o",
+        "BatchMode=yes",
+        "-p",
+        port,
+    ]
+    if key_path:
+        cmd.extend(["-i", key_path])
+    cmd.extend([
+        host,
+        "bash",
+        "-lc",
+        command,
+    ])
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+    )
     if result.returncode != 0:
         raise RuntimeError(f"Command failed on pod: {result.stderr}\nStdout: {result.stdout}")
     return result.stdout

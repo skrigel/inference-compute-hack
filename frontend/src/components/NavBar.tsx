@@ -23,7 +23,7 @@ export function NavBar() {
   return (
     <header className="nav-bar">
       <Link to="/" className="nav-brand">
-        grep<span>meaning</span>
+        Flash<span>Grep</span>
       </Link>
       <nav className="nav-tabs">
         <Link to="/" className={`nav-tab${isActive("/") && !onSearchPage && location.pathname !== "/library" ? " active" : ""}`}>
