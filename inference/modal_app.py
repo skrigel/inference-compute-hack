@@ -174,6 +174,12 @@ vllm_metrics_image = (
     })
 )
 
+agent_loop_image = modal.Image.debian_slim(python_version="3.12").add_local_python_source(
+    "data",
+    "eval",
+    "inference",
+)
+
 # Persistent volumes for model weights (avoid re-downloading)
 hf_cache_vol = modal.Volume.from_name("grep-hf-cache", create_if_missing=True)
 vllm_cache_vol = modal.Volume.from_name("grep-vllm-cache", create_if_missing=True)
@@ -1375,6 +1381,65 @@ def _h100_rag_matrix_markdown(payload: dict) -> str:
     )
     lines.extend(f"- **{item['refinement']}**: {item['overlap']}" for item in payload["refinement_overlap"])
     return "\n".join(lines)
+
+
+@app.function(image=agent_loop_image, timeout=10 * MINUTES)
+def agent_loop_smoke_remote(
+    n_docs: int = 1_000,
+    task_count: int = 3,
+    max_steps: int = 5,
+    beam_width: int = 5,
+    threshold: float = 0.5,
+    commit: str | None = None,
+) -> dict:
+    import asyncio
+
+    from eval.agent_loop import run_agent_loop_experiment
+
+    payload = asyncio.run(
+        run_agent_loop_experiment(
+            n_docs=n_docs,
+            task_count=task_count,
+            max_steps=max_steps,
+            beam_width=beam_width,
+            threshold=threshold,
+        )
+    )
+    if commit:
+        payload["commit"] = commit
+    return payload
+
+
+@app.local_entrypoint()
+def extension3_agent_loop_smoke(
+    n_docs: int = 1_000,
+    task_count: int = 3,
+    max_steps: int = 5,
+    beam_width: int = 5,
+    threshold: float = 0.5,
+):
+    """Run the Extension 3 agent-loop environment on Modal CPU as a setup smoke."""
+    import json
+    from pathlib import Path
+
+    from eval.agent_loop import write_agent_loop_artifacts
+    from eval.agent_loop import _git_commit
+
+    payload = agent_loop_smoke_remote.remote(
+        n_docs=n_docs,
+        task_count=task_count,
+        max_steps=max_steps,
+        beam_width=beam_width,
+        threshold=threshold,
+        commit=_git_commit(),
+    )
+    artifact_dir = Path("eval/artifacts")
+    json_path = artifact_dir / "extension3_agent_loop_modal_smoke.json"
+    md_path = artifact_dir / "extension3_agent_loop_modal_smoke.md"
+    write_agent_loop_artifacts(payload, output_json=json_path, output_md=md_path)
+    print(json.dumps(payload["dataset_metrics"], indent=2, sort_keys=True))
+    print(f"Wrote {json_path}")
+    print(f"Wrote {md_path}")
 
 
 # -----------------------------------------------------------------------------

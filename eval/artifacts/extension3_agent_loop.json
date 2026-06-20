@@ -1,0 +1,440 @@
+{
+  "beam_width": 5,
+  "commit": "685e451",
+  "dataset_metrics": {
+    "agent_elapsed_ms": 13.225417002104223,
+    "agent_vs_human_speedup_estimate": 34025.39216180503,
+    "cost_quality_frontier": [
+      {
+        "cost_proxy_model_calls": 1000,
+        "quality": 1.0,
+        "reward": 1.1908571120340903,
+        "task_id": "agent-loop-0"
+      },
+      {
+        "cost_proxy_model_calls": 1000,
+        "quality": 1.0,
+        "reward": 1.1906365137847796,
+        "task_id": "agent-loop-1"
+      },
+      {
+        "cost_proxy_model_calls": 1000,
+        "quality": 1.0,
+        "reward": 1.1898968269417949,
+        "task_id": "agent-loop-2"
+      }
+    ],
+    "estimated_human_ms": 450000.0,
+    "mean_best_f1": 1.0,
+    "mean_best_reward": 1.1904634842535549,
+    "mean_memory_selectivity": 0.09536515746445103,
+    "mean_movement_selectivity": 0.09536515746445103,
+    "mean_reward_variance": 0.05675080262846699,
+    "mean_steps_to_threshold": 1.3333333333333333,
+    "pass_rate": 1.0,
+    "task_diversity": 1.0,
+    "trajectory_entropy": 2.118687840868567
+  },
+  "elapsed_ms": 13.225417002104223,
+  "episodes": [
+    {
+      "best_quality": {
+        "f1": 1.0,
+        "fn": 0.0,
+        "fp": 0.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 16.0
+      },
+      "best_query": "retry networking layer",
+      "best_reward": 1.1908571120340903,
+      "initial_query": "retry",
+      "metrics": {
+        "best_query": "retry networking layer",
+        "branching_factor": 5,
+        "bytes_moved_total": 92695,
+        "bytes_selected_best": 1695,
+        "cost_proxy_model_calls": 1000,
+        "initial_reward": 0.501418403635579,
+        "max_reward": 1.1908571120340903,
+        "max_score": 1.0,
+        "memory_selectivity": 0.09142887965909705,
+        "movement_selectivity": 0.09142887965909705,
+        "reasoning_steps": 4,
+        "reward_variance": 0.09487355293058716,
+        "steps_to_threshold": 1,
+        "task_token_length": 6,
+        "tool_calls": 5,
+        "trajectory_entropy": 1.8675737366643703,
+        "truth_gain": 0.52381
+      },
+      "steps": [
+        {
+          "action": "initial",
+          "bytes_moved": 18539,
+          "quality": {
+            "f1": 0.47619,
+            "fn": 11.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 0.3125,
+            "tp": 5.0
+          },
+          "query": "retry",
+          "reward": 0.501418403635579,
+          "score_latency_ms": 0.6972919800318778,
+          "selected_bytes": 537,
+          "selected_count": 5,
+          "step_idx": 0
+        },
+        {
+          "action": "add:networking layer",
+          "bytes_moved": 18539,
+          "quality": {
+            "f1": 1.0,
+            "fn": 0.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "tp": 16.0
+          },
+          "query": "retry networking layer",
+          "reward": 1.1908571120340903,
+          "score_latency_ms": 0.8097499958239496,
+          "selected_bytes": 1695,
+          "selected_count": 16,
+          "step_idx": 1
+        },
+        {
+          "action": "add:without backoff",
+          "bytes_moved": 18539,
+          "quality": {
+            "f1": 0.258065,
+            "fn": 0.0,
+            "fp": 92.0,
+            "precision": 0.148148,
+            "recall": 1.0,
+            "tp": 16.0
+          },
+          "query": "retry networking layer without backoff",
+          "reward": 0.40200480257834836,
+          "score_latency_ms": 0.8486250299029052,
+          "selected_bytes": 10393,
+          "selected_count": 108,
+          "step_idx": 2
+        },
+        {
+          "action": "add:HTTP",
+          "bytes_moved": 18539,
+          "quality": {
+            "f1": 0.258065,
+            "fn": 0.0,
+            "fp": 92.0,
+            "precision": 0.148148,
+            "recall": 1.0,
+            "tp": 16.0
+          },
+          "query": "retry networking layer without backoff HTTP",
+          "reward": 0.40200480257834836,
+          "score_latency_ms": 0.8664579945616424,
+          "selected_bytes": 10393,
+          "selected_count": 108,
+          "step_idx": 3
+        },
+        {
+          "action": "add:connection pool",
+          "bytes_moved": 18539,
+          "quality": {
+            "f1": 0.258065,
+            "fn": 0.0,
+            "fp": 92.0,
+            "precision": 0.148148,
+            "recall": 1.0,
+            "tp": 16.0
+          },
+          "query": "retry networking layer without backoff HTTP connection pool",
+          "reward": 0.40200480257834836,
+          "score_latency_ms": 0.8703329949639738,
+          "selected_bytes": 10393,
+          "selected_count": 108,
+          "step_idx": 4
+        }
+      ],
+      "target_topic": "retry_backoff",
+      "task_id": "agent-loop-0"
+    },
+    {
+      "best_quality": {
+        "f1": 1.0,
+        "fn": 0.0,
+        "fp": 0.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 16.0
+      },
+      "best_query": "retrieval ranking metrics",
+      "best_reward": 1.1906365137847796,
+      "initial_query": "retrieval",
+      "metrics": {
+        "best_query": "retrieval ranking metrics",
+        "branching_factor": 5,
+        "bytes_moved_total": 78710,
+        "bytes_selected_best": 1474,
+        "cost_proxy_model_calls": 1000,
+        "initial_reward": 0.9302295756574768,
+        "max_reward": 1.1906365137847796,
+        "max_score": 1.0,
+        "memory_selectivity": 0.09363486215220429,
+        "movement_selectivity": 0.09363486215220429,
+        "reasoning_steps": 4,
+        "reward_variance": 0.010849883747973911,
+        "steps_to_threshold": 1,
+        "task_token_length": 7,
+        "tool_calls": 5,
+        "trajectory_entropy": 2.308102053095744,
+        "truth_gain": 0.18518500000000004
+      },
+      "steps": [
+        {
+          "action": "initial",
+          "bytes_moved": 15742,
+          "quality": {
+            "f1": 0.814815,
+            "fn": 5.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 0.6875,
+            "tp": 11.0
+          },
+          "query": "retrieval",
+          "reward": 0.9302295756574768,
+          "score_latency_ms": 0.6639999919570982,
+          "selected_bytes": 1017,
+          "selected_count": 11,
+          "step_idx": 0
+        },
+        {
+          "action": "add:ranking metrics",
+          "bytes_moved": 15742,
+          "quality": {
+            "f1": 1.0,
+            "fn": 0.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "tp": 16.0
+          },
+          "query": "retrieval ranking metrics",
+          "reward": 1.1906365137847796,
+          "score_latency_ms": 0.6763749988749623,
+          "selected_bytes": 1474,
+          "selected_count": 16,
+          "step_idx": 1
+        },
+        {
+          "action": "add:code search",
+          "bytes_moved": 15742,
+          "quality": {
+            "f1": 1.0,
+            "fn": 0.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "tp": 16.0
+          },
+          "query": "retrieval ranking metrics code search",
+          "reward": 1.1906365137847796,
+          "score_latency_ms": 0.6896659615449607,
+          "selected_bytes": 1474,
+          "selected_count": 16,
+          "step_idx": 2
+        },
+        {
+          "action": "add:information retrieval",
+          "bytes_moved": 15742,
+          "quality": {
+            "f1": 1.0,
+            "fn": 0.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "tp": 16.0
+          },
+          "query": "retrieval ranking metrics code search information retrieval",
+          "reward": 1.1906365137847796,
+          "score_latency_ms": 0.7323329919017851,
+          "selected_bytes": 1474,
+          "selected_count": 16,
+          "step_idx": 3
+        },
+        {
+          "action": "add:semantic quality",
+          "bytes_moved": 15742,
+          "quality": {
+            "f1": 1.0,
+            "fn": 0.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "tp": 16.0
+          },
+          "query": "retrieval ranking metrics code search information retrieval semantic quality",
+          "reward": 1.1906365137847796,
+          "score_latency_ms": 0.7863339851610363,
+          "selected_bytes": 1474,
+          "selected_count": 16,
+          "step_idx": 4
+        }
+      ],
+      "target_topic": "ir_retrieval",
+      "task_id": "agent-loop-1"
+    },
+    {
+      "best_quality": {
+        "f1": 1.0,
+        "fn": 0.0,
+        "fp": 0.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tp": 16.0
+      },
+      "best_query": "cache threshold drag without rescoring",
+      "best_reward": 1.1898968269417949,
+      "initial_query": "cache",
+      "metrics": {
+        "best_query": "cache threshold drag without rescoring",
+        "branching_factor": 5,
+        "bytes_moved_total": 77055,
+        "bytes_selected_best": 1557,
+        "cost_proxy_model_calls": 1000,
+        "initial_reward": 0.5013495856855492,
+        "max_reward": 1.1898968269417949,
+        "max_score": 1.0,
+        "memory_selectivity": 0.10103173058205178,
+        "movement_selectivity": 0.10103173058205178,
+        "reasoning_steps": 4,
+        "reward_variance": 0.0645289712068399,
+        "steps_to_threshold": 2,
+        "task_token_length": 5,
+        "tool_calls": 5,
+        "trajectory_entropy": 2.180387732845587,
+        "truth_gain": 0.52381
+      },
+      "steps": [
+        {
+          "action": "initial",
+          "bytes_moved": 15411,
+          "quality": {
+            "f1": 0.47619,
+            "fn": 11.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 0.3125,
+            "tp": 5.0
+          },
+          "query": "cache",
+          "reward": 0.5013495856855492,
+          "score_latency_ms": 0.5753329605795443,
+          "selected_bytes": 457,
+          "selected_count": 5,
+          "step_idx": 0
+        },
+        {
+          "action": "add:threshold drag",
+          "bytes_moved": 15411,
+          "quality": {
+            "f1": 0.47619,
+            "fn": 11.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 0.3125,
+            "tp": 5.0
+          },
+          "query": "cache threshold drag",
+          "reward": 0.5013495856855492,
+          "score_latency_ms": 0.6038750289008021,
+          "selected_bytes": 457,
+          "selected_count": 5,
+          "step_idx": 1
+        },
+        {
+          "action": "add:without rescoring",
+          "bytes_moved": 15411,
+          "quality": {
+            "f1": 1.0,
+            "fn": 0.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "tp": 16.0
+          },
+          "query": "cache threshold drag without rescoring",
+          "reward": 1.1898968269417949,
+          "score_latency_ms": 0.6490419618785381,
+          "selected_bytes": 1557,
+          "selected_count": 16,
+          "step_idx": 2
+        },
+        {
+          "action": "add:zero inference",
+          "bytes_moved": 15411,
+          "quality": {
+            "f1": 0.72,
+            "fn": 7.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 0.5625,
+            "tp": 9.0
+          },
+          "query": "cache threshold drag without rescoring zero inference",
+          "reward": 0.8049147930049964,
+          "score_latency_ms": 0.6827079923823476,
+          "selected_bytes": 880,
+          "selected_count": 9,
+          "step_idx": 3
+        },
+        {
+          "action": "add:cached scores",
+          "bytes_moved": 15411,
+          "quality": {
+            "f1": 0.72,
+            "fn": 7.0,
+            "fp": 0.0,
+            "precision": 1.0,
+            "recall": 0.5625,
+            "tp": 9.0
+          },
+          "query": "cache threshold drag without rescoring zero inference cached scores",
+          "reward": 0.8049147930049964,
+          "score_latency_ms": 0.7967919809743762,
+          "selected_bytes": 880,
+          "selected_count": 9,
+          "step_idx": 4
+        }
+      ],
+      "target_topic": "cache_threshold",
+      "task_id": "agent-loop-2"
+    }
+  ],
+  "framework": {
+    "axes": {
+      "answer_error": "1 - F1 plus missing-evidence recall error",
+      "memory_bandwidth": "selected bytes and scored bytes moved per rollout",
+      "memory_capacity": "positive/evidence bytes divided by total stored corpus bytes"
+    },
+    "primitives": {
+      "M": "scorer.score_batch(query, chunks) returning relevance probabilities",
+      "T": "query-refinement task over a labeled synthetic dynamic corpus",
+      "V": "verifier comparing selected chunks to task positive ids",
+      "r": "F1 + recall bonus - byte movement/storage penalties",
+      "y": "candidate refined query and selected evidence set"
+    },
+    "rule_of_thumb": "spend extra inference on planning and verification, not blind storage or byte movement"
+  },
+  "max_steps": 5,
+  "model_id": "mock-semantic-filter-v0",
+  "n_docs": 200,
+  "run_id": "agent-loop-93c73ae6",
+  "task_count": 3,
+  "threshold": 0.5
+}

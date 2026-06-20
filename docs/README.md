@@ -13,6 +13,8 @@ This directory breaks the build into phase-level operating docs. The top-level
 - [`../DEMO.md`](../DEMO.md) - demo beats, runbook, and fallback ladder.
 - [`optimization-results-ledger.md`](optimization-results-ledger.md) - consolidated
   performance baseline, Weave logging contract, and optimization changelog format.
+- [`extension-03-agent-loop-rl.md`](extension-03-agent-loop-rl.md) - RL-style
+  query-refinement environment, metrics, and Modal smoke path.
 
 ## Phase docs
 
