@@ -5,7 +5,7 @@ import { useSettings } from "../hooks/useSettings";
 
 describe("useSettings", () => {
   beforeEach(() => {
-    (localStorage as any).store = {};
+    localStorage.clear();
   });
 
   it("defaults to mock mode", () => {
