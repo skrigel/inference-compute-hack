@@ -2279,3 +2279,85 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Settings page */
+.settings-section {
+  background: var(--bg-primary);
+  border: 1px solid var(--separator-opaque);
+  border-radius: var(--r2);
+  padding: 1.5rem;
+  max-width: 600px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--separator);
+  cursor: pointer;
+}
+
+.setting-row:last-of-type {
+  border-bottom: none;
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.setting-label {
+  font-weight: 500;
+  color: var(--label);
+}
+
+.setting-description {
+  font-size: 0.875rem;
+  color: var(--label-secondary);
+}
+
+.setting-toggle {
+  width: 44px;
+  height: 24px;
+  appearance: none;
+  background: var(--fill);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.setting-toggle::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.setting-toggle:checked {
+  background: var(--system-blue);
+}
+
+.setting-toggle:checked::before {
+  transform: translateX(20px);
+}
+
+.setting-status {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: var(--r1);
+  font-size: 0.875rem;
+  color: var(--label-secondary);
+}
+
+.nav-icon-btn.active {
+  color: var(--system-blue);
+}
