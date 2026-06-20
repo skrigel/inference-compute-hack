@@ -45,7 +45,7 @@ prime train run eval/configs/extension3_prime/prime_train.example.toml
 Checkpoint settings:
 
 - Target hardware: `8x H100 80GB on Prime`.
-- Full checkpoints every `25` steps with `keep_cloud = true`.
+- Full checkpoints every `25` steps with `keep_cloud = 5`.
 - Adapter uploads every `25` steps; keep last `4` adapters.
 - To resume, run `prime train checkpoints <run-id>` and set top-level `checkpoint_id`.
 

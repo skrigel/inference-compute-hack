@@ -224,22 +224,17 @@ held fixed.
 8. Plot the cost-quality Pareto frontier: metric cost proxy versus predictive
    power.
 
-Candidate pilot model in the config is `Qwen/Qwen2.5-1.5B-Instruct` with LoRA.
-This is a conservative pilot choice; verify current Prime image/model support
-and pricing before launch. Move to a larger model only after the pipeline has a
-passing tiny run.
+Candidate pilot model in the config is `Qwen/Qwen3.5-2B` with LoRA-style
+adapter checkpointing managed by Prime Hosted Training. This is a conservative
+pilot choice; move to a larger model only after the environment smoke eval and a
+tiny training run both complete.
 
 ## Prime 8-H100 Checkpoint Policy
 
-The current training target is 8 H100s on Prime. The committed config records
-this in `eval/configs/extension3_prime/prime_train.example.toml`:
-
-```toml
-[hardware]
-target = "8x H100 80GB on Prime"
-gpu_type = "H100"
-gpu_count = 8
-```
+The current training target is 8 H100s on Prime. That target is recorded in the
+readiness packet metadata, not as a Prime TOML section, because Hosted Training
+rejects unknown top-level hardware fields. If we reserve or receive a named
+Prime cluster, set `cluster_name` in `eval/configs/extension3_prime/prime_train.example.toml`.
 
 Checkpointing should be frequent enough that an interruption loses at most one
 short window of RL rollouts:
@@ -247,7 +242,7 @@ short window of RL rollouts:
 ```toml
 [checkpoints]
 interval = 25
-keep_cloud = true
+keep_cloud = 5
 
 [adapters]
 interval = 25
@@ -256,9 +251,8 @@ keep_last = 4
 [val]
 interval = 25
 
-[resume]
-checkpoint_id = ""
-checkpoint_list_command = "prime train checkpoints <run-id>"
+# Optional warm-start after a failed/interrupted run.
+# checkpoint_id = "..."
 ```
 
 Operational rules:

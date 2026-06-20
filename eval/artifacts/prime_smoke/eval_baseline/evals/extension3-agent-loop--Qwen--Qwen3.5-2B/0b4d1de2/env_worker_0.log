@@ -1,0 +1,8 @@
+2026-06-20 04:11:47 - verifiers.utils.env_utils - INFO - Loading environment: extension3-agent-loop
+2026-06-20 04:11:47 - verifiers.utils.env_utils - INFO - Using provided args: include_hard=True, split=eval, max_examples=2
+2026-06-20 04:11:47 - verifiers.utils.env_utils - INFO - Successfully loaded environment 'extension3-agent-loop'
+2026-06-20 04:11:47 - verifiers.utils.thread_utils - INFO - Scaled default executor and 0 registered executor(s) ()
+2026-06-20 04:11:47 - verifiers.serve.server.env_worker.EnvWorker - INFO - Initialized worker extension3-agent-loop-0 on ipc:///tmp/vf-0a8ad71487ab-extension3-agent-loop-0
+2026-06-20 04:11:47 - verifiers.serve.server.env_worker.EnvWorker - INFO - Starting worker extension3-agent-loop-0
+2026-06-20 04:11:49 - verifiers.utils.process_utils - INFO - Death pipe closed — parent is gone, sending SIGTERM to self
+2026-06-20 04:11:49 - verifiers.serve.server.env_worker.EnvWorker - INFO - Shut down worker extension3-agent-loop-0

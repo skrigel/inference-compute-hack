@@ -41,7 +41,7 @@
       "training": {
         "adapter_artifact": "",
         "algorithm": "GRPO",
-        "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "base_model": "Qwen/Qwen3.5-2B",
         "estimated_cost_usd": 0.0,
         "train_wall_clock_minutes": 0.0
       }

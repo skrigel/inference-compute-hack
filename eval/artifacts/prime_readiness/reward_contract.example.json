@@ -1,5 +1,5 @@
 {
-  "environment_id": "extension3-agent-loop",
+  "environment_id": "inference/extension3-agent-loop",
   "failure_modes_to_log": [
     "query_overbroad_high_recall_low_precision",
     "query_underspecified_low_recall",

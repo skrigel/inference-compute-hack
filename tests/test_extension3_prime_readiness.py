@@ -19,7 +19,8 @@ class Extension3PrimeReadinessTests(unittest.TestCase):
         self.assertEqual(packet["prime_training_config"]["hardware"]["gpu_count"], 8)
         self.assertEqual(packet["prime_training_config"]["hardware"]["gpu_type"], "H100")
         self.assertLessEqual(packet["prime_training_config"]["checkpointing"]["checkpoint_interval"], 25)
-        self.assertTrue(packet["prime_training_config"]["checkpointing"]["keep_cloud_checkpoints"])
+        self.assertEqual(packet["prime_training_config"]["checkpointing"]["keep_cloud_checkpoints"], 5)
+        self.assertEqual(packet["prime_training_config"]["environment"]["id"], "inference/extension3-agent-loop")
         for command in packet["no_credit_smoke"]["commands"]:
             self.assertNotIn("prime train run", command)
         for cohort in packet["cohort_manifest"]["cohorts"]:
@@ -41,14 +42,15 @@ class Extension3PrimeReadinessTests(unittest.TestCase):
             train_config = tomllib.loads(paths["train_config"].read_text())
 
             self.assertGreaterEqual(len(cohorts["cohorts"]), 8)
-            self.assertEqual(train_config["run"]["project"], "inference-compute-hack")
-            self.assertEqual(train_config["hardware"]["gpu_count"], 8)
-            self.assertEqual(train_config["hardware"]["gpu_type"], "H100")
+            self.assertEqual(train_config["name"], "extension3-agent-loop-grpo-pilot")
+            self.assertEqual(train_config["model"], "Qwen/Qwen3.5-2B")
+            self.assertEqual(train_config["loss"], "rl")
+            self.assertEqual(train_config["max_steps"], 50)
+            self.assertEqual(train_config["env"][0]["id"], "inference/extension3-agent-loop")
             self.assertEqual(train_config["checkpoints"]["interval"], 25)
-            self.assertTrue(train_config["checkpoints"]["keep_cloud"])
+            self.assertEqual(train_config["checkpoints"]["keep_cloud"], 5)
             self.assertEqual(train_config["adapters"]["keep_last"], 4)
-            self.assertEqual(train_config["resume"]["checkpoint_id"], "")
-            self.assertEqual(train_config["environment"]["id"], "extension3-agent-loop")
+            self.assertEqual(train_config["val"]["interval"], 25)
             self.assertEqual(lift_schema["schema_version"], "extension3.metric_to_lift.v1")
 
     def test_no_credit_readiness_smoke_writes_report_without_training_launch(self):

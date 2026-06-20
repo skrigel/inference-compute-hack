@@ -9,7 +9,6 @@
     "train_config": "eval/artifacts/prime_readiness/prime_train.example.toml"
   },
   "blocking_items": [
-    "prime CLI is not available or did not respond to --help",
     "8-H100 Prime capacity or reservation has not been recorded",
     "heldout baseline eval artifact has not been recorded",
     "explicit user approval for Prime credit use has not been recorded"
@@ -22,16 +21,17 @@
       "passed": true
     },
     "prime_cli": {
-      "available": false,
-      "passed": false,
-      "reason": "prime CLI not found; install/authenticate before running Prime eval or training."
+      "available": true,
+      "passed": true,
+      "path": "/Users/jvgrewal/.local/bin/prime",
+      "returncode": 0
     },
     "training_gate": {
       "passed": true,
       "reason": "This smoke path never invokes prime train run."
     }
   },
-  "generated_ms": 9.871,
+  "generated_ms": 227.366,
   "next_allowed_action": "Authenticate Prime, confirm 8-H100 capacity, then only launch Prime training after explicit credit approval.",
   "paid_training_launched": false,
   "ready_for_prime_training_launch": false,

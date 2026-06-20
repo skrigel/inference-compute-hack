@@ -1,0 +1,21 @@
+[project]
+name = "extension3-agent-loop"
+description = "Synthetic dynamic-corpus query-refinement environment for measuring cheap metrics against post-RL lift."
+tags = ["agent-loop", "query-refinement", "train", "eval", "metrics"]
+version = "0.1.0"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "datasets>=4.0.0",
+    "verifiers>=0.1.14",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = ["extension3_agent_loop/**/*.py", "pyproject.toml", "README.md"]
+
+[tool.verifiers.eval]
+num_examples = 6
+rollouts_per_example = 2

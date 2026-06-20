@@ -7,11 +7,10 @@
 - local_smoke_passed: `True`
 - mean_truth_gain: `0.447619`
 - pass_rate: `1.000000`
-- prime_cli_available: `False`
+- prime_cli_available: `True`
 
 ## Blocking Items
 
-- prime CLI is not available or did not respond to --help
 - 8-H100 Prime capacity or reservation has not been recorded
 - heldout baseline eval artifact has not been recorded
 - explicit user approval for Prime credit use has not been recorded
