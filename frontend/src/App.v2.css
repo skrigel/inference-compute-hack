@@ -2030,6 +2030,35 @@ body {
   flex-direction: column;
 }
 
+.page-mode-tabs {
+  display: flex;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--separator-opaque);
+}
+
+.page-mode-btn {
+  padding: var(--s2) var(--s3);
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--label-secondary);
+  cursor: pointer;
+  border-radius: var(--r1);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.page-mode-btn:hover {
+  background: var(--fill);
+}
+
+.page-mode-btn.active {
+  background: var(--system-blue);
+  color: white;
+}
+
 .query-header {
   display: flex;
   align-items: center;

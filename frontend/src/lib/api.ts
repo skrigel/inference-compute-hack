@@ -7,9 +7,10 @@ export type DataMode = "mock" | "live";
 const STORAGE_KEY = "api-mode";
 
 export function getApiMode(): DataMode {
-  if (typeof window === "undefined") return "mock";
+  if (typeof window === "undefined") return "live";
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored === "live" ? "live" : "mock";
+  // Default to live mode
+  return stored === "mock" ? "mock" : "live";
 }
 
 export function setApiMode(mode: DataMode): void {

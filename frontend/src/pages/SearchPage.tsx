@@ -14,6 +14,8 @@ import type { CachedScore } from "../lib/scoreCache";
 import type { Chip, FacetBucket, Facets, HistogramBin, Corpus } from "../lib/types";
 import { DocumentPreview } from "../components/DocumentPreview";
 
+type PageMode = "browse" | "compare";
+
 export function SearchPage() {
   const { corpusId } = useParams<{ corpusId: string }>();
   const navigate = useNavigate();
@@ -22,6 +24,7 @@ export function SearchPage() {
   const [activeCorpus, setActiveCorpus] = useState<"demo" | "browsecomp">("demo");
   const [switchingCorpus, setSwitchingCorpus] = useState(false);
   const [previewResult, setPreviewResult] = useState<CachedScore | null>(null);
+  const [pageMode, setPageMode] = useState<PageMode>("browse");
   const d = useDashboard();
 
   const handleCorpusChange = async (newCorpus: "demo" | "browsecomp") => {
@@ -73,6 +76,21 @@ export function SearchPage() {
 
   return (
     <main className="search-page">
+      <div className="page-mode-tabs">
+        <button
+          className={`page-mode-btn${pageMode === "browse" ? " active" : ""}`}
+          onClick={() => setPageMode("browse")}
+        >
+          Browse Results
+        </button>
+        <button
+          className={`page-mode-btn${pageMode === "compare" ? " active" : ""}`}
+          onClick={() => setPageMode("compare")}
+        >
+          MCP Comparison
+        </button>
+      </div>
+
       <QuerySection
         predicate={d.predicate}
         onPredicateChange={d.setPredicate}
@@ -84,44 +102,71 @@ export function SearchPage() {
         onCorpusChange={handleCorpusChange}
       />
 
-      <ComparisonDemoPanel d={d} />
+      {pageMode === "compare" && (
+        <>
+          <ComparisonDemoPanel d={d} />
+          {d.hasRun && (
+            <TabbedSection
+              activeTab="results"
+              hasRun={d.hasRun}
+              results={d.view.results}
+              facets={d.view.facets}
+              threshold={d.threshold}
+              matched={d.view.matched}
+              etaMs={d.etaMs}
+              latencyMs={d.latencyMs}
+              latencyKind={d.latencyKind}
+              docsPerSec={d.docsPerSec}
+              elapsedMs={d.elapsedMs}
+              latHistory={d.latHistory}
+              selectedIds={d.selection?.mode === "smart" ? d.selection.selectedIds : []}
+              onClickRefine={d.runClickRefine}
+              onResultClick={(result) => setPreviewResult(result)}
+            />
+          )}
+        </>
+      )}
 
-      <ThresholdSection
-        histogram={d.view.histogram}
-        threshold={d.threshold}
-        onThreshold={d.setThreshold}
-        hasRun={d.hasRun}
-        matched={d.view.matched}
-        total={d.scanned}
-      />
+      {pageMode === "browse" && (
+        <>
+          <ThresholdSection
+            histogram={d.view.histogram}
+            threshold={d.threshold}
+            onThreshold={d.setThreshold}
+            hasRun={d.hasRun}
+            matched={d.view.matched}
+            total={d.scanned}
+          />
 
-      <FilterSection
-        chips={d.chips}
-        refining={d.refining}
-        onRefine={d.runRefine}
-        onRemoveChip={d.removeChip}
-        onFreshFiles={d.ingestFreshFiles}
-      />
+          <FilterSection
+            chips={d.chips}
+            refining={d.refining}
+            onRefine={d.runRefine}
+            onRemoveChip={d.removeChip}
+            onFreshFiles={d.ingestFreshFiles}
+          />
 
-      <ComputePanel d={d} />
+          <ComputePanel d={d} />
 
-      <TabbedSection
-        activeTab="results"
-        hasRun={d.hasRun}
-        results={d.view.results}
-        facets={d.view.facets}
-        threshold={d.threshold}
-        matched={d.view.matched}
-        etaMs={d.etaMs}
-        latencyMs={d.latencyMs}
-        latencyKind={d.latencyKind}
-        docsPerSec={d.docsPerSec}
-        elapsedMs={d.elapsedMs}
-        latHistory={d.latHistory}
-        selectedIds={d.selection?.mode === "smart" ? d.selection.selectedIds : []}
-        onClickRefine={d.runClickRefine}
-        onResultClick={(result) => setPreviewResult(result)}
-      />
+          <TabbedSection
+            activeTab="results"
+            hasRun={d.hasRun}
+            results={d.view.results}
+            facets={d.view.facets}
+            threshold={d.threshold}
+            matched={d.view.matched}
+            etaMs={d.etaMs}
+            latencyMs={d.latencyMs}
+            latencyKind={d.latencyKind}
+            docsPerSec={d.docsPerSec}
+            elapsedMs={d.elapsedMs}
+            latHistory={d.latHistory}
+            selectedIds={d.selection?.mode === "smart" ? d.selection.selectedIds : []}
+            onClickRefine={d.runClickRefine}
+            onResultClick={(result) => setPreviewResult(result)}
+          />
+        </>
+      )}
 
       {previewResult && (
         <DocumentPreview result={previewResult} onClose={() => setPreviewResult(null)} />
