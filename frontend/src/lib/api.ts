@@ -4,7 +4,18 @@ import type { Facets, FreshDocument, QueryEvent, QueryRequest, RefineEvent, Refi
 
 export type DataMode = "mock" | "live";
 
-const MODE: DataMode = (import.meta.env.VITE_DATA_MODE ?? "mock") === "live" ? "live" : "mock";
+const STORAGE_KEY = "api-mode";
+
+export function getApiMode(): DataMode {
+  if (typeof window === "undefined") return "mock";
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === "live" ? "live" : "mock";
+}
+
+export function setApiMode(mode: DataMode): void {
+  localStorage.setItem(STORAGE_KEY, mode);
+  window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: mode }));
+}
 
 export interface DashboardApi {
   mode: DataMode;
@@ -40,61 +51,55 @@ function isAbort(error: unknown): boolean {
   return typeof error === "object" && error !== null && (error as { name?: string }).name === "AbortError";
 }
 
-// Live mode auto-falls-back to the mock adapter on any network error, so a
-// backend outage degrades to the faithful mock instead of a blank screen.
 export function createApi(): DashboardApi {
-  if (MODE === "live") {
-    return {
-      mode: "live",
-      async ingest(corpusId, documents, limit) {
+  return {
+    get mode(): DataMode {
+      return getApiMode();
+    },
+    async ingest(corpusId, documents, limit) {
+      if (getApiMode() === "live") {
         try {
           return await ingestLive(corpusId, documents, limit);
         } catch (error) {
           console.warn("live ingest failed; falling back to mock", error);
           return ingestMock(corpusId, documents);
         }
-      },
-      async query(request, onEvent, signal) {
+      }
+      return ingestMock(corpusId, documents);
+    },
+    async query(request, onEvent, signal) {
+      if (getApiMode() === "live") {
         try {
           await queryLive(request, onEvent, signal);
+          return;
         } catch (error) {
           if (isAbort(error)) return;
           console.warn("live query failed; falling back to mock", error);
-          await queryViaMock(request, onEvent, signal);
         }
-      },
-      async refine(request, onEvent, signal) {
+      }
+      await queryViaMock(request, onEvent, signal);
+    },
+    async refine(request, onEvent, signal) {
+      if (getApiMode() === "live") {
         try {
           await refineLive(request, onEvent, signal);
+          return;
         } catch (error) {
           if (isAbort(error)) return;
           console.warn("live refine failed; falling back to mock", error);
-          await refineViaMock(request, onEvent, signal);
         }
-      },
-      async deleteClause(clauseId) {
+      }
+      await refineViaMock(request, onEvent, signal);
+    },
+    async deleteClause(clauseId) {
+      if (getApiMode() === "live") {
         try {
           return await deleteClauseLive(clauseId);
         } catch (error) {
           console.warn("live delete clause failed; falling back to mock", error);
           return deleteClauseMock(clauseId);
         }
-      },
-    };
-  }
-
-  return {
-    mode: "mock",
-    async ingest(corpusId, documents) {
-      return ingestMock(corpusId, documents);
-    },
-    async query(request, onEvent, signal) {
-      await queryViaMock(request, onEvent, signal);
-    },
-    async refine(request, onEvent, signal) {
-      await refineViaMock(request, onEvent, signal);
-    },
-    async deleteClause(clauseId) {
+      }
       return deleteClauseMock(clauseId);
     },
   };
