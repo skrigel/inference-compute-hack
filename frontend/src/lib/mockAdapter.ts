@@ -22,6 +22,7 @@ import { facetTokens } from "./computeLab";
 // Stagger between streamed results so the dashboard visibly fills on mock —
 // ~24 results x 28ms ≈ a ~700ms "cold" scan feel, matching the demo fallback.
 const STREAM_DELAY_MS = 28;
+const LARGE_STREAM_DELAY_MS = 0;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -66,8 +67,9 @@ const DEMO_ITEMS: MockItem[] = [
   { chunk_id: "m24", score: 0.08, type: "paper", title: "Diffusion Language Models", category: "cs.CL", year: 2025, path: null, repo: null },
 ];
 
-// BrowseComp+ mock items - simulated web documents
-const BROWSECOMP_ITEMS: MockItem[] = Array.from({ length: 100 }, (_, i) => ({
+// BrowseComp+ mock items - simulated web documents.
+function browseCompItems(limit = 100): MockItem[] {
+  return Array.from({ length: Math.max(1, limit) }, (_, i) => ({
   chunk_id: `bcp-${i}`,
   score: Math.max(0.05, 0.95 - (i * 0.009) + (Math.sin(i) * 0.1)),
   type: "paper" as const,
@@ -76,14 +78,16 @@ const BROWSECOMP_ITEMS: MockItem[] = Array.from({ length: 100 }, (_, i) => ({
   year: 2020 + (i % 6),
   path: `https://example.com/doc/${i}`,
   repo: null,
-}));
+  }));
+}
 
 let activeCorpus: "demo" | "browsecomp" = "demo";
+let activeBrowseCompLimit = 100;
 let freshItems: MockItem[] = [];
 let clauseSeq = 1;
 
 function getBaseItems(): MockItem[] {
-  return activeCorpus === "browsecomp" ? BROWSECOMP_ITEMS : DEMO_ITEMS;
+  return activeCorpus === "browsecomp" ? browseCompItems(activeBrowseCompLimit) : DEMO_ITEMS;
 }
 
 function toResult(item: MockItem, rank: number): ResultEvent {
@@ -116,16 +120,18 @@ function mockResults(): ResultEvent[] {
 export async function ingestMock(
   corpusId: string,
   documents: FreshDocument[] = [],
+  limit?: number,
 ): Promise<{ n_chunks: number; facets: Facets }> {
   // Switch corpus based on corpusId
   if (corpusId === "browsecomp" || corpusId === "demo") {
     activeCorpus = corpusId;
-    freshItems = [];
+    if (corpusId === "browsecomp") activeBrowseCompLimit = limit ?? activeBrowseCompLimit;
+    if (!documents.length) freshItems = [];
   }
   if (documents.length > 0) {
-    freshItems = documents.map((document, index) => ({
+    const nextItems = documents.map((document, index) => ({
       chunk_id: `fresh-${Date.now()}-${index}`,
-      score: document.text.toLowerCase().includes("sentinel") ? 0.97 : 0.72,
+      score: document.text.toLowerCase().includes("sentinel") || document.repo === "arxiv" ? 0.97 : 0.72,
       type: document.type,
       title: document.title,
       category: document.category ?? document.lang ?? "fresh",
@@ -133,8 +139,24 @@ export async function ingestMock(
       path: document.path,
       repo: document.repo,
     }));
+    freshItems = [...freshItems, ...nextItems];
   }
   return { n_chunks: mockResults().length, facets: allFacets() };
+}
+
+export async function addArxivMock(query: string, count = 25): Promise<{ n_chunks: number; facets: Facets }> {
+  const total = Math.max(1, Math.min(100, Math.round(count)));
+  const documents: FreshDocument[] = Array.from({ length: total }, (_, index) => ({
+    title: `arXiv ${query} ${index + 1}`,
+    text: `${query} synthetic arxiv paper about reward variance, retrieval ranking, and verifier-backed evidence ${index + 1}`,
+    type: "paper",
+    category: "cs.IR",
+    year: new Date().getFullYear(),
+    path: `arxiv:demo.${Date.now()}.${index}`,
+    lang: null,
+    repo: "arxiv",
+  }));
+  return ingestMock(activeCorpus, documents);
 }
 
 function allFacets(): Facets {
@@ -163,10 +185,11 @@ export async function* queryMock(
   const corpus = { total: allItems.length, scored: results.length, budget };
   // Stream EVERY scored chunk best-first (like the backend) so the client cache
   // is complete and threshold drag is a pure recut.
+  const streamDelay = results.length > 200 ? LARGE_STREAM_DELAY_MS : STREAM_DELAY_MS;
   for (const result of results) {
     if (signal?.aborted) return;
     yield result;
-    await sleep(STREAM_DELAY_MS);
+    if (streamDelay) await sleep(streamDelay);
   }
 
   const matched = results.filter((result) => result.score >= request.threshold);

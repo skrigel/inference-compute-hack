@@ -18,8 +18,10 @@ from backend.beam import run_beam
 from backend.cache import ScoreCache
 from backend.classifier import ClassifiedRefine, classify_refine
 from backend.clause import ClauseRecord, label_for
+from backend.knowledge import fetch_arxiv_documents
 from backend.schemas import (
     AggregateEvent,
+    ArxivIngestRequest,
     BeamEvent,
     Chip,
     ChipEvent,
@@ -86,6 +88,24 @@ async def ingest(request: IngestRequest) -> IngestResponse:
     state.warm_state = await scorer.warm(request.corpus_id, chunks)
     return IngestResponse(
         corpus_id=request.corpus_id,
+        n_chunks=len(chunks),
+        facets=facet_summary(chunks),
+        warm_eta_s=0.0,
+    )
+
+
+@app.post("/source/arxiv")
+async def ingest_arxiv_source(request: ArxivIngestRequest) -> IngestResponse:
+    documents = fetch_arxiv_documents(request.query, max_results=request.count)
+    if not documents:
+        raise HTTPException(status_code=404, detail="arXiv returned no papers for this query")
+    if not state.chunks:
+        state.corpus_id = "arxiv"
+    chunks = state.append_documents(documents)
+    cache.clear()
+    state.warm_state = await scorer.warm("arxiv", chunks)
+    return IngestResponse(
+        corpus_id="arxiv",
         n_chunks=len(chunks),
         facets=facet_summary(chunks),
         warm_eta_s=0.0,

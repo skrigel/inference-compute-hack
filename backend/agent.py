@@ -32,6 +32,7 @@ from backend.cache import ScoreCache
 from backend.select import auto_threshold, smart_select
 from backend.state import BackendState
 from backend.streaming import query_stream
+from backend.schemas import FreshDocument
 
 # Mirror backend.main: a beam candidate must retain this fraction of the parent
 # survivors to be eligible for the objective max.
@@ -74,6 +75,17 @@ class AgentSession:
         self.cache.clear()
         self.state.current_clause = None
         return {"corpus_id": corpus_id, "n_chunks": len(self.state.chunks)}
+
+    async def ingest_documents(self, source_id: str, documents: list[FreshDocument]) -> dict:
+        """Load arbitrary code/paper/source documents into this isolated session."""
+        self.state.corpus_id = source_id
+        self.state.chunks = []
+        self.state.current_clause = None
+        self.state.clauses.clear()
+        self.cache.clear()
+        chunks = self.state.append_documents(documents)
+        self.state.corpus_id = source_id
+        return {"source_id": source_id, "corpus_id": source_id, "n_chunks": len(chunks)}
 
     # -- Axis 1 (Memory) --------------------------------------------------------
     async def query(

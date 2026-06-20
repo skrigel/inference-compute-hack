@@ -18,6 +18,17 @@ export async function ingestLive(
   return { n_chunks: data.n_chunks, facets: data.facets };
 }
 
+export async function addArxivLive(query: string, count = 25): Promise<{ n_chunks: number; facets: Facets }> {
+  const response = await fetch(`${API_BASE}/source/arxiv`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ query, count }),
+  });
+  if (!response.ok) throw new Error(`arxiv source ingest failed: ${response.status}`);
+  const data = await response.json();
+  return { n_chunks: data.n_chunks, facets: data.facets };
+}
+
 export async function queryLive(
   request: QueryRequest,
   onEvent: (event: QueryEvent) => void,

@@ -26,6 +26,11 @@ class IngestRequest(BaseModel):
     limit: int | None = None  # For browsecomp: max docs to load (None = all ~100k)
 
 
+class ArxivIngestRequest(BaseModel):
+    query: str = Field(min_length=1)
+    count: int = Field(default=25, ge=1, le=100)
+
+
 class FreshDocument(BaseModel):
     title: str
     text: str

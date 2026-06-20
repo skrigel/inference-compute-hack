@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useDashboard, type LatencyKind } from "../hooks/useDashboard";
+import { useDashboard, type ComparisonLane as ComparisonLaneData, type LatencyKind } from "../hooks/useDashboard";
 import { db } from "../lib/storage";
 import type { CachedScore } from "../lib/scoreCache";
 import type { Chip, FacetBucket, Facets, HistogramBin, Corpus } from "../lib/types";
@@ -82,6 +82,8 @@ export function SearchPage() {
         onCorpusChange={handleCorpusChange}
       />
 
+      <ComparisonDemoPanel d={d} />
+
       <ThresholdSection
         histogram={d.view.histogram}
         threshold={d.threshold}
@@ -118,6 +120,108 @@ export function SearchPage() {
         onClickRefine={d.runClickRefine}
       />
     </main>
+  );
+}
+
+function ComparisonDemoPanel({ d }: { d: ReturnType<typeof useDashboard> }) {
+  const [arxivQuery, setArxivQuery] = useState("retrieval ranking metrics");
+  const datasetSizes = [7, 100, 1000, 10000];
+  return (
+    <section className="comparison-panel">
+      <div className="comparison-header">
+        <div>
+          <span className="comparison-title">MCP comparison</span>
+          <span className="comparison-sub">RAG tool vs cached iterative source-search tool</span>
+        </div>
+        <div className="dataset-size-row">
+          {datasetSizes.map((size) => (
+            <button
+              className={`dataset-size-btn${d.demoDatasetSize === size ? " active" : ""}`}
+              key={size}
+              onClick={() => void d.setDemoDatasetSize(size)}
+              disabled={d.streaming || d.comparisonRunning}
+            >
+              {size >= 1000 ? `${size / 1000}k` : size}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="comparison-controls">
+        <div className="task-row">
+          {d.comparisonTasks.map((task) => (
+            <button
+              className="task-btn"
+              key={task.id}
+              onClick={() => void d.runComparisonTask(task.id)}
+              disabled={d.streaming || d.refining || d.comparisonRunning}
+            >
+              {task.title}
+            </button>
+          ))}
+        </div>
+        <div className="arxiv-row">
+          <input
+            aria-label="Arxiv query"
+            value={arxivQuery}
+            onChange={(event) => setArxivQuery(event.target.value)}
+          />
+          <button
+            className="task-btn secondary"
+            onClick={() => void d.addArxivBurst(arxivQuery, 25)}
+            disabled={d.streaming || d.comparisonRunning || !arxivQuery.trim()}
+          >
+            Add arXiv 25
+          </button>
+          {d.dynamicSourceCount > 0 && (
+            <span className="dynamic-source-count">+{d.dynamicSourceCount} dynamic papers</span>
+          )}
+        </div>
+      </div>
+
+      {d.comparisonRunning && <div className="comparison-running">Running comparison...</div>}
+
+      {d.comparison && (
+        <div className="comparison-result">
+          <div className="speedup-tile">
+            <span className="speedup-value">{d.comparison.speedup.toFixed(2)}x</span>
+            <span className="speedup-label">work-unit speedup</span>
+            <span className="speedup-context">
+              {d.comparison.datasetSize.toLocaleString()} docs · {d.comparison.query}
+            </span>
+          </div>
+          <ComparisonLane lane={d.comparison.rag} />
+          <ComparisonLane lane={d.comparison.ours} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ComparisonLane({ lane }: { lane: ComparisonLaneData }) {
+  return (
+    <div className="comparison-lane">
+      <div className="lane-head">
+        <span className="lane-label">{lane.label}</span>
+        <span className="lane-tool">{lane.toolName}</span>
+      </div>
+      <div className="lane-metrics">
+        <span>
+          <strong>{Math.round(lane.elapsedMs)}ms</strong> elapsed
+        </span>
+        <span>
+          <strong>{lane.workUnits.toLocaleString()}</strong> work units
+        </span>
+        <span>
+          <strong>{lane.selectedCount}</strong> selected
+        </span>
+      </div>
+      <ol className="lane-steps">
+        {lane.steps.map((step, index) => (
+          <li key={index}>{step}</li>
+        ))}
+      </ol>
+    </div>
   );
 }
 

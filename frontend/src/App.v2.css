@@ -2048,6 +2048,205 @@ body {
 }
 
 /* ============================================
+   MCP comparison demo
+   ============================================ */
+
+.comparison-panel {
+  background: var(--bg-primary);
+  border: 1px solid var(--separator-opaque);
+  border-radius: var(--r2);
+  padding: var(--s3);
+  margin: var(--s2) 0 var(--s3);
+}
+
+.comparison-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s3);
+}
+
+.comparison-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.comparison-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--label-tertiary);
+  margin-top: 2px;
+}
+
+.dataset-size-row,
+.task-row,
+.arxiv-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.dataset-size-btn,
+.task-btn {
+  border: 1px solid var(--separator-opaque);
+  background: var(--fill-tertiary);
+  color: var(--label-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: var(--r1);
+}
+
+.dataset-size-btn.active {
+  background: var(--system-blue);
+  border-color: var(--system-blue);
+  color: white;
+}
+
+.task-btn {
+  background: var(--bg-primary);
+}
+
+.task-btn.secondary {
+  color: var(--system-blue);
+}
+
+.dataset-size-btn:disabled,
+.task-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.comparison-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.arxiv-row input {
+  flex: 1;
+  min-width: 180px;
+  padding: 6px 10px;
+  border: 1px solid var(--separator-opaque);
+  background: var(--bg-primary);
+  color: var(--label);
+  border-radius: var(--r1);
+  outline: none;
+}
+
+.dynamic-source-count,
+.comparison-running {
+  font-size: 12px;
+  color: var(--label-tertiary);
+}
+
+.comparison-result {
+  display: grid;
+  grid-template-columns: 150px 1fr 1fr;
+  gap: var(--s3);
+  margin-top: var(--s3);
+}
+
+.speedup-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--s3);
+  border-radius: var(--r1);
+  background: rgba(52, 199, 89, 0.12);
+  border: 1px solid rgba(52, 199, 89, 0.28);
+}
+
+.speedup-value {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--system-green);
+}
+
+.speedup-label,
+.speedup-context,
+.lane-tool {
+  font-size: 11px;
+  color: var(--label-tertiary);
+}
+
+.speedup-context {
+  line-height: 1.25;
+}
+
+.comparison-lane {
+  padding: var(--s3);
+  border: 1px solid var(--separator-opaque);
+  border-radius: var(--r1);
+  background: var(--fill-tertiary);
+}
+
+.lane-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+}
+
+.lane-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--label);
+}
+
+.lane-tool {
+  font-family: var(--font-mono);
+}
+
+.lane-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+}
+
+.lane-metrics span {
+  font-size: 11px;
+  color: var(--label-secondary);
+}
+
+.lane-metrics strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--label);
+}
+
+.lane-steps {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--label-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+@media (max-width: 860px) {
+  .comparison-header,
+  .comparison-result {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-header {
+    flex-direction: column;
+  }
+}
+
+/* ============================================
    Hint Card
    ============================================ */
 

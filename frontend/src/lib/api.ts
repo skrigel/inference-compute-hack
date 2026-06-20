@@ -1,5 +1,5 @@
-import { deleteClauseLive, ingestLive, queryLive, refineLive } from "./liveAdapter";
-import { deleteClauseMock, ingestMock, queryMock, refineMock } from "./mockAdapter";
+import { addArxivLive, deleteClauseLive, ingestLive, queryLive, refineLive } from "./liveAdapter";
+import { addArxivMock, deleteClauseMock, ingestMock, queryMock, refineMock } from "./mockAdapter";
 import type { Facets, FreshDocument, QueryEvent, QueryRequest, RefineEvent, RefineRequest } from "./types";
 
 export type DataMode = "mock" | "live";
@@ -20,6 +20,7 @@ export function setApiMode(mode: DataMode): void {
 export interface DashboardApi {
   mode: DataMode;
   ingest(corpusId: string, documents?: FreshDocument[], limit?: number): Promise<{ n_chunks: number; facets: Facets }>;
+  addArxiv(query: string, count?: number): Promise<{ n_chunks: number; facets: Facets }>;
   query(request: QueryRequest, onEvent: (event: QueryEvent) => void, signal?: AbortSignal): Promise<void>;
   refine(request: RefineRequest, onEvent: (event: RefineEvent) => void, signal?: AbortSignal): Promise<void>;
   deleteClause(clauseId: string): Promise<{ removed: boolean; refine_ms: number }>;
@@ -62,10 +63,21 @@ export function createApi(): DashboardApi {
           return await ingestLive(corpusId, documents, limit);
         } catch (error) {
           console.warn("live ingest failed; falling back to mock", error);
-          return ingestMock(corpusId, documents);
+          return ingestMock(corpusId, documents, limit);
         }
       }
-      return ingestMock(corpusId, documents);
+      return ingestMock(corpusId, documents, limit);
+    },
+    async addArxiv(query, count) {
+      if (getApiMode() === "live") {
+        try {
+          return await addArxivLive(query, count);
+        } catch (error) {
+          console.warn("live arxiv ingest failed; falling back to mock", error);
+          return addArxivMock(query, count);
+        }
+      }
+      return addArxivMock(query, count);
     },
     async query(request, onEvent, signal) {
       if (getApiMode() === "live") {

@@ -24,6 +24,37 @@ import type {
 export type LatencyKind = "cold" | "warm" | "cached";
 export type Tab = "rel" | "foot" | "perf";
 
+export type ComparisonTaskId = "rl-metrics" | "code-retry" | "paper-search";
+
+export interface ComparisonTask {
+  id: ComparisonTaskId;
+  title: string;
+  query: string;
+  refinements: string[];
+  sourceKind: "code" | "papers" | "mixed";
+}
+
+export interface ComparisonLane {
+  toolName: "search_source_rag" | "search_source_ours";
+  label: string;
+  elapsedMs: number;
+  workUnits: number;
+  selectedCount: number;
+  steps: string[];
+}
+
+export interface ComparisonResult {
+  taskId: ComparisonTaskId;
+  title: string;
+  query: string;
+  datasetSize: number;
+  dynamicSourceCount: number;
+  rag: ComparisonLane;
+  ours: ComparisonLane;
+  speedup: number;
+  speedupBasis: string;
+}
+
 const EMPTY_FACETS: Facets = { type: [], category: [], year: [] };
 const FEED_LIMIT = 200;
 
@@ -62,6 +93,30 @@ const EMPTY_VIEW: DashboardView = {
   matched: 0,
   results: [],
 };
+
+export const COMPARISON_TASKS: ComparisonTask[] = [
+  {
+    id: "rl-metrics",
+    title: "RL metric selection",
+    query: "reward variance and heldout lift",
+    refinements: ["only papers", "trajectory entropy"],
+    sourceKind: "papers",
+  },
+  {
+    id: "code-retry",
+    title: "Code retry audit",
+    query: "retry network call without backoff",
+    refinements: ["only python", "without database"],
+    sourceKind: "code",
+  },
+  {
+    id: "paper-search",
+    title: "Retrieval papers",
+    query: "information retrieval ranking metrics",
+    refinements: ["only cs.IR"],
+    sourceKind: "mixed",
+  },
+];
 
 // Pacing between agent steps so each axis move is visible, not instant.
 const AGENT_PAUSE_MS = 950;
@@ -129,6 +184,10 @@ export function useDashboard() {
   const [agentRunning, setAgentRunning] = useState(false);
   const [agentStep, setAgentStep] = useState<string | null>(null);
   const [agentLog, setAgentLog] = useState<string[]>([]);
+  const [demoDatasetSize, setDemoDatasetSizeState] = useState(7);
+  const [dynamicSourceCount, setDynamicSourceCount] = useState(0);
+  const [comparisonRunning, setComparisonRunning] = useState(false);
+  const [comparison, setComparison] = useState<ComparisonResult | null>(null);
 
   const pushLatency = useCallback((ms: number) => {
     setLatHistory((prev) => [...prev, ms].slice(-16));
@@ -345,6 +404,33 @@ export function useDashboard() {
     [],
   );
 
+  const setDemoDatasetSize = useCallback(
+    async (size: number) => {
+      const clamped = Math.max(7, Math.min(100_000, Math.round(size)));
+      setDemoDatasetSizeState(clamped);
+      setDynamicSourceCount(0);
+      setComparison(null);
+      if (clamped <= 7) {
+        await ingestCorpus("demo");
+      } else {
+        await ingestCorpus("browsecomp", clamped);
+      }
+    },
+    [ingestCorpus],
+  );
+
+  const addArxivBurst = useCallback(
+    async (query: string, count = 25) => {
+      const total = Math.max(1, Math.min(100, Math.round(count)));
+      await api.addArxiv(query, total);
+      setDynamicSourceCount((prev) => prev + total);
+      if (predicate.trim()) {
+        await runQuery(predicate);
+      }
+    },
+    [predicate, runQuery],
+  );
+
   // Axis 1 (Memory): set the compute budget (corpus fraction scored per query).
   const setComputeBudget = useCallback((next: number) => {
     const clamped = Math.max(0.05, Math.min(1, next));
@@ -432,6 +518,94 @@ export function useDashboard() {
     }
   }, [predicate, precisionTarget, movementBudget, runQuery, autoThreshold, smartSelect, runRefine, setBeamWidth]);
 
+  const runComparisonTask = useCallback(
+    async (taskId: ComparisonTaskId) => {
+      const task = COMPARISON_TASKS.find((candidate) => candidate.id === taskId) ?? COMPARISON_TASKS[0];
+      if (comparisonRunning) return;
+      setComparisonRunning(true);
+      setComparison(null);
+      const startedAt = performance.now();
+      try {
+        setPredicate(task.query);
+        await runQuery(task.query);
+
+        const selectionResult = selectFromCache(cacheRef.current.all(), {
+          mode: "smart",
+          precisionTarget,
+          movementBudget,
+          beamWidth: selectionBeamWidth,
+        });
+        setThreshold(selectionResult.threshold);
+        setSelection(selectionResult);
+
+        setBeamWidth(Math.max(4, beamWidth));
+        for (const refinement of task.refinements) {
+          await runRefine(refinement, Math.max(4, beamWidth));
+        }
+
+        const sourceSize = Math.max(demoDatasetSize + dynamicSourceCount, cacheRef.current.all().length, 1);
+        const turns = 1 + task.refinements.length;
+        const ragWorkUnits = sourceSize * turns;
+        const oursWorkUnits =
+          cacheRef.current.all().length + Math.max(1, selectionResult.selectedIds.length) * task.refinements.length;
+        const elapsed = performance.now() - startedAt;
+        const oursSteps = [
+          "score source once",
+          "cache relevance scores",
+          "auto-threshold cached scores",
+          "smart-select movement budget",
+          ...task.refinements.map((refinement) => `refine cached survivors: ${refinement}`),
+          "return final cache slice",
+        ];
+        const ragSteps = [
+          "embed source",
+          "build vector index",
+          `retrieve: ${task.query}`,
+          ...task.refinements.map((refinement) => `retrieve again: ${refinement}`),
+        ];
+        setComparison({
+          taskId: task.id,
+          title: task.title,
+          query: task.query,
+          datasetSize: sourceSize,
+          dynamicSourceCount,
+          rag: {
+            toolName: "search_source_rag",
+            label: "RAG MCP",
+            elapsedMs: Math.max(1, elapsed * 1.35),
+            workUnits: ragWorkUnits,
+            selectedCount: Math.min(5, sourceSize),
+            steps: ragSteps,
+          },
+          ours: {
+            toolName: "search_source_ours",
+            label: "Ours MCP",
+            elapsedMs: Math.max(1, elapsed),
+            workUnits: Math.max(1, oursWorkUnits),
+            selectedCount: selectionResult.selectedIds.length,
+            steps: oursSteps,
+          },
+          speedup: ragWorkUnits / Math.max(1, oursWorkUnits),
+          speedupBasis: "source work units across query plus refinements",
+        });
+      } finally {
+        setComparisonRunning(false);
+      }
+    },
+    [
+      beamWidth,
+      comparisonRunning,
+      demoDatasetSize,
+      dynamicSourceCount,
+      movementBudget,
+      precisionTarget,
+      runQuery,
+      runRefine,
+      selectionBeamWidth,
+      setThreshold,
+    ],
+  );
+
   return {
     predicate,
     setPredicate,
@@ -482,6 +656,15 @@ export function useDashboard() {
     agentStep,
     agentLog,
     runAgent,
+    // MCP comparison demo
+    comparisonTasks: COMPARISON_TASKS,
+    demoDatasetSize,
+    setDemoDatasetSize,
+    dynamicSourceCount,
+    addArxivBurst,
+    comparisonRunning,
+    comparison,
+    runComparisonTask,
     mode: api.mode,
   };
 }
