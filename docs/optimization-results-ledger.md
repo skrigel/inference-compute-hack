@@ -16,6 +16,22 @@ optimizations can be judged against objective baselines instead of memory.
 - RAG comparisons must say whether the metric is static retrieve-only latency or
   dynamic fresh-file total latency.
 
+### Repetition and Dataset Size Requirements
+
+- **Minimum repetitions:** Every experiment configuration must be run at least 3 times.
+  Report mean, standard deviation, and min/max for all primary metrics.
+- **Dataset size progression:** Test each optimization at multiple dataset/corpus sizes
+  to characterize scaling behavior. Standard sizes: `small` (≤100 docs), `medium`
+  (1K docs), `large` (10K docs),  `xlarge` (25K+ docs), `xxlarge` (100K+ docs). At minimum, test `small` and
+  one larger tier.
+- **Warm-up exclusion:** Exclude the first repetition from aggregate statistics if it
+  includes JIT/warmup artifacts. Report whether warmup was excluded.
+- **Outlier handling:** If excluding outliers, document the criterion (e.g., >3σ) and
+  report both with-outliers and without-outliers statistics.
+- **Statistical significance:** When comparing two configurations, report whether the
+  difference is statistically significant (p < 0.05) using an appropriate test
+  (e.g., t-test, Mann-Whitney U). Do not claim a win without significance.
+
 ## Weave Logging Contract
 
 Default project:
@@ -74,33 +90,182 @@ Copy this block for every optimization attempt.
 - hypothesis:
 - change:
 - expected mechanism:
-- quality gate:
-  - precision:
-  - recall:
-  - F1:
-  - threshold:
-  - verdict:
-- workloads:
-  - static single-user:
-  - static multi-user:
-  - dynamic single-user:
-  - dynamic multi-user:
-- performance delta:
-  | workload | baseline | candidate | delta | verdict |
-  |---|---:|---:|---:|---|
-- utilization:
-  | workload | GPU util mean/max | BF16 MFU | power mean/max W | memory max MB |
-  |---|---:|---:|---:|---:|
-- RAG comparison:
-  - static metric:
-  - dynamic metric:
-  - largest advantage:
+
+#### Experiment Configuration
+- repetitions: (minimum 3)
+- warmup excluded: yes | no
+- dataset sizes tested:
+  | size tier | doc count | notes |
+  |---|---:|---|
+
+#### Quality Gate
+- precision: mean ± std (n=)
+- recall: mean ± std (n=)
+- F1: mean ± std (n=)
+- threshold:
+- verdict:
+
+#### Workloads Tested
+- static single-user:
+- static multi-user:
+- dynamic single-user:
+- dynamic multi-user:
+
+#### Performance Delta (with variance)
+| workload | dataset | baseline mean ± std | candidate mean ± std | delta | p-value | verdict |
+|---|---|---:|---:|---:|---:|---|
+
+#### Utilization (with variance)
+| workload | dataset | GPU util mean ± std | BF16 MFU mean ± std | power mean ± std W | memory max MB |
+|---|---|---:|---:|---:|---:|
+
+#### Scaling Analysis
+| metric | small→medium | medium→large | large→xlarge | xlarge→xxlarge | scaling behavior |
+|---|---:|---:|---:|---:|---|
+
+#### RAG Comparison
+- static metric:
+- dynamic metric:
+- largest advantage:
+
+#### Summary
 - caveats:
 - regression threshold:
 - decision:
 - next action:
 - rollback:
 ```
+
+## Agent Experiment Summary
+
+After completing any experiment, agents MUST generate a detailed summary using the
+template in **[agent-experiment-summary-format.md](agent-experiment-summary-format.md)**.
+
+### Experiment Artifacts Folder Structure
+
+```
+eval/artifacts/
+├── experiment_summaries/           # Human-readable summaries
+│   ├── OPT-001_summary.md
+│   ├── OPT-002_summary.md
+│   └── ...
+├── experiment_results/             # Detailed per-run data
+│   ├── OPT-001/
+│   │   ├── config.json             # Experiment configuration
+│   │   ├── runs/
+│   │   │   ├── run_001.json        # Individual run results
+│   │   │   ├── run_002.json
+│   │   │   └── ...
+│   │   ├── aggregated.json         # Aggregated statistics
+│   │   ├── scaling_analysis.json   # Dataset scaling data
+│   │   └── plots/
+│   │       ├── scaling_curve.png
+│   │       ├── latency_distribution.png
+│   │       └── ...
+│   └── OPT-002/
+│       └── ...
+├── phase04_h100_rag_matrix.json    # Current baseline artifacts
+├── phase04_quality_gate.json
+└── ...
+```
+
+### Agent Instructions: Recording and Appending Results
+
+**Step 1: Create experiment folder**
+```bash
+mkdir -p eval/artifacts/experiment_results/OPT-XXX/runs
+mkdir -p eval/artifacts/experiment_results/OPT-XXX/plots
+```
+
+**Step 2: Save configuration**
+Save `eval/artifacts/experiment_results/OPT-XXX/config.json`:
+```json
+{
+  "opt_id": "OPT-XXX",
+  "hypothesis": "...",
+  "commit": "abc1234",
+  "timestamp": "2026-06-20T12:00:00Z",
+  "independent_variables": {...},
+  "controlled_variables": {...},
+  "dataset_sizes": ["small", "medium", "large"],
+  "repetitions_per_config": 5,
+  "warmup_runs": 1
+}
+```
+
+**Step 3: Save individual run results**
+For each run, save `eval/artifacts/experiment_results/OPT-XXX/runs/run_NNN.json`:
+```json
+{
+  "run_id": "run_001",
+  "timestamp": "2026-06-20T12:05:00Z",
+  "dataset_size": "medium",
+  "dataset_doc_count": 1000,
+  "config_variant": "baseline",
+  "repetition": 1,
+  "is_warmup": false,
+  "metrics": {
+    "throughput_req_s": 301.5,
+    "latency_p50_ms": 86.4,
+    "latency_p95_ms": 160.6,
+    "latency_p99_ms": 185.2,
+    "gpu_util_mean": 32.0,
+    "gpu_util_max": 64.0,
+    "mfu_bf16": 0.082,
+    "power_mean_w": 134.7,
+    "power_max_w": 153.1,
+    "memory_max_mb": 75309,
+    "precision": 1.0,
+    "recall": 0.889,
+    "f1": 0.941
+  },
+  "errors": [],
+  "notes": ""
+}
+```
+
+**Step 4: Compute and save aggregated results**
+After all runs complete, compute statistics and save `eval/artifacts/experiment_results/OPT-XXX/aggregated.json`:
+```json
+{
+  "opt_id": "OPT-XXX",
+  "generated": "2026-06-20T14:00:00Z",
+  "total_runs": 15,
+  "warmup_excluded": 3,
+  "effective_runs": 12,
+  "by_config": {
+    "baseline_medium": {
+      "n": 4,
+      "throughput_req_s": {"mean": 301.2, "std": 5.3, "min": 294.1, "max": 308.7, "ci_95": [296.1, 306.3]},
+      "latency_p50_ms": {"mean": 86.5, "std": 2.1, "min": 83.2, "max": 89.1, "ci_95": [84.4, 88.6]}
+    }
+  },
+  "comparisons": {
+    "candidate_vs_baseline_medium": {
+      "metric": "throughput_req_s",
+      "baseline_mean": 301.2,
+      "candidate_mean": 352.8,
+      "abs_delta": 51.6,
+      "rel_delta_pct": 17.1,
+      "test": "t-test",
+      "t_statistic": 4.23,
+      "p_value": 0.0032,
+      "significant": true,
+      "effect_size_cohens_d": 1.85
+    }
+  }
+}
+```
+
+**Step 5: Generate summary**
+Create `eval/artifacts/experiment_summaries/OPT-XXX_summary.md` using the template.
+
+**Step 6: Append to ledger**
+Add a new entry to the Optimization Log section of this file following the Standard
+Optimization Entry Format. Include:
+- Reference to artifacts: `eval/artifacts/experiment_results/OPT-XXX/`
+- Key aggregated metrics with variance
+- Verdict based on statistical significance
 
 ## Current Artifacts
 
