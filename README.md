@@ -182,14 +182,6 @@ loop on mock.
 
 ---
 
-## Status & where to start
-
-The repo currently contains the planning artifacts. **Before writing any code, read
-[`CONTRACTS.md`](CONTRACTS.md)** (the frozen interfaces every owner builds against) and
-[`PLAN.md`](PLAN.md) (the full 24-hour schedule, subsystem plans, risk register, and demo script). The
-first 60–90 minutes are a contract-reconciliation huddle — it is the highest-leverage hour in the
-whole build.
-
 ## Team
 
 | Owner | Area |
