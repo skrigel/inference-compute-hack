@@ -1,0 +1,12 @@
+{
+  "commit": "744febb",
+  "env_vars": {
+    "CHUNK_OVERLAP_RATIO": "0.1"
+  },
+  "exp_id": "EXP-OVERLAP-001",
+  "hypothesis": "10% overlap improves recall at chunk boundaries",
+  "modal_args": [],
+  "name": "chunk overlap 10%",
+  "success_criteria": "Recall improvement with acceptable throughput cost",
+  "timestamp": "2026-06-20T17:35:48Z"
+}

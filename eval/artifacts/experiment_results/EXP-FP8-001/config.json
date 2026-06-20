@@ -1,0 +1,12 @@
+{
+  "commit": "744febb",
+  "env_vars": {
+    "KV_CACHE_DTYPE": "fp8"
+  },
+  "exp_id": "EXP-FP8-001",
+  "hypothesis": "fp8 KV cache halves memory, enables larger batches without OOM",
+  "modal_args": [],
+  "name": "fp8 KV cache",
+  "success_criteria": "F1 >= 0.7, throughput neutral or improved",
+  "timestamp": "2026-06-20T17:36:42Z"
+}

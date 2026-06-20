@@ -1,0 +1,12 @@
+{
+  "commit": "744febb",
+  "env_vars": {
+    "BATCH_ACCUMULATE_MS": "15"
+  },
+  "exp_id": "EXP-SCHED-001",
+  "hypothesis": "Accumulating requests for 15ms improves batch efficiency",
+  "modal_args": [],
+  "name": "time-window scheduling 15ms",
+  "success_criteria": ">=10% throughput improvement to justify latency",
+  "timestamp": "2026-06-20T17:35:48Z"
+}

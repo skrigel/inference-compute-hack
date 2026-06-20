@@ -1,0 +1,12 @@
+{
+  "commit": "744febb",
+  "env_vars": {
+    "VLLM_ROUTING_MODE": "length_bin"
+  },
+  "exp_id": "EXP-LENBIN-001",
+  "hypothesis": "Routing similar-length inputs together reduces padding waste",
+  "modal_args": [],
+  "name": "input-length binning",
+  "success_criteria": ">=5% throughput improvement, p95 latency improved",
+  "timestamp": "2026-06-20T17:35:48Z"
+}

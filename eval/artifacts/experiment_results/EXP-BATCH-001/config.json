@@ -1,0 +1,13 @@
+{
+  "commit": "744febb",
+  "env_vars": {
+    "QUERY_BATCH_SIZE": "128",
+    "REFINE_BATCH_SIZE": "128"
+  },
+  "exp_id": "EXP-BATCH-001",
+  "hypothesis": "Larger batches (128 vs 64) improve GPU utilization",
+  "modal_args": [],
+  "name": "increased batch sizes",
+  "success_criteria": ">=5% throughput improvement, p95 regression <10%",
+  "timestamp": "2026-06-20T17:35:48Z"
+}

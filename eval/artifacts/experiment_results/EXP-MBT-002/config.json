@@ -1,0 +1,13 @@
+{
+  "commit": "744febb",
+  "env_vars": {},
+  "exp_id": "EXP-MBT-002",
+  "hypothesis": "Larger max_num_batched_tokens improves prefill throughput",
+  "modal_args": [
+    "--max-num-batched-tokens",
+    "16384"
+  ],
+  "name": "max batched tokens 16384",
+  "success_criteria": ">=5% throughput improvement without OOM",
+  "timestamp": "2026-06-20T17:35:48Z"
+}
