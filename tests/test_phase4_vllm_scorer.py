@@ -187,6 +187,108 @@ class VLLMScorerTests(unittest.TestCase):
         self.assertEqual(summary["request_count_delta"], 64.0)
         self.assertEqual(summary["requests_per_s"], 128.0)
 
+    def test_modal_benchmark_static_dataset_reuses_prompt_prefix(self):
+        from inference.modal_app import _benchmark_prompt
+
+        static_first = _benchmark_prompt(0, variant="compact", dataset_mode="static")
+        static_second = _benchmark_prompt(1, variant="compact", dataset_mode="static")
+        dynamic_first = _benchmark_prompt(0, variant="compact", dataset_mode="dynamic")
+        dynamic_second = _benchmark_prompt(1, variant="compact", dataset_mode="dynamic")
+
+        self.assertEqual(static_first, static_second)
+        self.assertNotEqual(dynamic_first, dynamic_second)
+        self.assertIn("shared-static", static_first)
+        self.assertIn("dynamic-0", dynamic_first)
+
+    def test_modal_benchmark_summarizes_gpu_samples(self):
+        from inference.modal_app import _summarize_gpu_samples
+
+        summary = _summarize_gpu_samples(
+            [
+                {
+                    "gpu_utilization_pct": 10.0,
+                    "gpu_memory_used_mb": 20_000.0,
+                    "gpu_memory_total_mb": 80_000.0,
+                    "gpu_power_w": 250.0,
+                    "gpu_power_limit_w": 700.0,
+                },
+                {
+                    "gpu_utilization_pct": 90.0,
+                    "gpu_memory_used_mb": 40_000.0,
+                    "gpu_memory_total_mb": 80_000.0,
+                    "gpu_power_w": 500.0,
+                    "gpu_power_limit_w": 700.0,
+                },
+                {"error": "sample failed"},
+            ]
+        )
+
+        self.assertEqual(summary["gpu_sample_count"], 2.0)
+        self.assertEqual(summary["gpu_utilization_pct_mean"], 50.0)
+        self.assertEqual(summary["gpu_utilization_pct_max"], 90.0)
+        self.assertEqual(summary["gpu_memory_used_mb_max"], 40_000.0)
+        self.assertEqual(summary["gpu_memory_utilization_pct_max"], 50.0)
+        self.assertAlmostEqual(summary["gpu_power_utilization_pct_mean"], (250.0 / 700.0 * 100.0 + 500.0 / 700.0 * 100.0) / 2)
+
+    def test_h100_rag_matrix_markdown_includes_gpu_scaling(self):
+        from inference.modal_app import _h100_rag_matrix_markdown
+
+        def result(qps: float, p50_ms: float) -> dict:
+            return {
+                "aggregate_client": {
+                    "requests_per_s": qps,
+                    "latency_ms_p50_mean": p50_ms,
+                    "latency_ms_p95_max": p50_ms * 2,
+                },
+                "aggregate_server": {
+                    "derived_mfu_bf16_peak_mean": 0.01,
+                    "gpu_utilization_pct_mean": 10.0,
+                    "gpu_utilization_pct_max": 20.0,
+                    "gpu_power_w_mean": 100.0,
+                    "gpu_power_w_max": 120.0,
+                    "gpu_memory_used_mb_max": 70_000.0,
+                },
+            }
+
+        markdown = _h100_rag_matrix_markdown(
+            {
+                "run_id": "run-1",
+                "model": "model",
+                "vllm_version": "vllm",
+                "prompt_variant": "compact",
+                "gpu_memory_utilization": 0.92,
+                "gpu_counts": [1, 6],
+                "h100_results": {
+                    "single_user_static": {
+                        "1": result(100.0, 10.0),
+                        "6": result(540.0, 12.0),
+                    }
+                },
+                "rag_reference": {
+                    "rows": [
+                        {
+                            "n_docs": 1000,
+                            "retrieve_ms_p50": 5.0,
+                            "fresh_file_total_ms": 50.0,
+                            "single_process_retrieve_qps_p50": 200.0,
+                        }
+                    ]
+                },
+                "comparisons": [
+                    {
+                        "scenario": "single_user_static",
+                        "h100_replicas": 6,
+                        "rag_n_docs": 1000,
+                        "rag_latency_over_h100_p50": 4.0,
+                    }
+                ],
+                "refinement_overlap": [],
+            }
+        )
+
+        self.assertIn("## 1 vs 6 H100 Scaling", markdown)
+        self.assertIn("| single_user_static | 100.000 | 540.000 | 5.400x | 10.000 | 12.000 | 1.200x |", markdown)
+
 
 if __name__ == "__main__":
     unittest.main()

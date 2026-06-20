@@ -16,6 +16,7 @@ Environment:
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -592,11 +593,17 @@ def _percentile(values: list[float], pct: float) -> float:
     return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
 
 
-def _benchmark_prompt(i: int, variant: str = BENCHMARK_PROMPT_VARIANT) -> str:
-    chunk = (
-        f"service batch {i}: retry logic, GPU queue saturation, prefix-cache behavior, "
-        "latency measurement under load"
-    )
+def _benchmark_prompt(i: int, variant: str = BENCHMARK_PROMPT_VARIANT, dataset_mode: str = "dynamic") -> str:
+    if dataset_mode == "static":
+        chunk = (
+            "service batch shared-static: retry logic, GPU queue saturation, "
+            "prefix-cache behavior, latency measurement under load"
+        )
+    else:
+        chunk = (
+            f"service batch dynamic-{i}: retry logic, GPU queue saturation, "
+            f"prefix-cache behavior, latency measurement under load, fresh document version {i}"
+        )
     predicate = "GPU queue saturation and throughput metrics"
     if variant == "compact":
         return f"Chunk: {chunk}\nPredicate: {predicate}\nRelevant? Answer Yes or No:"
@@ -628,6 +635,7 @@ def openai_server_benchmark(
     max_num_batched_tokens: int = 8192,
     enable_mfu_metrics: bool = True,
     prompt_variant: str = BENCHMARK_PROMPT_VARIANT,
+    dataset_mode: str = "dynamic",
     replica_label: str = "replica-0",
 ) -> dict:
     """Run vLLM's OpenAI-compatible server and collect latency/throughput/MFU."""
@@ -682,6 +690,7 @@ def openai_server_benchmark(
         cmd.append("--disable-log-requests")
 
     logs: list[str] = []
+    gpu_samples: list[dict[str, float | str]] = []
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
@@ -699,6 +708,40 @@ def openai_server_benchmark(
 
     reader = threading.Thread(target=_read_logs, daemon=True)
     reader.start()
+
+    def _read_gpu_sample() -> dict[str, float | str]:
+        sample_proc = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,power.limit",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+        if sample_proc.returncode != 0:
+            return {"error": sample_proc.stderr.strip() or f"nvidia-smi exited {sample_proc.returncode}"}
+        line = sample_proc.stdout.strip().splitlines()[0]
+        values = [part.strip() for part in line.split(",")]
+        if len(values) < 6:
+            return {"error": f"unexpected nvidia-smi output: {line}"}
+
+        def _parse(value: str) -> float:
+            try:
+                return float(value)
+            except ValueError:
+                return 0.0
+
+        return {
+            "gpu_utilization_pct": _parse(values[0]),
+            "gpu_memory_utilization_pct": _parse(values[1]),
+            "gpu_memory_used_mb": _parse(values[2]),
+            "gpu_memory_total_mb": _parse(values[3]),
+            "gpu_power_w": _parse(values[4]),
+            "gpu_power_limit_w": _parse(values[5]),
+        }
 
     async def _wait_ready(client: httpx.AsyncClient) -> None:
         deadline = time.time() + 12 * MINUTES
@@ -724,7 +767,7 @@ def openai_server_benchmark(
     async def _post_completion(client: httpx.AsyncClient, idx: int) -> dict:
         payload = {
             "model": "tier1-filter",
-            "prompt": _benchmark_prompt(idx, prompt_variant),
+            "prompt": _benchmark_prompt(idx, prompt_variant, dataset_mode),
             "max_tokens": 1,
             "temperature": 0,
             "logprobs": 5,
@@ -749,14 +792,29 @@ def openai_server_benchmark(
             await _post_completion(client, -1)  # warm the served model and metrics path
             before = await _scrape(client)
             semaphore = asyncio.Semaphore(max(1, concurrency))
+            gpu_stop = threading.Event()
+            gpu_started = time.perf_counter()
+
+            def _sample_gpu_until_done() -> None:
+                while not gpu_stop.is_set():
+                    sample = _read_gpu_sample()
+                    sample["elapsed_s"] = time.perf_counter() - gpu_started
+                    gpu_samples.append(sample)
+                    gpu_stop.wait(0.25)
 
             async def _bounded(idx: int) -> dict:
                 async with semaphore:
                     return await _post_completion(client, idx)
 
+            sampler = threading.Thread(target=_sample_gpu_until_done, daemon=True)
+            sampler.start()
             started = time.perf_counter()
-            request_results = await asyncio.gather(*(_bounded(i) for i in range(num_requests)))
-            elapsed_s = time.perf_counter() - started
+            try:
+                request_results = await asyncio.gather(*(_bounded(i) for i in range(num_requests)))
+                elapsed_s = time.perf_counter() - started
+            finally:
+                gpu_stop.set()
+                sampler.join(timeout=2)
             after = await _scrape(client)
 
         latencies = [float(item["latency_ms"]) for item in request_results]
@@ -764,6 +822,7 @@ def openai_server_benchmark(
         completion_tokens = sum(float(item["completion_tokens"]) for item in request_results)
         total_tokens = sum(float(item["total_tokens"]) for item in request_results)
         server_summary = _summarize_server_metrics(before, after, elapsed_s)
+        server_summary.update(_summarize_gpu_samples(gpu_samples))
         return {
             "replica_label": replica_label,
             "server": "vllm OpenAI-compatible API",
@@ -776,6 +835,7 @@ def openai_server_benchmark(
                 "gpu_memory_utilization": gpu_memory_utilization,
                 "max_num_batched_tokens": max_num_batched_tokens,
                 "prompt_variant": prompt_variant,
+                "dataset_mode": dataset_mode,
                 "enable_mfu_metrics_requested": enable_mfu_metrics,
                 "enable_mfu_metrics_supported": mfu_flag_supported,
                 "enable_mfu_metrics_active": enable_mfu_metrics and mfu_flag_supported,
@@ -792,6 +852,7 @@ def openai_server_benchmark(
                 "latency_ms_max": max(latencies) if latencies else 0.0,
             },
             "server_summary": server_summary,
+            "gpu_samples": gpu_samples[-80:],
             "metrics_before": before,
             "metrics_after": after,
             "mfu_metrics": {
@@ -822,6 +883,7 @@ def benchmark_openai_server(
     gpu_memory_utilization: float = GPU_MEMORY_UTILIZATION,
     max_num_batched_tokens: int = 8192,
     prompt_variant: str = BENCHMARK_PROMPT_VARIANT,
+    dataset_mode: str = "dynamic",
 ):
     """Benchmark vLLM's OpenAI server on Modal and write a Phase 04 artifact."""
     import asyncio
@@ -837,6 +899,7 @@ def benchmark_openai_server(
                 gpu_memory_utilization=gpu_memory_utilization,
                 max_num_batched_tokens=max_num_batched_tokens,
                 prompt_variant=prompt_variant,
+                dataset_mode=dataset_mode,
                 replica_label=f"replica-{idx}",
             )
             for idx in range(num_replicas)
@@ -857,6 +920,7 @@ def benchmark_openai_server(
         "gpu_memory_utilization": gpu_memory_utilization,
         "max_num_batched_tokens": max_num_batched_tokens,
         "prompt_variant": prompt_variant,
+        "dataset_mode": dataset_mode,
         "aggregate_client": {
             "requests_per_s": sum(item["requests_per_s"] for item in client_summaries),
             "prompt_tokens_per_s": sum(item["prompt_tokens_per_s"] for item in client_summaries),
@@ -881,6 +945,14 @@ def benchmark_openai_server(
             "server_queue_avg_ms_mean": _mean_present(server_summaries, "server_queue_avg_ms"),
             "server_prefill_avg_ms_mean": _mean_present(server_summaries, "server_prefill_avg_ms"),
             "server_inference_avg_ms_mean": _mean_present(server_summaries, "server_inference_avg_ms"),
+            "gpu_utilization_pct_mean": _mean_present(server_summaries, "gpu_utilization_pct_mean"),
+            "gpu_utilization_pct_max": _max_present(server_summaries, "gpu_utilization_pct_max"),
+            "gpu_memory_used_mb_max": _max_present(server_summaries, "gpu_memory_used_mb_max"),
+            "gpu_memory_utilization_pct_max": _max_present(server_summaries, "gpu_memory_utilization_pct_max"),
+            "gpu_power_w_mean": _mean_present(server_summaries, "gpu_power_w_mean"),
+            "gpu_power_w_max": _max_present(server_summaries, "gpu_power_w_max"),
+            "gpu_power_utilization_pct_mean": _mean_present(server_summaries, "gpu_power_utilization_pct_mean"),
+            "gpu_power_utilization_pct_max": _max_present(server_summaries, "gpu_power_utilization_pct_max"),
         },
         "replica_results": results,
     }
@@ -904,6 +976,398 @@ def _sum_present(rows: list[dict], key: str) -> float | None:
 def _max_present(rows: list[dict], key: str) -> float | None:
     values = [float(row[key]) for row in rows if row.get(key) is not None]
     return max(values) if values else None
+
+
+def _summarize_gpu_samples(samples: list[dict]) -> dict[str, float | None]:
+    numeric_samples = [sample for sample in samples if "error" not in sample]
+    if not numeric_samples:
+        return {
+            "gpu_sample_count": 0.0,
+            "gpu_utilization_pct_mean": None,
+            "gpu_utilization_pct_max": None,
+            "gpu_memory_used_mb_max": None,
+            "gpu_memory_utilization_pct_mean": None,
+            "gpu_memory_utilization_pct_max": None,
+            "gpu_power_w_mean": None,
+            "gpu_power_w_max": None,
+            "gpu_power_utilization_pct_mean": None,
+            "gpu_power_utilization_pct_max": None,
+        }
+
+    def _values(key: str) -> list[float]:
+        return [float(sample[key]) for sample in numeric_samples if sample.get(key) is not None]
+
+    def _mean(key: str) -> float | None:
+        values = _values(key)
+        return sum(values) / len(values) if values else None
+
+    def _max(key: str) -> float | None:
+        values = _values(key)
+        return max(values) if values else None
+
+    power_utilization = []
+    memory_utilization = []
+    for sample in numeric_samples:
+        power_limit = float(sample.get("gpu_power_limit_w") or 0.0)
+        power_w = float(sample.get("gpu_power_w") or 0.0)
+        if power_limit > 0:
+            power_utilization.append(power_w / power_limit * 100.0)
+        memory_total = float(sample.get("gpu_memory_total_mb") or 0.0)
+        memory_used = float(sample.get("gpu_memory_used_mb") or 0.0)
+        if memory_total > 0:
+            memory_utilization.append(memory_used / memory_total * 100.0)
+
+    return {
+        "gpu_sample_count": float(len(numeric_samples)),
+        "gpu_utilization_pct_mean": _mean("gpu_utilization_pct"),
+        "gpu_utilization_pct_max": _max("gpu_utilization_pct"),
+        "gpu_memory_used_mb_max": _max("gpu_memory_used_mb"),
+        "gpu_memory_utilization_pct_mean": sum(memory_utilization) / len(memory_utilization)
+        if memory_utilization
+        else _mean("gpu_memory_utilization_pct"),
+        "gpu_memory_utilization_pct_max": max(memory_utilization) if memory_utilization else _max("gpu_memory_utilization_pct"),
+        "gpu_power_w_mean": _mean("gpu_power_w"),
+        "gpu_power_w_max": _max("gpu_power_w"),
+        "gpu_power_utilization_pct_mean": sum(power_utilization) / len(power_utilization) if power_utilization else None,
+        "gpu_power_utilization_pct_max": max(power_utilization) if power_utilization else None,
+    }
+
+
+def _aggregate_openai_results(
+    *,
+    results: list[dict],
+    elapsed_s: float,
+    num_replicas: int,
+    gpu_memory_utilization: float,
+    max_num_batched_tokens: int,
+    prompt_variant: str,
+    dataset_mode: str,
+    scenario: str | None = None,
+) -> dict:
+    client_summaries = [result["client_summary"] for result in results]
+    server_summaries = [result["server_summary"] for result in results]
+    payload = {
+        "run_id": f"modal-openai-server-{int(time.time())}",
+        "scenario": scenario,
+        "replicas": num_replicas,
+        "elapsed_s": elapsed_s,
+        "model": MODEL_NAME,
+        "vllm_version": VLLM_METRICS_VERSION,
+        "gpu_memory_utilization": gpu_memory_utilization,
+        "max_num_batched_tokens": max_num_batched_tokens,
+        "prompt_variant": prompt_variant,
+        "dataset_mode": dataset_mode,
+        "aggregate_client": {
+            "requests_per_s": sum(item["requests_per_s"] for item in client_summaries),
+            "prompt_tokens_per_s": sum(item["prompt_tokens_per_s"] for item in client_summaries),
+            "completion_tokens_per_s": sum(item["completion_tokens_per_s"] for item in client_summaries),
+            "total_tokens_per_s": sum(item["total_tokens_per_s"] for item in client_summaries),
+            "latency_ms_p50_mean": sum(item["latency_ms_p50"] for item in client_summaries) / len(client_summaries),
+            "latency_ms_p95_max": max(item["latency_ms_p95"] for item in client_summaries),
+            "latency_ms_p99_max": max(item["latency_ms_p99"] for item in client_summaries),
+        },
+        "aggregate_server": {
+            "estimated_tflops_per_gpu_mean": _mean_present(server_summaries, "estimated_tflops_per_gpu"),
+            "derived_mfu_bf16_peak_mean": _mean_present(server_summaries, "derived_mfu_bf16_peak"),
+            "derived_mfu_fp8_peak_mean": _mean_present(server_summaries, "derived_mfu_fp8_peak"),
+            "prompt_tokens_per_s": _sum_present(server_summaries, "prompt_tokens_per_s"),
+            "generation_tokens_per_s": _sum_present(server_summaries, "generation_tokens_per_s"),
+            "requests_per_s": _sum_present(server_summaries, "requests_per_s"),
+            "kv_cache_usage_perc_max": _max_present(server_summaries, "kv_cache_usage_perc"),
+            "num_requests_running_max": _max_present(server_summaries, "num_requests_running"),
+            "num_requests_waiting_max": _max_present(server_summaries, "num_requests_waiting"),
+            "server_e2e_latency_avg_ms_mean": _mean_present(server_summaries, "server_e2e_latency_avg_ms"),
+            "server_ttft_avg_ms_mean": _mean_present(server_summaries, "server_ttft_avg_ms"),
+            "server_queue_avg_ms_mean": _mean_present(server_summaries, "server_queue_avg_ms"),
+            "server_prefill_avg_ms_mean": _mean_present(server_summaries, "server_prefill_avg_ms"),
+            "server_inference_avg_ms_mean": _mean_present(server_summaries, "server_inference_avg_ms"),
+            "gpu_utilization_pct_mean": _mean_present(server_summaries, "gpu_utilization_pct_mean"),
+            "gpu_utilization_pct_max": _max_present(server_summaries, "gpu_utilization_pct_max"),
+            "gpu_memory_used_mb_max": _max_present(server_summaries, "gpu_memory_used_mb_max"),
+            "gpu_memory_utilization_pct_max": _max_present(server_summaries, "gpu_memory_utilization_pct_max"),
+            "gpu_power_w_mean": _mean_present(server_summaries, "gpu_power_w_mean"),
+            "gpu_power_w_max": _max_present(server_summaries, "gpu_power_w_max"),
+            "gpu_power_utilization_pct_mean": _mean_present(server_summaries, "gpu_power_utilization_pct_mean"),
+            "gpu_power_utilization_pct_max": _max_present(server_summaries, "gpu_power_utilization_pct_max"),
+        },
+        "replica_results": results,
+    }
+    return payload
+
+
+@app.local_entrypoint()
+def benchmark_h100_rag_matrix(
+    gpu_counts: str = "1,6",
+    single_requests: int = 32,
+    multi_requests: int = 128,
+    single_concurrency: int = 1,
+    multi_concurrency: int = 32,
+    gpu_memory_utilization: float = GPU_MEMORY_UTILIZATION,
+    max_num_batched_tokens: int = 8192,
+    prompt_variant: str = BENCHMARK_PROMPT_VARIANT,
+    rag_runs: int = 7,
+):
+    """Run 1-vs-6 H100 scenarios and compare each against the RAG baseline."""
+    import asyncio
+    import json
+    import time
+    from pathlib import Path
+
+    from eval.rag_compare import DEFAULT_QUERY, _measure_rag_size
+
+    counts = [int(part.strip()) for part in gpu_counts.split(",") if part.strip()]
+    scenarios = [
+        {
+            "name": "single_user_static",
+            "dataset_mode": "static",
+            "num_requests": single_requests,
+            "concurrency": single_concurrency,
+            "rag_latency_metric": "retrieve_ms_p50",
+        },
+        {
+            "name": "multi_user_static",
+            "dataset_mode": "static",
+            "num_requests": multi_requests,
+            "concurrency": multi_concurrency,
+            "rag_latency_metric": "retrieve_ms_p50",
+        },
+        {
+            "name": "single_user_dynamic",
+            "dataset_mode": "dynamic",
+            "num_requests": single_requests,
+            "concurrency": single_concurrency,
+            "rag_latency_metric": "fresh_file_total_ms",
+        },
+        {
+            "name": "multi_user_dynamic",
+            "dataset_mode": "dynamic",
+            "num_requests": multi_requests,
+            "concurrency": multi_concurrency,
+            "rag_latency_metric": "fresh_file_total_ms",
+        },
+    ]
+
+    async def _run_replicas(num_replicas: int, scenario: dict) -> dict:
+        started = time.perf_counter()
+        results = await asyncio.gather(
+            *(
+                openai_server_benchmark.remote.aio(
+                    num_requests=scenario["num_requests"],
+                    concurrency=scenario["concurrency"],
+                    gpu_memory_utilization=gpu_memory_utilization,
+                    max_num_batched_tokens=max_num_batched_tokens,
+                    prompt_variant=prompt_variant,
+                    dataset_mode=scenario["dataset_mode"],
+                    replica_label=f"{scenario['name']}-replica-{idx}",
+                )
+                for idx in range(num_replicas)
+            )
+        )
+        elapsed_s = time.perf_counter() - started
+        return _aggregate_openai_results(
+            results=list(results),
+            elapsed_s=elapsed_s,
+            num_replicas=num_replicas,
+            gpu_memory_utilization=gpu_memory_utilization,
+            max_num_batched_tokens=max_num_batched_tokens,
+            prompt_variant=prompt_variant,
+            dataset_mode=scenario["dataset_mode"],
+            scenario=scenario["name"],
+        )
+
+    h100_results: dict[str, dict[str, dict]] = {}
+    for scenario in scenarios:
+        h100_results[scenario["name"]] = {}
+        for count in counts:
+            print(f"\n=== Running {scenario['name']} on {count} H100(s) ===")
+            h100_results[scenario["name"]][str(count)] = asyncio.run(_run_replicas(count, scenario))
+
+    rag_sizes = [7, 1_000, 10_000, 25_000]
+    rag_rows = [
+        _measure_rag_size(n_docs=size, query=DEFAULT_QUERY, top_k=5, runs=rag_runs)
+        for size in rag_sizes
+    ]
+    comparisons = _compare_h100_to_rag(scenarios, h100_results, rag_rows)
+    payload = {
+        "run_id": f"phase04-h100-rag-matrix-{int(time.time())}",
+        "model": MODEL_NAME,
+        "vllm_version": VLLM_METRICS_VERSION,
+        "gpu_counts": counts,
+        "prompt_variant": prompt_variant,
+        "gpu_memory_utilization": gpu_memory_utilization,
+        "max_num_batched_tokens": max_num_batched_tokens,
+        "scenarios": scenarios,
+        "h100_results": h100_results,
+        "rag_reference": {
+            "backend": rag_rows[0]["backend"] if rag_rows else None,
+            "query": DEFAULT_QUERY,
+            "rows": rag_rows,
+        },
+        "comparisons": comparisons,
+        "refinement_overlap": _refinement_overlap_notes(),
+    }
+
+    artifact_dir = Path("eval/artifacts")
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    json_path = artifact_dir / "phase04_h100_rag_matrix.json"
+    md_path = artifact_dir / "phase04_h100_rag_matrix.md"
+    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    md_path.write_text(_h100_rag_matrix_markdown(payload) + "\n")
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    print(f"\nWrote {json_path}")
+    print(f"Wrote {md_path}")
+
+
+def _compare_h100_to_rag(scenarios: list[dict], h100_results: dict[str, dict[str, dict]], rag_rows: list[dict]) -> list[dict]:
+    comparisons = []
+    scenario_by_name = {scenario["name"]: scenario for scenario in scenarios}
+    for scenario_name, by_gpu_count in h100_results.items():
+        scenario = scenario_by_name[scenario_name]
+        metric = scenario["rag_latency_metric"]
+        for gpu_count, h100_result in by_gpu_count.items():
+            h100_client = h100_result["aggregate_client"]
+            h100_latency_ms = h100_client["latency_ms_p50_mean"]
+            h100_qps = h100_client["requests_per_s"]
+            for rag_row in rag_rows:
+                rag_latency_ms = rag_row[metric]
+                rag_qps = 1000.0 / max(rag_latency_ms, 1e-9)
+                comparisons.append(
+                    {
+                        "scenario": scenario_name,
+                        "h100_replicas": int(gpu_count),
+                        "rag_n_docs": rag_row["n_docs"],
+                        "rag_metric": metric,
+                        "h100_latency_ms_p50": h100_latency_ms,
+                        "rag_latency_ms": rag_latency_ms,
+                        "rag_latency_over_h100_p50": rag_latency_ms / max(h100_latency_ms, 1e-9),
+                        "h100_requests_per_s": h100_qps,
+                        "rag_single_process_qps": rag_qps,
+                        "h100_qps_over_rag_single_process_qps": h100_qps / max(rag_qps, 1e-9),
+                    }
+                )
+    return comparisons
+
+
+def _refinement_overlap_notes() -> list[dict[str, str]]:
+    return [
+        {
+            "refinement": "Prefill performance / TTFT / prefill throughput",
+            "overlap": "Direct. The benchmark is max_tokens=1, so it is effectively prefill-only; server TTFT/e2e/prefill metrics and compact prompts target this.",
+        },
+        {
+            "refinement": "KV cache, prefix caching, and reusing computed data",
+            "overlap": "Partial. vLLM prefix caching is enabled and static scenarios exercise shared prompts; the current app does not yet implement a prefix tree or persistent document-prefix KV reuse.",
+        },
+        {
+            "refinement": "Hardware utilization, GPU power, GPU memory",
+            "overlap": "Direct. The matrix samples nvidia-smi during load for GPU utilization, memory used, and power draw in addition to vLLM MFU.",
+        },
+        {
+            "refinement": "Batch size, continuous batching, balancing across chips",
+            "overlap": "Direct for data-parallel balancing across 1 vs 6 replicas and concurrent-user scenarios; not yet single-document parallel merge.",
+        },
+        {
+            "refinement": "Scheduling optimizations / shortest-job-first",
+            "overlap": "Measured but not implemented. Dynamic/static and single/multi scenarios expose queue/prefill behavior; JCT-aware scheduling remains a next optimization.",
+        },
+    ]
+
+
+def _h100_rag_matrix_markdown(payload: dict) -> str:
+    lines = [
+        "# Phase 04 H100 vs RAG Scenario Matrix",
+        "",
+        f"- run_id: `{payload['run_id']}`",
+        f"- model: `{payload['model']}`",
+        f"- vLLM: `{payload['vllm_version']}`",
+        f"- prompt_variant: `{payload['prompt_variant']}`",
+        f"- gpu_memory_utilization: `{payload['gpu_memory_utilization']}`",
+        "",
+        "| scenario | H100s | req/s | p50 ms | p95 max ms | MFU BF16 | GPU util mean/max | power mean/max W | memory max MB |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for scenario_name, by_gpu_count in payload["h100_results"].items():
+        for gpu_count, result in by_gpu_count.items():
+            client = result["aggregate_client"]
+            server = result["aggregate_server"]
+            lines.append(
+                "| "
+                f"{scenario_name} | "
+                f"{gpu_count} | "
+                f"{client['requests_per_s']:.3f} | "
+                f"{client['latency_ms_p50_mean']:.3f} | "
+                f"{client['latency_ms_p95_max']:.3f} | "
+                f"{(server.get('derived_mfu_bf16_peak_mean') or 0.0):.6f} | "
+                f"{(server.get('gpu_utilization_pct_mean') or 0.0):.1f}/{(server.get('gpu_utilization_pct_max') or 0.0):.1f} | "
+                f"{(server.get('gpu_power_w_mean') or 0.0):.1f}/{(server.get('gpu_power_w_max') or 0.0):.1f} | "
+                f"{(server.get('gpu_memory_used_mb_max') or 0.0):.1f} |"
+            )
+    gpu_counts = sorted(int(count) for count in payload.get("gpu_counts", []) if str(count).isdigit())
+    larger_gpu_count = max((count for count in gpu_counts if count != 1), default=None)
+    if larger_gpu_count is not None:
+        lines.extend(
+            [
+                "",
+                f"## 1 vs {larger_gpu_count} H100 Scaling",
+                "",
+                "| scenario | 1 H100 req/s | "
+                f"{larger_gpu_count} H100 req/s | throughput scale | 1 H100 p50 ms | "
+                f"{larger_gpu_count} H100 p50 ms | p50 ratio |",
+                "|---|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for scenario_name, by_gpu_count in payload["h100_results"].items():
+            one_result = by_gpu_count.get("1")
+            larger_result = by_gpu_count.get(str(larger_gpu_count))
+            if not one_result or not larger_result:
+                continue
+            one_client = one_result["aggregate_client"]
+            larger_client = larger_result["aggregate_client"]
+            one_qps = one_client["requests_per_s"]
+            larger_qps = larger_client["requests_per_s"]
+            one_p50 = one_client["latency_ms_p50_mean"]
+            larger_p50 = larger_client["latency_ms_p50_mean"]
+            lines.append(
+                "| "
+                f"{scenario_name} | "
+                f"{one_qps:.3f} | "
+                f"{larger_qps:.3f} | "
+                f"{larger_qps / max(one_qps, 1e-9):.3f}x | "
+                f"{one_p50:.3f} | "
+                f"{larger_p50:.3f} | "
+                f"{larger_p50 / max(one_p50, 1e-9):.3f}x |"
+            )
+    lines.extend(
+        [
+            "",
+            "## RAG Reference",
+            "",
+            "| docs | retrieve p50 ms | fresh-file total ms | retrieve qps |",
+            "|---:|---:|---:|---:|",
+        ]
+    )
+    for row in payload["rag_reference"]["rows"]:
+        lines.append(
+            f"| {row['n_docs']} | {row['retrieve_ms_p50']:.3f} | {row['fresh_file_total_ms']:.3f} | {row['single_process_retrieve_qps_p50']:.3f} |"
+        )
+    biggest = max(payload["comparisons"], key=lambda row: row["rag_latency_over_h100_p50"])
+    lines.extend(
+        [
+            "",
+            "## Biggest Difference",
+            "",
+            (
+                f"- `{biggest['scenario']}` with `{biggest['h100_replicas']}` H100(s) vs RAG at "
+                f"`{biggest['rag_n_docs']}` docs: RAG latency is "
+                f"`{biggest['rag_latency_over_h100_p50']:.3f}x` the H100 p50 latency."
+            ),
+            "",
+            "## Refinement Overlap",
+            "",
+        ]
+    )
+    lines.extend(f"- **{item['refinement']}**: {item['overlap']}" for item in payload["refinement_overlap"])
+    return "\n".join(lines)
 
 
 # -----------------------------------------------------------------------------
