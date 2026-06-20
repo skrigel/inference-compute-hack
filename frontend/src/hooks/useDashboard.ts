@@ -63,16 +63,15 @@ const EMPTY_VIEW: DashboardView = {
   results: [],
 };
 
-export function useDashboard(seedQuery: string) {
+export function useDashboard() {
   const cacheRef = useRef(new ScoreCache());
   const abortRef = useRef<AbortController | null>(null);
   const refineAbortRef = useRef<AbortController | null>(null);
   const chipSnapshotsRef = useRef(new Map<string, CachedScore[]>());
   const thresholdRef = useRef(0.5);
   const computeBudgetRef = useRef(1);
-  const seededRef = useRef(false);
 
-  const [predicate, setPredicate] = useState(seedQuery);
+  const [predicate, setPredicate] = useState("");
   const [threshold, setThresholdState] = useState(0.5);
   const [hasRun, setHasRun] = useState(false);
   const [streaming, setStreaming] = useState(false);
@@ -351,15 +350,6 @@ export function useDashboard(seedQuery: string) {
   }, [precisionTarget, movementBudget, selectionBeamWidth]);
 
   const clearSelection = useCallback(() => setSelection(null), []);
-
-  useEffect(() => {
-    // Guard against React StrictMode's double mount-invoke firing the seed query twice.
-    if (seededRef.current) return;
-    seededRef.current = true;
-    void runQuery(seedQuery);
-    // run once on mount so the demo opens "live"
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return {
     predicate,

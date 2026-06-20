@@ -14,9 +14,12 @@ describe("useDashboard — threshold drag is zero-inference (Phase 1 exit gate)"
     const querySpy = vi.spyOn(api, "query");
     const ingestSpy = vi.spyOn(api, "ingest");
 
-    const { result } = renderHook(() => useDashboard("retry network call without backoff"));
+    const { result } = renderHook(() => useDashboard());
 
-    // Let the seed query stream to completion.
+    // Run a query manually
+    await act(async () => {
+      await result.current.runQuery("retry network call without backoff");
+    });
     await waitFor(() => expect(result.current.streaming).toBe(false), { timeout: 4000 });
     expect(result.current.hasRun).toBe(true);
 
@@ -46,7 +49,10 @@ describe("useDashboard — Phase 2 refine loop", () => {
   it("runs natural-language refine without firing a new query", async () => {
     const querySpy = vi.spyOn(api, "query");
 
-    const { result } = renderHook(() => useDashboard("retry network call without backoff"));
+    const { result } = renderHook(() => useDashboard());
+    await act(async () => {
+      await result.current.runQuery("retry network call without backoff");
+    });
     await waitFor(() => expect(result.current.streaming).toBe(false), { timeout: 4000 });
     querySpy.mockClear();
 
@@ -63,7 +69,10 @@ describe("useDashboard — Phase 2 refine loop", () => {
   it("removes a chip through the zero-inference clause deletion path", async () => {
     const deleteSpy = vi.spyOn(api, "deleteClause");
 
-    const { result } = renderHook(() => useDashboard("retry network call without backoff"));
+    const { result } = renderHook(() => useDashboard());
+    await act(async () => {
+      await result.current.runQuery("retry network call without backoff");
+    });
     await waitFor(() => expect(result.current.streaming).toBe(false), { timeout: 4000 });
 
     await act(async () => {
@@ -81,7 +90,10 @@ describe("useDashboard — Phase 2 refine loop", () => {
   });
 
   it("clears downstream dependent chips when an earlier chip is removed", async () => {
-    const { result } = renderHook(() => useDashboard("retry network call without backoff"));
+    const { result } = renderHook(() => useDashboard());
+    await act(async () => {
+      await result.current.runQuery("retry network call without backoff");
+    });
     await waitFor(() => expect(result.current.streaming).toBe(false), { timeout: 4000 });
 
     await act(async () => {
@@ -102,7 +114,11 @@ describe("useDashboard — Phase 2 refine loop", () => {
     const ingestSpy = vi.spyOn(api, "ingest");
     const querySpy = vi.spyOn(api, "query");
 
-    const { result } = renderHook(() => useDashboard("retry network call without backoff"));
+    const { result } = renderHook(() => useDashboard());
+    await act(async () => {
+      result.current.setPredicate("retry network call without backoff");
+      await result.current.runQuery("retry network call without backoff");
+    });
     await waitFor(() => expect(result.current.streaming).toBe(false), { timeout: 4000 });
     ingestSpy.mockClear();
     querySpy.mockClear();

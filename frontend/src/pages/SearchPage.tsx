@@ -13,8 +13,6 @@ import { db } from "../lib/storage";
 import type { CachedScore } from "../lib/scoreCache";
 import type { Chip, FacetBucket, Facets, HistogramBin, Corpus } from "../lib/types";
 
-const DEFAULT_QUERY = "every place we retry a network call without backoff";
-
 export function SearchPage() {
   const { corpusId } = useParams<{ corpusId: string }>();
   const navigate = useNavigate();
@@ -22,7 +20,7 @@ export function SearchPage() {
   const [loading, setLoading] = useState(true);
   const [activeCorpus, setActiveCorpus] = useState<"demo" | "browsecomp">("demo");
   const [switchingCorpus, setSwitchingCorpus] = useState(false);
-  const d = useDashboard(DEFAULT_QUERY);
+  const d = useDashboard();
 
   const handleCorpusChange = async (newCorpus: "demo" | "browsecomp") => {
     if (newCorpus === activeCorpus || switchingCorpus) return;
@@ -157,7 +155,7 @@ function QuerySection({ predicate, onPredicateChange, onSubmit, streaming, corpu
           autoComplete="off"
           value={predicate}
           onChange={(event) => onPredicateChange(event.target.value)}
-          placeholder="Describe what you're looking for..."
+          placeholder="Type a query..."
         />
         <button className="btn-primary" type="submit" disabled={streaming || switchingCorpus}>
           {streaming ? "Scanning..." : "Scan"}

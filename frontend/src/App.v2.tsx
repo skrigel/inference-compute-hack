@@ -12,12 +12,10 @@ import { useDashboard, type LatencyKind } from "./hooks/useDashboard";
 import type { CachedScore } from "./lib/scoreCache";
 import type { Chip, FacetBucket, Facets, HistogramBin } from "./lib/types";
 
-const DEFAULT_QUERY = "every place we retry a network call without backoff";
-
 type MainTab = "results" | "facets" | "analytics";
 
 function App() {
-  const d = useDashboard(DEFAULT_QUERY);
+  const d = useDashboard();
   const [activeTab, setActiveTab] = useState<MainTab>("results");
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
