@@ -64,11 +64,11 @@ def load_browsecomp_corpus(limit: int | None = None) -> list[Chunk]:
         List of Chunk objects.
     """
     raw = _load_raw_corpus()
-    if limit is not None:
-        raw = raw[:limit]
 
-    chunks = []
+    chunks: list[Chunk] = []
     for item in raw:
+        if limit is not None and len(chunks) >= limit:
+            break  # `limit` caps CHUNKS (the results shown in the UI), not source docs
         docid = str(item["docid"])
         text = item["text"]
         url = item["url"]
@@ -95,6 +95,8 @@ def load_browsecomp_corpus(limit: int | None = None) -> list[Chunk]:
                 )
             )
 
+    if limit is not None:
+        chunks = chunks[:limit]  # trim the doc that pushed us over to land exactly on limit
     return chunks
 
 

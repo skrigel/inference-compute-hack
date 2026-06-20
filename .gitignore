@@ -3,3 +3,8 @@ __pycache__/
 .venv/
 .env
 .env.*
+
+# Persistent SQLite score cache (and WAL sidecars) — generated, not source.
+*.db
+*.db-wal
+*.db-shm

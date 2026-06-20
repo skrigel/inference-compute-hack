@@ -178,7 +178,9 @@ export function SearchPage() {
 
 function ComparisonDemoPanel({ d }: { d: ReturnType<typeof useDashboard> }) {
   const [arxivQuery, setArxivQuery] = useState("retrieval ranking metrics");
-  const datasetSizes = [7, 100, 1000, 10000];
+  // Cap browsecomp loads at 1k docs for the demo — larger loads warm thousands of
+  // chunks on the GPU and take too long. (Was [7, 100, 1000, 10000].)
+  const datasetSizes = [7, 100, 1000];
   return (
     <section className="comparison-panel">
       <div className="comparison-header">
@@ -304,7 +306,12 @@ function QuerySection({ predicate, onPredicateChange, onSubmit, streaming, corpu
           <option value="demo">Demo (7 docs)</option>
           <option value="browsecomp">BrowseComp+ (1k docs)</option>
         </select>
-        {switchingCorpus && <span className="corpus-loading">Loading...</span>}
+        {switchingCorpus && (
+          <span className="corpus-loading">
+            <span className="spinner" aria-hidden="true" />
+            Loading…
+          </span>
+        )}
       </div>
       <form className="query-form" onSubmit={onSubmit}>
         <input
@@ -315,7 +322,14 @@ function QuerySection({ predicate, onPredicateChange, onSubmit, streaming, corpu
           placeholder="Type a query..."
         />
         <button className="btn-primary" type="submit" disabled={streaming || switchingCorpus}>
-          {streaming ? "Scanning..." : "Scan"}
+          {streaming ? (
+            <span className="btn-loading">
+              <span className="spinner" aria-hidden="true" />
+              Scanning…
+            </span>
+          ) : (
+            "Scan"
+          )}
         </button>
       </form>
     </section>

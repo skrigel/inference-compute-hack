@@ -4,6 +4,10 @@ import math
 import os
 import time
 from collections.abc import AsyncIterator, Iterable, Iterator
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from backend.score_store import ScoreStore
 
 from data.schema import Chunk
 from inference.scorer import ScoreRequest, ScoreResult, ScorerClient
@@ -35,6 +39,9 @@ async def query_stream(
     batch_size: int = BATCH_SIZE,
     tier: int = 1,
     compute_budget: float = 1.0,
+    store: "ScoreStore | None" = None,
+    collection: str = "",
+    scorer_tag: str = "",
 ) -> AsyncIterator[StreamEvent]:
     """Score the corpus in batches and stream results best-first with running aggregates.
 
@@ -67,14 +74,24 @@ async def query_stream(
         batch_start = time.perf_counter()
         candidate_ids = {chunk.chunk_id for chunk in batch}
         missing = cache.missing(clause_id, candidate_ids)
+        if missing and store is not None:
+            # Read-through: pull persisted scores for this (collection, predicate,
+            # model) so only true misses go to the scorer (fetch instead of rescan).
+            fetched = store.get_scores(collection, predicate, scorer_tag, missing)
+            for chunk_id, result in fetched.items():
+                cache.put(chunk_id, clause_id, result)
+            missing = {cid for cid in missing if cid not in fetched}
         if missing:
             requests = [
                 ScoreRequest(chunk_id=chunk.chunk_id, chunk_text=chunk.text, predicate=predicate)
                 for chunk in batch
                 if chunk.chunk_id in missing
             ]
-            for result in await scorer.score_batch(requests, tier=tier):
+            scored = await scorer.score_batch(requests, tier=tier)
+            for result in scored:
                 cache.put(result.chunk_id, clause_id, result)
+            if store is not None:
+                store.put_scores(collection, predicate, scorer_tag, scored)
 
         # Pull every chunk without changing hit counters; missing() already
         # recorded whether each candidate was a cache hit or scorer miss.

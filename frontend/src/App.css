@@ -924,3 +924,28 @@ body {
   font-size: 12px;
   color: var(--label-tertiary);
 }
+
+/* Loading spinner shown while a query is scanning / a corpus is loading. */
+.btn-loading,
+.corpus-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.spinner {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: -0.12em;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

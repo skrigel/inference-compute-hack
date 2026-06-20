@@ -192,7 +192,10 @@ vllm_cache_vol = modal.Volume.from_name("grep-vllm-cache", create_if_missing=Tru
 @app.cls(
     image=vllm_image,
     gpu="H100",  # Single H100 per replica (data-parallel, not tensor-parallel)
-    timeout=10 * MINUTES,
+    # 1k-doc browsecomp = ~2.8k chunks scored as one batch on a single replica
+    # (~85s warm, more when cold/queued). Raised from 10min so a cold or stacked
+    # scan can't trip the function timeout. Env-tunable for sweeps.
+    timeout=_env_int("SCORER_TIMEOUT_S", 1800),
     scaledown_window=15 * MINUTES,  # keep warm for refinement loops
     volumes={
         "/root/.cache/huggingface": hf_cache_vol,

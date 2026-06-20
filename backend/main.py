@@ -38,6 +38,7 @@ from backend.schemas import (
     SelectRequest,
     SelectResponse,
 )
+from backend.score_store import ScoreStore
 from backend.select import auto_threshold, smart_select
 from backend.state import BackendState, facet_summary, histogram
 from backend.streaming import query_stream
@@ -46,6 +47,12 @@ app = FastAPI(title="FlashGrep Backend", version="0.1.0")
 state = BackendState()
 cache = ScoreCache()
 scorer = make_scorer()
+# Persistent SQLite score cache — repeated queries fetch stored scores instead of
+# re-scanning the corpus on the GPU. Opt-in via SCORE_CACHE=1 so the test suite and
+# casual runs keep deterministic re-scan behavior; the demo backend turns it on.
+SCORE_CACHE_ON = os.environ.get("SCORE_CACHE", "").strip().lower() in {"1", "true", "yes", "on"}
+score_store = ScoreStore() if SCORE_CACHE_ON else None
+SCORER_TAG = os.environ.get("SCORER_BACKEND", "mock").lower()
 
 # Each query mints a fresh clause id (q1, q2, …) so concurrent queries never
 # evict each other's cached column. `itertools.count` is atomic under the GIL,
@@ -143,6 +150,9 @@ async def query(request: QueryRequest) -> StreamingResponse:
             cache=cache,
             tier=1,
             compute_budget=request.compute_budget,
+            store=score_store,
+            collection=getattr(state, "corpus_id", "demo"),
+            scorer_tag=SCORER_TAG,
         ):
             yield sse(event)
 
