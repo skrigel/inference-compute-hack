@@ -13,6 +13,37 @@ import httpx
 from data.schema import Chunk
 from inference.scorer import PrefixState, ScoreRequest, ScoreResult, ScorerClient
 
+H100_SXM_BF16_FLOPS_PER_GPU = 989.5e12
+H100_SXM_FP8_FLOPS_PER_GPU = 1979.0e12
+
+VLLM_COUNTER_METRICS = {
+    "vllm:estimated_flops_per_gpu_total",
+    "vllm:estimated_read_bytes_per_gpu_total",
+    "vllm:estimated_write_bytes_per_gpu_total",
+    "vllm:prompt_tokens",
+    "vllm:prompt_tokens_total",
+    "vllm:generation_tokens",
+    "vllm:generation_tokens_total",
+    "vllm:request_success",
+    "vllm:request_success_total",
+}
+
+VLLM_GAUGE_METRICS = {
+    "vllm:gpu_cache_usage_perc",
+    "vllm:kv_cache_usage_perc",
+    "vllm:num_requests_running",
+    "vllm:num_requests_waiting",
+    "vllm:model_flops_utilization",
+}
+
+VLLM_HISTOGRAM_PREFIXES = (
+    "vllm:e2e_request_latency_seconds",
+    "vllm:time_to_first_token_seconds",
+    "vllm:request_queue_time_seconds",
+    "vllm:request_inference_time_seconds",
+    "vllm:request_prefill_time_seconds",
+)
+
 
 class VLLMScoringError(RuntimeError):
     """Raised when a vLLM response cannot be mapped to a Yes/No score."""
@@ -135,25 +166,109 @@ class VLLMScorer(ScorerClient):
         response = await self._client.get(metrics_url)
         if response.status_code >= 400:
             return {"error_status": float(response.status_code)}
-        wanted = {
-            "vllm:gpu_cache_usage_perc",
-            "vllm:kv_cache_usage_perc",
-            "vllm:num_requests_running",
-            "vllm:num_requests_waiting",
-            "vllm:model_flops_utilization",
-        }
-        parsed: dict[str, float] = {}
-        for line in response.text.splitlines():
-            if not line or line.startswith("#"):
+        return parse_vllm_prometheus_metrics(response.text)
+
+
+def parse_vllm_prometheus_metrics(text: str) -> dict[str, float]:
+    """Extract the vLLM metrics needed for latency, throughput, queues, and MFU."""
+    parsed: dict[str, float] = {}
+    for line in text.splitlines():
+        if not line or line.startswith("#"):
+            continue
+        name, _, raw_value = line.partition(" ")
+        base_name = name.split("{", 1)[0]
+        if base_name.endswith("_bucket"):
+            continue
+        if (
+            base_name in VLLM_COUNTER_METRICS
+            or base_name in VLLM_GAUGE_METRICS
+            or (
+                base_name.endswith(("_sum", "_count"))
+                and base_name.removesuffix("_sum").removesuffix("_count") in VLLM_HISTOGRAM_PREFIXES
+            )
+            or "mfu" in base_name.lower()
+            or "flops_utilization" in base_name.lower()
+        ):
+            try:
+                value = float(raw_value)
+            except ValueError:
                 continue
-            name, _, raw_value = line.partition(" ")
-            base_name = name.split("{", 1)[0]
-            if base_name in wanted or "mfu" in base_name.lower():
-                try:
-                    parsed[base_name] = float(raw_value)
-                except ValueError:
-                    continue
-        return parsed
+            _record_prometheus_sample(parsed, base_name, value)
+    return parsed
+
+
+def _record_prometheus_sample(parsed: dict[str, float], base_name: str, value: float) -> None:
+    histogram_base = base_name.removesuffix("_sum").removesuffix("_count")
+    if base_name in VLLM_COUNTER_METRICS or histogram_base in VLLM_HISTOGRAM_PREFIXES:
+        parsed[base_name] = parsed.get(base_name, 0.0) + value
+        return
+    parsed[base_name] = max(parsed.get(base_name, value), value)
+
+
+def summarize_vllm_metric_delta(
+    before: dict[str, float],
+    after: dict[str, float],
+    elapsed_s: float,
+    *,
+    peak_flops_per_gpu: float = H100_SXM_BF16_FLOPS_PER_GPU,
+) -> dict[str, float | None]:
+    """Summarize counter deltas from two vLLM /metrics scrapes."""
+    elapsed_s = max(elapsed_s, 1e-9)
+    prompt_tokens = _first_delta(before, after, "vllm:prompt_tokens", "vllm:prompt_tokens_total")
+    generation_tokens = _first_delta(before, after, "vllm:generation_tokens", "vllm:generation_tokens_total")
+    request_success = _first_delta(before, after, "vllm:request_success", "vllm:request_success_total")
+    request_count = request_success if request_success is not None and request_success > 0 else _first_delta(
+        before,
+        after,
+        "vllm:e2e_request_latency_seconds_count",
+        "vllm:time_to_first_token_seconds_count",
+    )
+    flops = _delta(before, after, "vllm:estimated_flops_per_gpu_total")
+    direct_mfu = after.get("vllm:model_flops_utilization")
+
+    tflops_per_gpu = (flops / elapsed_s / 1e12) if flops is not None else None
+    derived_mfu = (flops / elapsed_s / peak_flops_per_gpu) if flops is not None else None
+
+    return {
+        "elapsed_s": elapsed_s,
+        "request_success_delta": request_success,
+        "request_count_delta": request_count,
+        "prompt_tokens_delta": prompt_tokens,
+        "generation_tokens_delta": generation_tokens,
+        "requests_per_s": (request_count / elapsed_s) if request_count is not None else None,
+        "prompt_tokens_per_s": (prompt_tokens / elapsed_s) if prompt_tokens is not None else None,
+        "generation_tokens_per_s": (generation_tokens / elapsed_s) if generation_tokens is not None else None,
+        "estimated_tflops_per_gpu": tflops_per_gpu,
+        "derived_mfu_bf16_peak": derived_mfu,
+        "reported_model_flops_utilization": direct_mfu,
+        "server_e2e_latency_avg_ms": _histogram_avg_ms(before, after, "vllm:e2e_request_latency_seconds"),
+        "server_ttft_avg_ms": _histogram_avg_ms(before, after, "vllm:time_to_first_token_seconds"),
+        "server_queue_avg_ms": _histogram_avg_ms(before, after, "vllm:request_queue_time_seconds"),
+        "server_prefill_avg_ms": _histogram_avg_ms(before, after, "vllm:request_prefill_time_seconds"),
+        "server_inference_avg_ms": _histogram_avg_ms(before, after, "vllm:request_inference_time_seconds"),
+    }
+
+
+def _delta(before: dict[str, float], after: dict[str, float], key: str) -> float | None:
+    if key not in after:
+        return None
+    return after[key] - before.get(key, 0.0)
+
+
+def _first_delta(before: dict[str, float], after: dict[str, float], *keys: str) -> float | None:
+    for key in keys:
+        value = _delta(before, after, key)
+        if value is not None:
+            return value
+    return None
+
+
+def _histogram_avg_ms(before: dict[str, float], after: dict[str, float], prefix: str) -> float | None:
+    sum_delta = _delta(before, after, f"{prefix}_sum")
+    count_delta = _delta(before, after, f"{prefix}_count")
+    if sum_delta is None or count_delta is None or count_delta <= 0:
+        return None
+    return (sum_delta / count_delta) * 1000.0
 
 
 def build_prompt(chunk_text: str, predicate: str) -> str:
