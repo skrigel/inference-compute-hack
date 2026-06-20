@@ -289,6 +289,11 @@ class VLLMScorerTests(unittest.TestCase):
         self.assertIn("## 1 vs 6 H100 Scaling", markdown)
         self.assertIn("| single_user_static | 100.000 | 540.000 | 5.400x | 10.000 | 12.000 | 1.200x |", markdown)
 
+    def test_modal_benchmark_parses_csv_ints(self):
+        from inference.modal_app import _parse_int_csv
+
+        self.assertEqual(_parse_int_csv("1,6, 100000"), [1, 6, 100000])
+
 
 if __name__ == "__main__":
     unittest.main()

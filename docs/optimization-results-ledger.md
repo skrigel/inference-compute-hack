@@ -22,8 +22,11 @@ optimizations can be judged against objective baselines instead of memory.
   Report mean, standard deviation, and min/max for all primary metrics.
 - **Dataset size progression:** Test each optimization at multiple dataset/corpus sizes
   to characterize scaling behavior. Standard sizes: `small` (≤100 docs), `medium`
-  (1K docs), `large` (10K docs),  `xlarge` (25K+ docs), `xxlarge` (100K+ docs). At minimum, test `small` and
-  one larger tier.
+  (1K docs), `large` (10K docs), `xlarge` (25K+ docs), `xxlarge` (100K+ docs).
+  The standard runner preserves the current small sizes and adds larger tiers:
+  `7`, `100`, `1_000`, `10_000`, `25_000`, and `100_000` docs. Agents on larger
+  machines can add the optional `250_000` tier with `--include-extreme`.
+  At minimum, test `small` and one larger tier.
 - **Warm-up exclusion:** Exclude the first repetition from aggregate statistics if it
   includes JIT/warmup artifacts. Report whether warmup was excluded.
 - **Outlier handling:** If excluding outliers, document the criterion (e.g., >3σ) and
@@ -140,6 +143,59 @@ Copy this block for every optimization attempt.
 
 After completing any experiment, agents MUST generate a detailed summary using the
 template in **[agent-experiment-summary-format.md](agent-experiment-summary-format.md)**.
+
+### Standard Benchmark Runner
+
+Use `eval.standard_benchmark` for every optimization unless there is a documented
+reason it cannot represent the change. The runner creates the experiment folder,
+copies matrix runs into `runs/`, computes current-vs-baseline deltas, runs the
+standard RAG size ladder, writes aggregate/scaling JSON, and emits a ledger-entry
+block that can be pasted into this file.
+
+Fast artifact-only comparison, useful after an agent has already generated a
+candidate matrix:
+
+```bash
+python -m eval.standard_benchmark \
+  --opt-id OPT-XXX \
+  --name "short optimization name" \
+  --baseline-artifact eval/artifacts/phase04_h100_rag_matrix.json \
+  --candidate-artifact eval/artifacts/experiment_results/OPT-XXX/candidate_h100_rag_matrix.json
+```
+
+Full Modal/GPU path, useful when the agent should generate the candidate matrix
+itself:
+
+```bash
+SCORER_MIN_CONTAINERS=0 VLLM_METRICS_VERSION=0.22.1 ENABLE_MFU_METRICS=1 \
+GPU_MEMORY_UTILIZATION=0.92 KV_CACHE_DTYPE=auto \
+python -m eval.standard_benchmark \
+  --opt-id OPT-XXX \
+  --name "short optimization name" \
+  --run-modal \
+  --gpu-counts 1,6 \
+  --single-requests 32 \
+  --multi-requests 96 \
+  --single-concurrency 1 \
+  --multi-concurrency 32 \
+  --dataset-sizes 7 100 1000 10000 25000 100000
+```
+
+Outputs:
+
+| file | purpose |
+|---|---|
+| `eval/artifacts/experiment_results/OPT-XXX/config.json` | exact inputs and command |
+| `eval/artifacts/experiment_results/OPT-XXX/runs/*.json` | per-matrix run records |
+| `eval/artifacts/experiment_results/OPT-XXX/aggregated.json` | baseline/candidate stats and deltas |
+| `eval/artifacts/experiment_results/OPT-XXX/scaling_analysis.json` | RAG dataset-size scaling |
+| `eval/artifacts/experiment_results/OPT-XXX/ledger_entry.md` | paste-ready optimization ledger entry |
+| `eval/artifacts/experiment_summaries/OPT-XXX_summary.md` | human-readable experiment summary |
+
+To compare against multiple prior runs, pass `--baseline-artifact` more than once.
+To compare repeated candidate runs, pass `--candidate-artifact` more than once.
+The runner reports mean/std/min/max and approximate p-values when both sides have
+at least two runs.
 
 ### Experiment Artifacts Folder Structure
 

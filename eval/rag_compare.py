@@ -18,7 +18,7 @@ DEFAULT_OURS_QUALITY_ARTIFACT = ARTIFACT_DIR / "phase04_quality_gate.json"
 DEFAULT_OUTPUT_JSON = ARTIFACT_DIR / "phase04_rag_vs_6xh100.json"
 DEFAULT_OUTPUT_MD = ARTIFACT_DIR / "phase04_rag_vs_6xh100.md"
 DEFAULT_QUERY = "GPU queue saturation and throughput metrics"
-DEFAULT_SIZES = [7, 100, 1_000, 5_000, 10_000, 25_000]
+DEFAULT_SIZES = [7, 100, 1_000, 5_000, 10_000, 25_000, 100_000]
 
 
 def run_rag_vs_6xh100(

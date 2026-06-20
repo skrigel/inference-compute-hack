@@ -9,6 +9,7 @@ record stay identical).
 from __future__ import annotations
 
 import argparse
+import heapq
 import hashlib
 import json
 import math
@@ -16,19 +17,22 @@ import time
 from dataclasses import dataclass
 
 DIM = 256
+SparseVector = dict[int, float]
 
 
-def _embed(text: str) -> list[float]:
-    vec = [0.0] * DIM
+def _embed(text: str) -> SparseVector:
+    vec: SparseVector = {}
     for token in text.lower().split():
         bucket = int(hashlib.md5(token.encode()).hexdigest(), 16) % DIM
-        vec[bucket] += 1.0
-    norm = math.sqrt(sum(value * value for value in vec)) or 1.0
-    return [value / norm for value in vec]
+        vec[bucket] = vec.get(bucket, 0.0) + 1.0
+    norm = math.sqrt(sum(value * value for value in vec.values())) or 1.0
+    return {bucket: value / norm for bucket, value in vec.items()}
 
 
-def _cosine(a: list[float], b: list[float]) -> float:
-    return sum(x * y for x, y in zip(a, b))
+def _cosine(a: SparseVector, b: SparseVector) -> float:
+    if len(a) > len(b):
+        a, b = b, a
+    return sum(value * b.get(bucket, 0.0) for bucket, value in a.items())
 
 
 @dataclass
@@ -42,7 +46,7 @@ class IndexStats:
 class RagBaseline:
     def __init__(self) -> None:
         self._doc_ids: list[str] = []
-        self._vectors: list[list[float]] = []
+        self._vectors: list[SparseVector] = []
 
     def build_index(self, docs: list[tuple[str, str]]) -> IndexStats:
         embed_start = time.perf_counter()
@@ -62,9 +66,10 @@ class RagBaseline:
         query_embed_ms = (time.perf_counter() - embed_start) * 1000.0
 
         ann_start = time.perf_counter()
-        scored = sorted(
+        scored = heapq.nlargest(
+            top_k,
             ((_cosine(query_vec, vec), doc_id) for vec, doc_id in zip(self._vectors, self._doc_ids)),
-            reverse=True,
+            key=lambda item: item[0],
         )
         ann_ms = (time.perf_counter() - ann_start) * 1000.0
 

@@ -1095,9 +1095,14 @@ def _aggregate_openai_results(
     return payload
 
 
+def _parse_int_csv(value: str) -> list[int]:
+    return [int(part.strip()) for part in value.split(",") if part.strip()]
+
+
 @app.local_entrypoint()
 def benchmark_h100_rag_matrix(
     gpu_counts: str = "1,6",
+    rag_sizes: str = "7,100,1000,10000,25000,100000",
     single_requests: int = 32,
     multi_requests: int = 128,
     single_concurrency: int = 1,
@@ -1106,6 +1111,7 @@ def benchmark_h100_rag_matrix(
     max_num_batched_tokens: int = 8192,
     prompt_variant: str = BENCHMARK_PROMPT_VARIANT,
     rag_runs: int = 7,
+    artifact_prefix: str = "phase04_h100_rag_matrix",
 ):
     """Run 1-vs-6 H100 scenarios and compare each against the RAG baseline."""
     import asyncio
@@ -1115,7 +1121,7 @@ def benchmark_h100_rag_matrix(
 
     from eval.rag_compare import DEFAULT_QUERY, _measure_rag_size
 
-    counts = [int(part.strip()) for part in gpu_counts.split(",") if part.strip()]
+    counts = _parse_int_csv(gpu_counts)
     scenarios = [
         {
             "name": "single_user_static",
@@ -1182,10 +1188,9 @@ def benchmark_h100_rag_matrix(
             print(f"\n=== Running {scenario['name']} on {count} H100(s) ===")
             h100_results[scenario["name"]][str(count)] = asyncio.run(_run_replicas(count, scenario))
 
-    rag_sizes = [7, 1_000, 10_000, 25_000]
     rag_rows = [
         _measure_rag_size(n_docs=size, query=DEFAULT_QUERY, top_k=5, runs=rag_runs)
-        for size in rag_sizes
+        for size in _parse_int_csv(rag_sizes)
     ]
     comparisons = _compare_h100_to_rag(scenarios, h100_results, rag_rows)
     payload = {
@@ -1209,8 +1214,10 @@ def benchmark_h100_rag_matrix(
 
     artifact_dir = Path("eval/artifacts")
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    json_path = artifact_dir / "phase04_h100_rag_matrix.json"
-    md_path = artifact_dir / "phase04_h100_rag_matrix.md"
+    json_path = artifact_dir / f"{artifact_prefix}.json"
+    md_path = artifact_dir / f"{artifact_prefix}.md"
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    md_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     md_path.write_text(_h100_rag_matrix_markdown(payload) + "\n")
     print(json.dumps(payload, indent=2, sort_keys=True))
