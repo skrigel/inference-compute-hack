@@ -1,0 +1,20 @@
+data: {"type":"result","chunk_id":"99a8fde870b6a4c6","score":0.9616616265405635,"meta":{"type":"code","title":"fresh_incident.py","category":"python","year":null,"path":"incidents/fresh_incident.py","lang":null,"repo":null},"rank":0,"rationale":null}
+
+data: {"type":"result","chunk_id":"e1987e2c298329ac","score":0.8717555268183526,"meta":{"type":"code","title":"aiohttp/client.py","category":"python","year":2024,"path":"aiohttp/client.py","lang":"python","repo":"aiohttp"},"rank":1,"rationale":null}
+
+data: {"type":"result","chunk_id":"dfe71d6c715427ad","score":0.8613985287044135,"meta":{"type":"code","title":"urllib3/connectionpool.py","category":"python","year":2023,"path":"src/urllib3/connectionpool.py","lang":"python","repo":"urllib3"},"rank":2,"rationale":null}
+
+data: {"type":"result","chunk_id":"5fcf70c812146bc4","score":0.7535586490734668,"meta":{"type":"code","title":"requests/adapters.py","category":"python","year":2024,"path":"src/requests/adapters.py","lang":"python","repo":"requests"},"rank":3,"rationale":null}
+
+data: {"type":"result","chunk_id":"1a0a94070f402cd8","score":0.4930282489463497,"meta":{"type":"code","title":"app/db_session.py","category":"python","year":2023,"path":"src/app/db_session.py","lang":"python","repo":"app"},"rank":4,"rationale":null}
+
+data: {"type":"result","chunk_id":"827b94fb614497b3","score":0.4752322669359049,"meta":{"type":"code","title":"jobs/worker.py","category":"python","year":2022,"path":"src/jobs/worker.py","lang":"python","repo":"app"},"rank":5,"rationale":null}
+
+data: {"type":"result","chunk_id":"01c9e6f5451b4fa8","score":0.28088900297981345,"meta":{"type":"code","title":"demo/ui.ts","category":"typescript","year":2024,"path":"src/ui.ts","lang":"typescript","repo":"demo"},"rank":6,"rationale":null}
+
+data: {"type":"result","chunk_id":"12b96a0b7e5b2400","score":0.26563541338842167,"meta":{"type":"paper","title":"Neural Retrieval for Code Search","category":"cs.IR","year":2021,"path":null,"lang":null,"repo":null},"rank":7,"rationale":null}
+
+data: {"type":"aggregate","scanned":8,"matched":4,"histogram":[{"lo":0.0,"hi":0.05,"count":0},{"lo":0.05,"hi":0.1,"count":0},{"lo":0.1,"hi":0.15,"count":0},{"lo":0.15,"hi":0.2,"count":0},{"lo":0.2,"hi":0.25,"count":0},{"lo":0.25,"hi":0.3,"count":2},{"lo":0.3,"hi":0.35,"count":0},{"lo":0.35,"hi":0.4,"count":0},{"lo":0.4,"hi":0.45,"count":0},{"lo":0.45,"hi":0.5,"count":2},{"lo":0.5,"hi":0.55,"count":0},{"lo":0.55,"hi":0.6,"count":0},{"lo":0.6,"hi":0.65,"count":0},{"lo":0.65,"hi":0.7,"count":0},{"lo":0.7,"hi":0.75,"count":0},{"lo":0.75,"hi":0.8,"count":1},{"lo":0.8,"hi":0.85,"count":0},{"lo":0.85,"hi":0.9,"count":2},{"lo":0.9,"hi":0.95,"count":0},{"lo":0.95,"hi":1.0,"count":1}],"facets":{"type":[{"key":"code","relevant":4,"total":7},{"key":"paper","relevant":0,"total":1}],"category":[{"key":"cs.IR","relevant":0,"total":1},{"key":"python","relevant":4,"total":6},{"key":"typescript","relevant":0,"total":1}],"year":[{"key":"2021","relevant":0,"total":1},{"key":"2022","relevant":0,"total":1},{"key":"2023","relevant":1,"total":2},{"key":"2024","relevant":2,"total":3},{"key":"unknown","relevant":1,"total":1}]},"threshold":0.5,"eta_ms":0}
+
+data: {"type":"done","scanned":8,"matched":4,"elapsed_ms":0,"warm":false,"summary":"8 scanned \u00b7 4 matched"}
+

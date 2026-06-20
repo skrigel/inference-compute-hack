@@ -29,8 +29,17 @@ from backend.schemas import IngestRequest, QueryRequest, RefineRequest
 ARTIFACT_DIR = Path(__file__).resolve().parent.parent / "eval" / "artifacts"
 QUERY_FIXTURE = "cut_line_query.sse"
 REFINE_FIXTURE = "cut_line_refine.sse"
+FRESH_FIXTURE = "cut_line_fresh.sse"
 
 DEMO_QUERY = "every place we retry a network call without backoff"
+FRESH_QUERY = "sentinel network retry"
+FRESH_DOC = {
+    "title": "fresh_incident.py",
+    "text": "fresh sentinel retry of a network call with no exponential backoff",
+    "type": "code",
+    "category": "python",
+    "path": "incidents/fresh_incident.py",
+}
 
 
 def load_frames(path: Path) -> list[str]:
@@ -63,12 +72,18 @@ def record(out_dir: Path = ARTIFACT_DIR) -> dict[str, Path]:
     query_text = client.post("/query", json={"predicate": DEMO_QUERY, "threshold": 0.5}).text
     refine_text = client.post("/refine", json={"utterance": "only in the networking layer"}).text
 
+    # Beat 5: drop a fresh file, then query it — the fresh chunk must surface.
+    client.post("/ingest", json={"corpus_id": "demo", "documents": [FRESH_DOC]})
+    fresh_text = client.post("/query", json={"predicate": FRESH_QUERY, "threshold": 0.5}).text
+
     out_dir.mkdir(parents=True, exist_ok=True)
     query_path = out_dir / QUERY_FIXTURE
     refine_path = out_dir / REFINE_FIXTURE
+    fresh_path = out_dir / FRESH_FIXTURE
     query_path.write_text(query_text)
     refine_path.write_text(refine_text)
-    return {"query": query_path, "refine": refine_path}
+    fresh_path.write_text(fresh_text)
+    return {"query": query_path, "refine": refine_path, "fresh": fresh_path}
 
 
 def build_replay_app(fixtures_dir: Path = ARTIFACT_DIR) -> FastAPI:
@@ -79,6 +94,9 @@ def build_replay_app(fixtures_dir: Path = ARTIFACT_DIR) -> FastAPI:
     app.add_middleware(
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
     )
+    # Flips once a fresh file is dropped, so the post-drop query replays the
+    # fresh-file fixture (beat 5) instead of the opening query (beat 1).
+    state = {"fresh_active": False}
 
     def _stream(path: Path) -> StreamingResponse:
         frames = load_frames(path)
@@ -95,13 +113,21 @@ def build_replay_app(fixtures_dir: Path = ARTIFACT_DIR) -> FastAPI:
 
     @app.post("/ingest")
     async def ingest(request: IngestRequest) -> dict:
-        # Canned ingest: the replay corpus is whatever the fixtures encode. Body
-        # accepted (and echoed) to conform to the frozen /ingest interface.
-        return {"corpus_id": request.corpus_id, "n_chunks": 7, "facets": {}, "warm_eta_s": 0.0}
+        # Canned ingest: the replay corpus is whatever the fixtures encode. A
+        # fresh-file drop (documents present) arms the fresh-query fixture.
+        if request.documents:
+            state["fresh_active"] = True
+        return {
+            "corpus_id": request.corpus_id,
+            "n_chunks": 8 if state["fresh_active"] else 7,
+            "facets": {},
+            "warm_eta_s": 0.0,
+        }
 
     @app.post("/query")
     async def query(request: QueryRequest) -> StreamingResponse:
-        return _stream(fixtures_dir / QUERY_FIXTURE)
+        fixture = FRESH_FIXTURE if state["fresh_active"] else QUERY_FIXTURE
+        return _stream(fixtures_dir / fixture)
 
     @app.post("/refine")
     async def refine(request: RefineRequest) -> StreamingResponse:

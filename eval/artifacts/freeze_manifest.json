@@ -1,0 +1,50 @@
+{
+  "caveats": [
+    "Quality gate is the SMALL 7-chunk demo gate, measured on real Modal vLLM (Qwen/Qwen2.5-3B-Instruct-AWQ): F1 0.941176 at calibrated threshold 0.01640298755872838. Default 0.5 collapses recall (~0.11) \u2014 the real backend MUST use the calibrated threshold. Full gold-set + ladder freeze is PENDING the Modal spend-limit reset (see phase04_modal_blocker.md).",
+    "Derived MFU ~0.06 is an under-saturated micro-benchmark (low concurrency, short prompts, queue depth 0), NOT the architecture's MFU; 40-55% prefill is PROJECTED.",
+    "Warm-cache KV crossover ~14k chunks (FP16) is projected from performance/theory.py; candidate-set scoping carries the refine path past it.",
+    "Canned replay twins are recorded from the mock backend; re-record from a real vLLM run once unblocked, then state 'recorded from the same scorer path'.",
+    "Frontend dist/ must be built ahead of time on Node >= 20.19 (Vite 8)."
+  ],
+  "commit": "3fd0419",
+  "corpus": {
+    "approx_words": 98,
+    "chars": 646,
+    "id": "demo",
+    "n_chunks": 7
+  },
+  "frozen_metrics": {
+    "area_under_loop_full": 21,
+    "area_under_loop_label": "measured-mock",
+    "area_under_loop_scoped": 11,
+    "quality_gate": {
+      "backend": "modal",
+      "f1": 0.941176,
+      "label": "measured",
+      "precision": 1.0,
+      "recall": 0.888889,
+      "recommended_threshold": 0.01640298755872838,
+      "small_gate": true,
+      "threshold": 0.01640298755872838
+    },
+    "six_h100": {
+      "derived_mfu_bf16_peak": 0.06059334956039208,
+      "label": "measured-6xH100 (under-saturated micro-benchmark)",
+      "latency_ms_p50_mean": 45.7652221666649,
+      "latency_ms_p95_max": 182.2964013499984,
+      "requests_per_s": 1578.1535273292016,
+      "total_tokens_per_s": 91286.3180964485
+    }
+  },
+  "provenance": {
+    "demo_scorer": "mock-semantic-filter-v0",
+    "real_scorer_model": "Qwen/Qwen2.5-3B-Instruct-AWQ",
+    "vllm_version": "0.22.1"
+  },
+  "reproduce": {
+    "loop_and_figure": "python -m eval.cut_line --figure",
+    "real_gate_freeze_when_unblocked": "SCORER_BACKEND=modal python -m eval.bench --backend modal --tag freeze --weave",
+    "rehearsals_and_manifest": "python -m eval.rehearsal",
+    "theory_figures": "python performance/theory.py"
+  }
+}

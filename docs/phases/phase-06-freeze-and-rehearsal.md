@@ -35,3 +35,23 @@
 - No new feature work remains in progress.
 - The final slide numbers are reproducible from saved artifacts.
 - The team can explain why the metrics are performance metrics, not generic telemetry.
+
+## Implemented In This Phase
+
+- **Rehearsal harness `eval/rehearsal.py`:** runs the three dress rehearsals (R1 live loop GREEN,
+  R2 injected-failure → canned replay serves every beat, R3 spoken budget 85s ≤ 90s) and writes a
+  reproducible `eval/artifacts/freeze_manifest.json`. Guarded by `tests/test_phase6_freeze.py`.
+- **`FREEZE.md`:** the freeze checklist (all items ✓), the labeled frozen-metric table read from
+  saved artifacts, the caveats, and the one-command path to upgrade the freeze once unblocked.
+- **Doc reconciliation:** the newly-pushed real-vLLM small gate (`phase04_quality_gate.json`,
+  F1 0.94 @ calibrated ≈0.016) was reconciled into `eval/SLIDE.md` and `DEMO.md` — the gate is now
+  shown as *measured* (not pending), with the **threshold-calibration caveat** (real backend needs
+  ≈0.016; default 0.5 collapses recall to ~0.11) and the **small-gate-vs-full-freeze** distinction.
+- **Blocker reconciliation:** the small gate ran on Modal; the full ladder/scaling freeze is still
+  blocked by the spend limit. `FREEZE.md` states both so no one claims "Phase 04 complete."
+
+## Honest Freeze Status
+
+FROZEN for the demo on the live mock backend. The real-vLLM **small gate is measured** (F1 0.94);
+the **full freeze is pending** the Modal spend-limit reset. Nothing unverified enters the deck
+(SCHEDULE H19 gate); the MFU 0.06 is quarantined as an under-saturated micro-benchmark.
