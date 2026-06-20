@@ -10,7 +10,7 @@ export function DocumentPreview({ result, onClose }: DocumentPreviewProps) {
   const [showFull, setShowFull] = useState(false);
 
   if (showFull) {
-    return <DocumentFullPreview result={result} onClose={() => setShowFull(false)} onBack={() => setShowFull(false)} />;
+    return <DocumentFullPreview result={result} onClose={onClose} onBack={() => setShowFull(false)} />;
   }
 
   return (
