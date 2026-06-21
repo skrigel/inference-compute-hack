@@ -16,8 +16,8 @@ from data.schema import Chunk, ChunkMeta, chunk_id_of
 # count does NOT bound the token count. ~6000 chars stays well under the window
 # across scripts. Cap passages/doc so one giant doc can't dominate the corpus /
 # scoring cost (raise BROWSECOMP_MAX_CHUNKS_PER_DOC for fuller coverage).
-CHUNK_CHARS = int(os.environ.get("BROWSECOMP_CHUNK_CHARS", "6000"))
-CHUNK_OVERLAP_CHARS = int(os.environ.get("BROWSECOMP_CHUNK_OVERLAP_CHARS", "600"))
+CHUNK_CHARS = int(os.environ.get("BROWSECOMP_CHUNK_CHARS", "3000"))
+CHUNK_OVERLAP_CHARS = int(os.environ.get("BROWSECOMP_CHUNK_OVERLAP_CHARS", "300"))
 MAX_CHUNKS_PER_DOC = int(os.environ.get("BROWSECOMP_MAX_CHUNKS_PER_DOC", "20"))
 
 

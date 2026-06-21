@@ -50,6 +50,8 @@ scorer = make_scorer()
 # Persistent SQLite score cache — repeated queries fetch stored scores instead of
 # re-scanning the corpus on the GPU. Opt-in via SCORE_CACHE=1 so the test suite and
 # casual runs keep deterministic re-scan behavior; the demo backend turns it on.
+# TODO: Add prefix-based caching - reuse scores when query predicates share a common
+# prefix (e.g., "news article about X" could reuse scores from "news article" query).
 SCORE_CACHE_ON = os.environ.get("SCORE_CACHE", "").strip().lower() in {"1", "true", "yes", "on"}
 score_store = ScoreStore() if SCORE_CACHE_ON else None
 SCORER_TAG = os.environ.get("SCORER_BACKEND", "mock").lower()
